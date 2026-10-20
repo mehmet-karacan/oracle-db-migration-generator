@@ -243,9 +243,12 @@ def canonical_fields(obj,snapshot,policy):
     kind = obj.identity.object_type
     def known(path,value,ids=None):
         fields[path] = KnownValue('KNOWN',value,ids or obj.evidence_ids)
-    if kind=='TABLE' and projection:
+    if kind=='TABLE':
+        # Dictionary column facts remain independent evidence when the DDL
+        # projection is unavailable. Definition/layout coverage stays unknown.
         for name,properties in table_columns(obj,snapshot).items():
             fields.update({f'/columns/{pointer(name)}/{key}':value for key,value in properties.items()})
+    if kind=='TABLE' and projection:
         for name,definition in projection.properties.get('constraints',{}).items():
             known('/constraints/'+pointer(name)+'/exists',True)
             for key,value in constraint_properties(definition).items():
@@ -255,7 +258,7 @@ def canonical_fields(obj,snapshot,policy):
                     value = {'enabled':'ENABLE','validation':'VALIDATE','deferrable':'NOT DEFERRABLE',
                              'initially':'IMMEDIATE','rely':'NORELY','delete_rule':'NO ACTION'}.get(key)
                 known('/constraints/'+pointer(name)+'/'+key,canonical_sql(value) if value is not None else None)
-        physical = {'tablespace','storage','logging','parallel','compression'}
+        physical = {'tablespace','storage','logging','parallel','compression','supplemental_logging'}
         for key,value in projection.properties.get('table_properties',{}).items():
             if key in physical and not policy.compare_physical_storage:
                 continue

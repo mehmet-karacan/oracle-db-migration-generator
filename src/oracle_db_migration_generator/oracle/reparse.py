@@ -33,22 +33,40 @@ def _groups(snapshot,owner):
     return {group:[entries[key] for key in sorted(entries)] for group,entries in rows.items()}
 
 
-def reparse_target(snapshot,*,progress=None):
+def reparse_target(snapshot,*,progress=None,object_keys=None):
     if snapshot.side!='TARGET': raise ValueError('TARGET_SNAPSHOT_REQUIRED')
     objects=[];evidence=list(snapshot.evidence)
     candidates=[obj for obj in snapshot.objects if obj.identity.object_type not in {'COMMENT','GRANT'}]
+    selected=None if object_keys is None else frozenset(object_keys)
+    if selected is not None and not selected<={obj.object_key for obj in candidates}:
+        raise ValueError('REPARSE_OBJECT_KEY_UNKNOWN')
     for index,obj in enumerate(candidates):
         if progress: progress(index,len(candidates))
+        if selected is not None and obj.object_key not in selected:
+            objects.append(obj)
+            continue
         updated,context_evidence=project_target_object(obj)
         objects.append(updated)
         evidence.extend(context_evidence)
     # Capture consistency and dictionary facts remain those of the original
     # observation. Re-parsing does not imply a fresh or new Oracle snapshot.
-    ev_id='ev-'+digest(['reparsed-target',snapshot.semantic_digest])
+    ev_id='ev-'+digest(['reparsed-target',snapshot.semantic_digest,sorted(selected) if selected is not None else None])
     evidence.append(Evidence(ev_id,'POLICY','POLICY',None,snapshot.semantic_digest,None,None,None,
                              'Kaydedilmiş hedef metadata snapshot yeniden yorumlandı; Oracle bağlantısı açılmadı.'))
     capabilities=dict(snapshot.capabilities)
     capabilities['reparsed_from_snapshot']=KnownValue('KNOWN',snapshot.semantic_digest,(ev_id,))
+    if selected is not None:
+        capabilities['reparsed_object_keys']=KnownValue('KNOWN',sorted(selected),(ev_id,))
+        # Selection repairs only these DDL projections. Dictionary sidecars and
+        # capture-level uncertainty are immutable inputs, not a fresh capture.
+        objects.extend(obj for obj in snapshot.objects if obj.identity.object_type in {'COMMENT','GRANT'})
+        incomplete=snapshot.completeness.ddl!='COMPLETE' or any(obj.coverage.ddl!='COMPLETE' for obj in objects)
+        registry={}
+        for item in evidence:
+            if item.id in registry and registry[item.id]!=item:raise ValueError('EVIDENCE_ID_CONFLICT')
+            registry[item.id]=item
+        return replace(snapshot,objects=tuple(objects),evidence=tuple(registry[key] for key in sorted(registry)),capabilities=capabilities,
+                       completeness=replace(snapshot.completeness,ddl='PARTIAL' if incomplete else 'COMPLETE'))
     capabilities.pop('sidecar_diagnostics',None)
     diagnostics=tuple(code for code in snapshot.completeness.diagnostics if code!='SOURCE_SIDECAR_UNRESOLVED')
     result=replace(snapshot,objects=tuple(objects),evidence=tuple(evidence),capabilities=capabilities,

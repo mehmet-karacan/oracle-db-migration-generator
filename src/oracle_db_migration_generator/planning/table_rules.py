@@ -144,9 +144,31 @@ def change_table(context,desired,actual,changes):
                                     'Hedefe özgü kolon korunuyor; DROP veya RENAME üretilmez.',tag='column:'+name))
             continue
         if any(diff.kind=='UNKNOWN' for diff in column_changes):
-            result.append(operation(context,desired,column_changes,'REVIEW','BLOCKED','COLUMN_METADATA_UNKNOWN',
-                                    'Kolonun bilinmeyen alanları uygulanabilir dönüşüm olarak sunulamaz.',tag='column:'+name))
-            continue
+            exists_proven=(before is not None and desired.coverage.ddl==actual.coverage.ddl=='COMPLETE'
+                           and _value(after,'exists') is True and _value(before,'exists') is True)
+            preserve_unknown=(exists_proven
+                              and all(diff.kind in {'UNKNOWN','INFORMATIONAL'} for diff in column_changes))
+            if preserve_unknown:
+                result.append(operation(context,desired,column_changes,'PRESERVE','INFORMATIONAL',
+                                        'COLUMN_COMPARISON_INCOMPLETE_PRESERVED',
+                                        'Kolon karşılaştırması eksik; bilinen dönüşüm bulunmadığından mevcut kolon korunuyor, SQL üretilmiyor.',
+                                        tag='column:'+name,feature_scope='COLUMN'))
+                continue
+            unknown=[diff for diff in column_changes if diff.kind=='UNKNOWN']
+            independent=(exists_proven
+                         and all(diff.property_path.rsplit('/',1)[-1] in {'collation','length_semantics'} for diff in unknown)
+                         and all(diff.kind in {'UNKNOWN','INFORMATIONAL'} or
+                                 diff.property_path.rsplit('/',1)[-1] in {'default','nullable'} for diff in column_changes))
+            if independent:
+                result.append(operation(context,desired,unknown,'PRESERVE','INFORMATIONAL',
+                                        'COLUMN_COMPARISON_INCOMPLETE_PRESERVED',
+                                        'Kolonun karakter ayarları bilinmiyor; bağımsız default veya NULL koşulu ayrı değerlendirilir.',
+                                        tag='column:'+name,feature_scope='COLUMN'))
+                column_changes=[diff for diff in column_changes if diff.kind!='UNKNOWN']
+            else:
+                result.append(operation(context,desired,column_changes,'REVIEW','BLOCKED','COLUMN_METADATA_UNKNOWN',
+                                        'Kolonun bilinmeyen alanları uygulanabilir dönüşüm olarak sunulamaz.',tag='column:'+name))
+                continue
         if before is None:
             projection_actual=source_projection(actual)
             dictionary=actual.properties.get('dictionary.tables')
@@ -244,6 +266,34 @@ def change_table(context,desired,actual,changes):
             result.append(operation(context,desired,unsupported,'REVIEW','BLOCKED','TABLE_LAYOUT_CHANGE_UNSUPPORTED',
                                     'Partition veya tablo yerleşimi değişikliği için dönüşüm SQL’i üretilemiyor.',tag='layout'))
             other=[diff for diff in other if diff not in unsupported]
+    constraints={}
+    for diff in other:
+        parts=diff.property_path.split('/')
+        if len(parts)==4 and parts[1]=='constraints':
+            constraints.setdefault(parts[2],[]).append(diff)
+    projection=source_projection(desired)
+    source_constraints=projection.properties.get('constraints',{}) if projection else {}
+    for escaped_name,constraint_changes in sorted(constraints.items()):
+        name=escaped_name.replace('~1','/').replace('~0','~')
+        source_unknown=(not context.profile.policy.allow_drop and desired.coverage.ddl=='COMPLETE'
+                        and projection is not None and name not in source_constraints
+                        and all(diff.before.state=='KNOWN' and diff.after.state=='UNKNOWN'
+                                for diff in constraint_changes))
+        preserved=all(diff.kind in {'EXTRA','INFORMATIONAL'} for diff in constraint_changes)
+        if source_unknown or preserved:
+            code='TARGET_CONSTRAINT_PRESERVED_SOURCE_UNKNOWN' if source_unknown else 'TARGET_ONLY_CONSTRAINT_PRESERVED'
+            result.append(operation(context,actual,constraint_changes,'PRESERVE','INFORMATIONAL',code,
+                                    f'{name} hedef constraint tanımı korunuyor; kaynak yokluğu doğrulanmadı.' if source_unknown
+                                    else f'{name} hedef constraint tanımı korunuyor; otomatik silme yok.',
+                                    tag='constraint-change:'+name,feature_scope='CONSTRAINT'))
+        else:
+            result.append(operation(context,desired,constraint_changes,'REVIEW',
+                                    'BLOCKED' if any(diff.kind=='UNKNOWN' for diff in constraint_changes) else 'REVIEW_REQUIRED',
+                                    'TABLE_COMPONENT_CHANGE_REQUIRES_REVIEW',
+                                    f'{name} constraint tanımı veri veya operasyon koşulu incelemesi gerektiriyor.',
+                                    tag='constraint-change:'+name,feature_scope='CONSTRAINT'))
+    constraint_change_ids={diff.difference_id for group in constraints.values() for diff in group}
+    other=[diff for diff in other if diff.difference_id not in constraint_change_ids]
     if other:
         if all(diff.kind=='INFORMATIONAL' or diff.kind=='EXTRA' for diff in other):
             result.append(operation(context,actual,other,'PRESERVE','INFORMATIONAL','TARGET_ONLY_DEFINITION_PRESERVED',

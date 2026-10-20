@@ -5,7 +5,7 @@ from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens, enclosed, ide
 from .._vendor.analyzer_core.oracle.table import extract_table
 from ..model.serialization import thaw
 from ..model.snapshot import KnownValue
-from .projections import effective_key
+from .projections import anonymous_constraint_key,normalize_projection
 
 
 def apply_context(obj, text, evidence_id, boundary):
@@ -58,18 +58,28 @@ def apply_context(obj, text, evidence_id, boundary):
                     columns[name]['default_on_null'] = 'DEFAULT ON NULL' if start==4 else None
                     changed.add(name)
                     continue
-                extracted = extract_table('CREATE TABLE X ('+source_span(text,item)+');')
-                if extracted.diagnostics:
+                incoming_text='CREATE TABLE X ('+source_span(text,item)+');'
+                extracted = extract_table(incoming_text)
+                incoming=normalize_projection(replace(projection,properties={
+                    'columns':extracted.columns,'constraints':extracted.constraints,
+                    '_unresolved_columns':extracted.unresolved_columns},diagnostics=extracted.diagnostics),incoming_text)
+                if incoming.diagnostics:
                     raise ValueError('TABLE_CONTEXT_COMPONENT_UNRESOLVED')
-                incoming_columns = {effective_key(key):value for key,value in extracted.columns.items()}
-                incoming_constraints = {effective_key(key):value for key,value in extracted.constraints.items()}
+                incoming_columns = incoming.properties['columns']
+                incoming_constraints = incoming.properties['constraints']
                 if action=='ADD':
-                    if set(incoming_columns)&set(columns) or set(incoming_constraints)&set(constraints):
+                    if set(incoming_columns)&set(columns):
                         raise ValueError('DUPLICATE_CONTEXT_COMPONENT')
+                    combined=dict(constraints)
+                    for key,definition in incoming_constraints.items():
+                        if key.startswith('@anonymous-') and code_tokens(definition)[0].upper!='CONSTRAINT':
+                            key=anonymous_constraint_key(definition,combined)
+                        if key is None or key in combined:raise ValueError('DUPLICATE_CONTEXT_COMPONENT')
+                        combined[key]=definition
                     for key,value in incoming_columns.items():
                         value = dict(value);value['position'] = str(len(columns)+1)
                         columns[key] = value
-                    constraints.update(incoming_constraints)
+                    constraints=combined
                 elif len(incoming_columns)==1 and not incoming_constraints:
                     incoming = incoming_columns[name]
                     for key in ('data_type','length','length_semantics','precision','scale'):

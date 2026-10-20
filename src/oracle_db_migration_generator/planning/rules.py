@@ -23,6 +23,12 @@ def plan_target(differences,context):
         obj = desired or actual
         if desired is None and all(d.kind=='EXTRA' for d in changes):
             operations.append(operation(context,obj,changes,'PRESERVE','INFORMATIONAL','TARGET_ONLY_OBJECT_PRESERVED','Hedefe özgü nesne korunuyor; DROP üretilmez.'))
+        elif desired is None and actual is not None and all(
+                diff.property_path=='/presence' and diff.before.state=='KNOWN' and diff.before.value is True
+                and diff.after.state=='UNKNOWN' for diff in changes):
+            operations.append(operation(context,obj,changes,'PRESERVE','INFORMATIONAL',
+                'TARGET_OBJECT_PRESERVED_SOURCE_PRESENCE_UNKNOWN',
+                'Hedefteki nesne korunuyor. Kaynak kapsamı eksik olduğu için kaynakta bulunup bulunmadığı doğrulanamadı; SQL üretilmedi.'))
         elif (any(d.kind=='UNKNOWN' for d in changes) and (actual is None or desired is None)
               or obj.coverage.ddl!='COMPLETE'):
             operations.append(operation(context,obj,changes,'REVIEW','BLOCKED','OBJECT_METADATA_INCOMPLETE','Eksik metadata veya doğrulanmamış yokluk güvenli SQL üretimini engelliyor.'))
@@ -40,9 +46,19 @@ def plan_target(differences,context):
     operations = bind_and_order(operations,context)
     warnings=list(differences.diagnostics)
     for op in operations:
-        if set(op.reason_codes)&{'PHYSICAL_STORAGE_PRESERVED','BACKING_INDEX_CREATED_BY_CONSTRAINT'}:
-            warnings.append(op.reason_codes[0]+': '+op.identity.owner.effective_name+'.'+op.identity.name.effective_name+' · '+op.reason_tr)
+        if set(op.reason_codes)&{'PHYSICAL_STORAGE_PRESERVED','BACKING_INDEX_CREATED_BY_CONSTRAINT',
+                                'TARGET_OBJECT_PRESERVED_SOURCE_PRESENCE_UNKNOWN',
+                                'TARGET_CONSTRAINT_PRESERVED_SOURCE_UNKNOWN','TARGET_ONLY_CONSTRAINT_PRESERVED',
+                                'COLUMN_COMPARISON_INCOMPLETE_PRESERVED'}:
+            name=(op.display_name or '['+op.identity.object_type+']') if op.identity.object_type in {'COMMENT','GRANT'} else op.identity.name.effective_name
+            warnings.append(op.reason_codes[0]+': '+op.identity.owner.effective_name+'.'+name+' · '+op.reason_tr)
     for obj in context.target.objects:
+        if obj.identity.object_type=='TABLE' and not context.profile.policy.compare_physical_storage:
+            from ..compare.projection_adapter import restore_projection
+            projection=restore_projection(obj)
+            if projection and projection.properties.get('_generator_supplemental_logging'):
+                warnings.append('TARGET_SUPPLEMENTAL_LOGGING_PRESERVED: '+obj.identity.owner.effective_name+'.'+
+                                obj.identity.name.effective_name+' · Hedef supplemental logging ayarları korunur; ALTER üretilmedi.')
         status=obj.properties.get('object_status')
         if status and status.state=='KNOWN' and status.value=='INVALID':
             errors=obj.properties.get('dictionary.errors')

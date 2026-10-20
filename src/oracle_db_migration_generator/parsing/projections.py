@@ -11,6 +11,23 @@ def effective_key(key: str) -> str:
     return key[2:] if key.startswith(('U:', 'Q:')) else key
 
 
+def anonymous_constraint_key(definition, existing):
+    """Keep repeated identical CHECKs without inventing Oracle constraint names.
+
+    PK/UK/FK identity collisions and differing CHECK states stay ambiguous.
+    The first occurrence retains the existing semantic key.
+    """
+    details=constraint_properties(definition)
+    if not details['kind'] or not (details['columns'] or details['condition']):return None
+    signature=[details['kind'],canonical_sql(details['columns'] or details['condition'])]
+    base='@anonymous-'+digest(signature)
+    key=base;occurrence=1
+    while key in existing:
+        if details['kind']!='CHECK' or canonical_sql(existing[key])!=canonical_sql(definition):return None
+        occurrence+=1;key=base+'-'+str(occurrence)
+    return key
+
+
 def normalize_projection(projection,source_text=None):
     if projection.object_type=='INDEX' and source_text is not None:
         tokens=code_tokens(source_text) or ()
@@ -54,15 +71,11 @@ def normalize_projection(projection,source_text=None):
             if item[0].upper not in {'PRIMARY','UNIQUE','FOREIGN','CHECK'}:
                 continue
             definition=source_span(source_text,item)
-            details=constraint_properties(definition)
-            if not details['kind'] or not (details['columns'] or details['condition']):
-                complete=False;break
             # Anonymous constraints have no source-controlled Oracle name.
             # Their logical key uses kind+column/expression identity, not a
             # manufactured CONSTRAINT name that would alter emitted DDL.
-            signature=[details['kind'],canonical_sql(details['columns'] or details['condition'])]
-            key='@anonymous-'+digest(signature)
-            if key in properties['constraints'] or any(previous==key for previous,_ in found):
+            key=anonymous_constraint_key(definition,{**properties['constraints'],**dict(found)})
+            if key is None:
                 complete=False;break
             found.append((key,definition))
         if complete and found:

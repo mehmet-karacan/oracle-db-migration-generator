@@ -21,6 +21,69 @@ def test_reparse_recovers_old_parser_failure_without_opening_a_connection(monkey
     assert updated.capabilities['reparsed_from_snapshot'].value==old.semantic_digest
 
 
+def test_selected_reparse_retains_unselected_objects_and_capture_uncertainty(monkeypatch):
+    snapshot=actual('CREATE TABLE APP.T(ID NUMBER); CREATE TABLE APP.OTHER(ID NUMBER);')
+    selected=next(obj for obj in snapshot.objects if obj.identity.name.effective_name=='T')
+    other=next(obj for obj in snapshot.objects if obj.identity.name.effective_name=='OTHER')
+    props=dict(other.properties);props['projection']=KnownValue('UNKNOWN',None,other.evidence_ids)
+    other=replace(other,properties=props,projection=None,coverage=replace(other.coverage,ddl='PARTIAL'))
+    snapshot=replace(snapshot,objects=(selected,other),completeness=replace(snapshot.completeness,inventory='PARTIAL',ddl='PARTIAL'))
+    calls=[]
+    import oracle_db_migration_generator.oracle.reparse as module
+    real=module.project_target_object
+    def record(obj):
+        calls.append(obj.object_key)
+        return real(obj)
+    monkeypatch.setattr(module,'project_target_object',record)
+    updated=reparse_target(snapshot,object_keys=(selected.object_key,))
+    assert calls==[selected.object_key]
+    assert next(obj for obj in updated.objects if obj.object_key==other.object_key)==other
+    assert updated.completeness.inventory=='PARTIAL' and updated.completeness.ddl=='PARTIAL'
+    assert updated.observed_consistency==snapshot.observed_consistency
+    assert updated.capabilities['reparsed_object_keys'].value==(selected.object_key,)
+
+
+def test_selected_reparse_rejects_unknown_object_key():
+    with pytest.raises(ValueError,match='REPARSE_OBJECT_KEY_UNKNOWN'):
+        reparse_target(actual('CREATE TABLE APP.T(ID NUMBER);'),object_keys=('unknown',))
+
+
+def test_selected_reparse_preserves_captured_sidecars_and_their_diagnostics(monkeypatch):
+    snapshot=actual("CREATE TABLE APP.T(ID NUMBER); COMMENT ON TABLE APP.T IS 'kept';")
+    table=next(obj for obj in snapshot.objects if obj.identity.object_type=='TABLE')
+    sidecars=tuple(obj for obj in snapshot.objects if obj.identity.object_type=='COMMENT')
+    caps={**snapshot.capabilities,'sidecar_diagnostics':KnownValue('KNOWN',['unchanged'],table.evidence_ids)}
+    snapshot=replace(snapshot,capabilities=caps,completeness=replace(snapshot.completeness,ddl='PARTIAL',diagnostics=('SOURCE_SIDECAR_UNRESOLVED',)))
+    def forbidden(*args,**kwargs):raise AssertionError('UNCHANGED_DICTIONARY_SIDECARS_MUST_NOT_BE_REGENERATED')
+    monkeypatch.setattr('oracle_db_migration_generator.oracle.reparse.merge_sidecars',forbidden)
+    updated=reparse_target(snapshot,object_keys=(table.object_key,))
+    assert tuple(obj for obj in updated.objects if obj.identity.object_type=='COMMENT')==sidecars
+    assert updated.capabilities['sidecar_diagnostics']==caps['sidecar_diagnostics']
+    assert updated.completeness.ddl=='PARTIAL'
+    assert updated.completeness.diagnostics==snapshot.completeness.diagnostics
+
+
+def test_empty_selected_reparse_cannot_upgrade_capture_level_ddl_coverage():
+    snapshot=actual('CREATE TABLE APP.T(ID NUMBER);')
+    snapshot=replace(snapshot,completeness=replace(snapshot.completeness,ddl='PARTIAL'))
+    updated=reparse_target(snapshot,object_keys=())
+    assert updated.completeness.ddl=='PARTIAL'
+    assert updated.objects==snapshot.objects
+
+
+def test_selected_reparse_deduplicates_existing_context_evidence():
+    import hashlib
+    from oracle_db_migration_generator.oracle.ddl_model import project_target_object
+    snapshot=actual('CREATE TABLE APP.T(ID NUMBER);')
+    raw=b'CREATE TABLE APP.T(ID NUMBER) ALTER TABLE APP.T ADD(CODE NUMBER)'
+    original=replace(snapshot.objects[0],raw_ddl=raw,ddl_sha256=hashlib.sha256(raw).hexdigest())
+    captured,context=project_target_object(original)
+    snapshot=replace(snapshot,objects=(captured,),evidence=snapshot.evidence+context)
+    updated=reparse_target(snapshot,object_keys=(captured.object_key,))
+    assert len(updated.evidence)==len({item.id for item in updated.evidence})
+    assert updated.objects[0].properties['projection'].value['columns']['CODE']['data_type']=='NUMBER'
+
+
 def test_reparse_keeps_metadata_unknown_and_rejects_source_direction():
     with pytest.raises(ValueError,match='TARGET_SNAPSHOT_REQUIRED'):
         reparse_target(source('CREATE TABLE APP.T(ID NUMBER);'))

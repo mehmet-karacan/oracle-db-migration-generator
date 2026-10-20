@@ -74,6 +74,27 @@ def _existing_sequence_shape(ref,desired,actual,context):
     except (ValueError,TypeError):return False
 
 
+def _existing_required_column_shape(ref,desired,actual,context):
+    """Unrelated observations cannot invalidate a proven required column/key."""
+    if ref.role not in {'FK_PARENT','ANCHORED_COLUMN_TYPE'} or not ref.columns or desired is None or actual is None:return None
+    for obj in (desired,actual):
+        proof=obj.properties.get('projection')
+        if obj.identity.object_type!='TABLE' or obj.coverage.ddl!='COMPLETE' or not proof or proof.state!='KNOWN':return None
+        if ref.role=='FK_PARENT' and not _unique_parent(obj,ref.columns):return None
+    from ..compare.projection_adapter import canonical_fields,pointer
+    wanted=canonical_fields(desired,context.source,context.profile.policy)
+    observed=canonical_fields(actual,context.target,context.profile.policy)
+    evidence=set(desired.evidence_ids)|set(actual.evidence_ids)
+    for name in ref.columns:
+        for field in ('exists','data_type','length','length_semantics','precision','scale',
+                      'fractional_precision','collation','identity','virtual_expression'):
+            path='/columns/'+pointer(name)+'/'+field
+            before,after=observed.get(path),wanted.get(path)
+            if before is None or after is None or before.state!=after.state or before.state!='KNOWN' or before.value!=after.value:return None
+            evidence.update(before.evidence_ids);evidence.update(after.evidence_ids)
+    return evidence
+
+
 def bind_and_order(operations,context):
     by_object = {}
     for op in operations:
@@ -98,6 +119,9 @@ def bind_and_order(operations,context):
         if op.identity.object_type=='TABLE' and op.kind!='CREATE':
             prerequisites.update(other.operation_id for other in by_object.get(_key(op.identity),()) if other.kind=='CREATE')
         for ref in refs:
+            if ref.role=='ANCHORED_REFERENCE_UNRESOLVED':
+                issue(ref,'anchored %TYPE/%ROWTYPE başvurusunun tablo, kolon veya yerel değişken bağlamı doğrulanamadı')
+                blocked=True;continue
             kinds=(('TABLE','VIEW','MATERIALIZED_VIEW','SYNONYM') if ref.object_type=='RELATION' else
                    ('PROCEDURE','FUNCTION','PACKAGE_SPEC') if ref.object_type=='CALLABLE' else
                    ('TABLE','VIEW','SEQUENCE','PROCEDURE','FUNCTION','PACKAGE_SPEC','TYPE_SPEC','SYNONYM') if ref.object_type=='SYNONYM_OBJECT' else (ref.object_type,))
@@ -118,17 +142,24 @@ def bind_and_order(operations,context):
                 issue(ref,'hedefteki özel synonym mevcut, gösterdiği nesne çözümlenemedi')
                 blocked=True;continue
             candidates = tuple(other for kind in kinds for other in by_object.get((ref.owner,kind,ref.name),()))
+            key_proof=_existing_required_column_shape(ref,desired,actual,context)
             # A changed spec/parent must not be bypassed through its old target
             # definition while a dependent body is reported ready.
             verified_existing_parent=(actual is not None and actual.coverage.ddl=='COMPLETE'
                                       and actual.identity.object_type=='TABLE'
                                       and ref.role in {'SIDECAR_PARENT','INDEX_TABLE'}
                                       or _existing_relation_shape(ref,desired,actual,context)
-                                      or _existing_sequence_shape(ref,desired,actual,context))
+                                      or _existing_sequence_shape(ref,desired,actual,context)
+                                      or key_proof is not None)
             if verified_existing_parent and actual is not None:extra_evidence.update(actual.evidence_ids)
-            if not verified_existing_parent and any(other.decision in {'BLOCKED','REVIEW_REQUIRED'} for other in candidates):
+            if key_proof is not None:extra_evidence.update(key_proof)
+            structural_role=ref.role in {'FK_PARENT','BACKING_INDEX','USER_DEFINED_TYPE','ANCHORED_COLUMN_TYPE','ANCHORED_ROWTYPE'}
+            uncertain_columns=[other for other in candidates if structural_role
+                               and 'COLUMN_COMPARISON_INCOMPLETE_PRESERVED' in other.reason_codes]
+            if not verified_existing_parent and (uncertain_columns or any(other.decision in {'BLOCKED','REVIEW_REQUIRED'} for other in candidates)):
                 held=sorted({other.kind+' / '+other.decision for other in candidates if other.decision in {'BLOCKED','REVIEW_REQUIRED'}})
-                issue(ref,'bağımlı nesnenin gerekli işlemi hazır değil: '+', '.join(held))
+                if held:issue(ref,'bağımlı nesnenin gerekli işlemi hazır değil: '+', '.join(held))
+                if uncertain_columns:issue(ref,'kaynak kolon karşılaştırmasındaki eksik metadata bu yapısal önkoşul için doğrulanamadı')
                 blocked=True
             if ref.owner not in context.target.schemas:
                 # ALL_OBJECTS proves existence/status only. FK keys and named

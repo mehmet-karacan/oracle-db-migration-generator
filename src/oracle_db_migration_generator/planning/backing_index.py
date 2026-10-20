@@ -1,4 +1,6 @@
 """Prove explicit PK/UK index associations before creating an empty table key."""
+import re
+
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens,identifier
 from .._vendor.analyzer_core.oracle.table import constraint_properties
 from ..model.plan import DependencyReference
@@ -48,7 +50,9 @@ def existing_backing_index(context,index,table,columns):
     source_keys=[]
     for name,definition in wanted.properties.get('constraints',{}).items():
         details,keys=matching_key(definition)
-        if (name==index.identity.name.effective_name and keys==columns and details['kind'] in {'PRIMARY KEY','UNIQUE'}
+        implicit_name=(name==index.identity.name.effective_name or
+                       re.fullmatch(r'SYS_C[0-9]+',index.identity.name.effective_name) and name.startswith('@anonymous-'))
+        if (implicit_name and keys==columns and details['kind'] in {'PRIMARY KEY','UNIQUE'}
                 and details.get('enabled')!='DISABLE' and details.get('validation')!='NOVALIDATE'
                 and details.get('deferrable')!='DEFERRABLE' and not explicit_association(definition)):
             source_keys.append('P' if details['kind']=='PRIMARY KEY' else 'U')
@@ -77,7 +81,8 @@ def existing_backing_index(context,index,table,columns):
                               and row.get('table_name')==name),key=lambda row:row.get('column_position',0))
         if tuple(row.get('column_name') for row in index_columns)!=columns or any(row.get('descend')!='ASC' for row in index_columns):continue
         if [row.get('column_position') for row in index_columns]!=list(range(1,len(columns)+1)):continue
-        return tuple(sorted({ev for value in facts.values() for ev in value.evidence_ids}|set(actual.evidence_ids)))
+        return tuple(sorted({ev for value in facts.values() for ev in value.evidence_ids}
+                            |set(actual.evidence_ids)|set(table.evidence_ids)))
     return None
 
 

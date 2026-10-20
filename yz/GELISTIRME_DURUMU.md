@@ -1,3 +1,65 @@
+## TTBP 2.355 engel incelemesi — tamamlandı, 20 Ekim 2026
+
+Eski #25 planının 2.355 BLOCKED operation ID'si kanıtıyla tam bir kez incelendi;
+eksik/çift eşleme0. TABLE1.096, INDEX582, diğer677 kayıt; ilk kalan engeller de
+ikinci turda tek tek doğrulandı. Eski kayıt sonuçları: 1.699 uyarı,
+135 alan-fark eşitlik kanıtı, 78 READY,
+191 REVIEW, 252 BLOCKED. Eski kayıtlar yeni işlemlere
+bire-çok/çok-bir bağlanabilir: güncel ayrı engel 251.
+
+Kod düzeltmeleri: hedef koruma/UNKNOWN ayrımı; dictionary kolon kaybı; constraint
+gruplama; anonymous PK/UK backing index kanıtı; supplemental logging sahte kolon
+ayrıştırması ve yeni SQL'de logging korunumu; anonim ALTER UNIQUE ve aynı CHECK
+çokluğu; Oracle identifier case/TABLE(collection) bağımlılıkları; gerekli kolon
+kanıtıyla FK/%TYPE bağlama; bağımsız default/nullability ve UNKNOWN gözlemi ayrımı.
+Ham SQL, ALTER bağlamı, SHA/identity/kanıt ve global PARTIAL korunur. Kapsamlı
+negatif testler gerçek key/type, eksik kolon ve metadata engellerini korudu.
+
+Offline: 726 passed /94,69 sn /skip0; tek tam koşu yeşil.
+JUnit output/ttbp-blocker-audit/pytest-v13-release.xml. check_contracts 7schema /
+8example VERIFIED. Önceki ara odaklarda Windows os.rename WinError5 görüldü;
+son tam koşuda tekrarlanmadı; güvenlik/antivirüs ve artifact atomikliği değişmedi.
+
+Jenkins #28 UNSTABLE /run PARTIAL tamamlandı. 12.755 gözlenen fark,
+1.265 READY SQL, 632 REVIEW, 251 BLOCKED,
+3.277 INFORMATIONAL. UNKNOWN ve kapsam eksikliği nedeniyle kesin toplam
+fark iddiası yok. Manifest 5.465 dosya VERIFIED;
+SQL 1.265 dosya /759.226 byte. Plan 5c7527f0820f257c30504cd41a1e571e6bd01a98afd998291ecd6b676f9f6eac.
+
+Her eski ID'nin gerekçe/alan/hash/kanıt/yeni işlem eşlemesi audit/index.html,
+blocked-audit.csv ve blocked-audit.json arşivindedir. CSV UTF-8 BOM/semicolon,
+HTML external CSS; evidence-inputs.zip ve audit-manifest.json kanıtları korunur.
+Source #18 frozen SHA ce8d62d18f46657b702a12bd5fe6fc58ec27cb5a; SOURCE277logging+2context,
+TARGET317logging+2context doğrulanmış offline reparse. fresh_capture=false /
+Oracle connection_attempts=0 /SQL NOT_EXECUTED. Bu görev yeni canlı Oracle
+kabulü değildir (NOT_RUN); DDL/DML/COMPILE/trigger/yetki/source repo yazımı yok.
+
+v13 release 26bb1fa563e2294daf2b116d1dfcf768146bfd4284bb1ce9d3b55161c77e2cc8;
+wheel 18738619ae91996f150adb983261e5a7feb8ff333f6577802847f50ff868178b.
+125 package/asset dosyası workspace byte eşitliği doğrulandı. Normal v13 UI exact
+match, varsayılan TTBP /manual INNOVA_ODI, COMPARE ve Europe/Istanbul08:00 doğrulandı.
+Mail yalnız onaylı tek alıcı; HTML genel gövde, attachment/log yok. DDL/JSON/HTML
+yalnız Jenkins; artifact Git push yok. Private uygulama kodu yayını receipt'i
+output/github-code-ttbp-blocker-audit-publication-receipt.json ile ayrıca doğrulanır.
+
+## Devam eden 2.355 engel incelemesi — 20 Ekim 2026
+
+Temel #25 planı doğrulandı; TABLE1.096 / INDEX582 / diğer677 eski BLOCKED
+işlemin tümü için kanıt kayıtları output/ttbp-blocker-audit altında Git dışıdır.
+#26/#27 kayıtlı dosya okumasıdır; Oracle/SMTP/source Git yazımı yok.
+29.083 arşiv girdisinin SHA/byte kontrolü geçti. Windows case çakışmaları
+ZIP-backed loader ile ele alınır; veri bütünlüğü kontrolü gevşetilmez.
+
+Compare/parsing/planning düzeltmeleri kırmızı testlerle uygulandı: dictionary
+kolon kaybı, anchored tip/package referansları, anonymous constraint index,
+UNKNOWN koruma kayıtları, constraint gruplama ve supplemental logging.
+Gerçek dönüşüm/bağımlılık engelleri negatif testlerle korunur. Tam offline
+pytest 692 passed /101,71 sn /skip0, tek tam koşu yeşil; JUnit
+output/ttbp-blocker-audit/pytest-full-audit.xml. Son source reparse ek çalışması,
+yeni plan ve 2.355-ID nihai eşlemesi sürüyor. Canlı Oracle kabulü bu inceleme
+için NOT_RUN; SQL NOT_EXECUTED. v12/Jenkins teslimi ve private kod push henüz
+NOT_RUN. PROD/TTBP varsayılanı,08:00 ve Jenkins-only artifact politikası korunur.
+
 ## Güncel kapsam: yalnız PROD / TTBP — 20 Ekim 2026
 
 Son kullanıcı talimatı: günlük varsayılan yalnız TTBP; INNOVA_ODI ancak manuel

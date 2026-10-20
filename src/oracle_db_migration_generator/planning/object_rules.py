@@ -62,9 +62,6 @@ def _index(context,obj,changes):
                         and details.get('enabled')!='DISABLE' and not explicit_association(definition)):
                     return operation(context,obj,changes,'PRESERVE','INFORMATIONAL','BACKING_INDEX_CREATED_BY_CONSTRAINT',
                                      'Yeni tablonun PK/UK constraint backing index tanımı ikinci kez oluşturulmaz.')
-        if obj.identity.name.effective_name.startswith(('SYS_','ISEQ$$_','BIN$')):
-            return operation(context,obj,changes,'REVIEW','BLOCKED','RESERVED_INTERNAL_OBJECT',
-                             'Oracle iç indeksinin PK/UK ilişkisi doğrulanamadı.')
         if unsupported: raise ValueError('INDEX_FEATURE_UNSUPPORTED')
         if unique and not context.new_table(owner,name) and not expression:
             from .backing_index import existing_backing_index
@@ -72,6 +69,9 @@ def _index(context,obj,changes):
             if proof:
                 return operation(context,obj,changes,'PRESERVE','INFORMATIONAL','EXISTING_BACKING_INDEX_PRESERVED',
                                  'Eşdeğer PK/UK indeksi hedefte mevcut.',extra_evidence_ids=proof)
+        if obj.identity.name.effective_name.startswith(('SYS_','ISEQ$$_','BIN$')):
+            return operation(context,obj,changes,'REVIEW','BLOCKED','RESERVED_INTERNAL_OBJECT',
+                             'Oracle iç indeksinin PK/UK ilişkisi doğrulanamadı.')
         decision = 'REVIEW_REQUIRED' if unique and not context.new_table(owner,name) else 'READY'
         return operation(context,obj,changes,'CREATE_INDEX',decision,'UNIQUE_INDEX_REQUIRES_DATA_REVIEW' if decision!='READY' else 'CREATE_VERIFIED_INDEX',
                          'Index tanımı ve tablo bağımlılığı korunur; mevcut veride unique doğrulaması ayrıca gerekir.' if unique else 'Doğrulanan tablo üzerinde normal index oluşturulacak.',

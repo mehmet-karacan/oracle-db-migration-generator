@@ -144,6 +144,7 @@ def table_base(obj,*,columns_fields=None,collation_enabled=None):
     changed = projection.properties.get('_context_changed_columns',())
     definitions = [column_definition(name,detail,reconstruct=name in changed,fields=(columns_fields or {}).get(name),collation_enabled=collation_enabled)
                    for name,detail in sorted(columns.items(),key=lambda pair:int(pair[1]['position']))]
+    definitions.extend(item['definition'] for item in projection.properties.get('_generator_supplemental_logging',()))
     return (prefix+'\n  '+',\n  '.join(definitions)+'\n'+suffix+';').encode('utf-8')
 
 

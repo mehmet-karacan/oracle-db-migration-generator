@@ -109,7 +109,20 @@ def parse_payload(payload):
                 create = (fragment, start, end,None)
             statement, begin, finish,parsed_root = create
             parse_statement=statement if occurrence.object_type in {'TABLE','INDEX'} else grammar_text(statement)
+            supplemental=()
+            if ok and occurrence.object_type=='TABLE':
+                from .table_logging import table_projection_input
+                parse_statement,supplemental=table_projection_input(parse_statement)
             projection = project(occurrence, parse_statement, parse_ok=ok,parsed_root=parsed_root)
+            if supplemental:
+                from .projections import effective_key
+                columns={effective_key(key) for key in projection.properties.get('columns',{})}
+                props=dict(projection.properties);table_props=dict(props.get('table_properties',{}))
+                table_props['supplemental_logging']=', '.join(item['definition'] for item in supplemental)
+                props.update(table_properties=table_props,_generator_supplemental_logging=supplemental)
+                projection=replace(projection,properties=props)
+                if any(name not in columns for item in supplemental for name in item['columns']):
+                    diagnostics.append('SUPPLEMENTAL_LOG_COLUMN_UNVERIFIED')
             if inline_keys:
                 props=dict(projection.properties);props['_generator_inline_backing_keys']=inline_keys
                 projection=replace(projection,properties=props)

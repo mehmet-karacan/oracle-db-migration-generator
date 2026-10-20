@@ -85,3 +85,15 @@ kayıtlarının sentetik S_hash kimliği kullanıcı nesne adı diye gösterilme
 kanıtlı gerçek tablo/kolon adı gösterilir. Hedef görünen adı PROD olur, şema TTBP
 ayrı gösterilir. İç target_id/path/kimlik/DDL semantiği korunur. Tüm değişiklikler
 salt okunur sınırı, 08:00 ve Jenkins-only arşiv politikasını korur.
+
+20 Ekim son kullanıcı inceleme görevi: PROD / TTBP planındaki 2.355 BLOCKED
+işlemin tamamını operasyon kimliği ve kanıtıyla tek tek incele. Gerçek üretim
+engeli olmayanları gerekçeli INFORMATIONAL/uyarıya ayır; kod hatalarını kırmızı
+testten başlayarak düzelt. UNKNOWN alanları var/yok veya tam karşılaştırma diye
+sunma. Yeni rapor ve DDL yalnız Jenkins arşivinde; varsayılan TTBP, 08:00 ve tek
+mail alıcısı korunur. Source/target daima READ ONLY; DDL/DML/COMPILE yok.
+
+20 Ekim 2.355 engel incelemesi tamamlandı: 2.355/2.355 tekil kanıtlı eşleme;
+726 test geçti. Güncel plan 1.265 READY SQL /632 REVIEW /251 BLOCKED. #28 rapor,
+DDL ve inceleme CSV/JSON yalnız Jenkins arşivinde; yeni Oracle bağlantısı0,
+SQL NOT_EXECUTED. Normal v13 PROD/TTBP ve 08:00 geri yüklendi. Ayrıntı yz/DEVIR.md.

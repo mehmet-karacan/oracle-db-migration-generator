@@ -37,10 +37,30 @@ def _cte_ranges(tokens):
     return ranges
 
 
-def type_reference(raw,owner):
+def type_reference(raw,owner,declared=()):
     tokens=code_tokens(raw or '') or ()
     if not tokens or tokens[0].upper in BUILTIN_TYPES: return None
     try:
+        anchor=next((i for i,t in enumerate(tokens) if t.upper in {'%TYPE','%ROWTYPE'}),None)
+        if anchor is not None:
+            parts=[identifier(tokens[i])[0] for i in range(0,anchor,2)]
+            if any(tokens[i].text!='.' for i in range(1,anchor,2)) or anchor+1!=len(tokens):
+                raise ValueError('ANCHORED_TYPE_UNVERIFIED')
+            suffix=tokens[anchor].upper[1:]
+            if suffix=='TYPE' and len(parts)==3:
+                return DependencyReference(parts[0],'TABLE',parts[1],'ANCHORED_COLUMN_TYPE',(parts[2],))
+            if suffix=='ROWTYPE' and len(parts)==2:
+                return DependencyReference(parts[0],'TABLE',parts[1],'ANCHORED_ROWTYPE')
+            parent=parts[0] if parts else ''
+            proof=next((ref for ref in declared if ref['owner']==owner and ref['name']==parent
+                        and ref['type'] in {'TABLE','VIEW','MATERIALIZED VIEW','MATERIALIZED_VIEW'}),None)
+            if proof and suffix=='TYPE' and len(parts)==2:
+                return DependencyReference(owner,proof['type'].replace(' ','_'),parent,'ANCHORED_COLUMN_TYPE',(parts[1],))
+            if proof and suffix=='ROWTYPE' and len(parts)==1:
+                return DependencyReference(owner,proof['type'].replace(' ','_'),parent,'ANCHORED_ROWTYPE')
+            # A record field or local variable can also be an anchor. It is
+            # never evidence for a schema/type named by its first two tokens.
+            return DependencyReference(owner,'ANCHORED_REFERENCE','.'.join(parts),'ANCHORED_REFERENCE_UNRESOLVED')
         first=identifier(tokens[0])[0]
         if len(tokens)>2 and tokens[1].text=='.':
             return DependencyReference(first,'TYPE_SPEC',identifier(tokens[2])[0],'USER_DEFINED_TYPE')
@@ -87,6 +107,7 @@ def has_dynamic_sql(obj):
 def references(obj):
     refs=[];default=obj.identity.owner.effective_name
     declared=obj.properties.get('dependencies')
+    declared_refs=declared.value if declared and declared.state=='KNOWN' else ()
     if obj.identity.object_type=='TABLE':
         from ..compare.projection_adapter import restore_projection
         projection=restore_projection(obj)
@@ -116,10 +137,15 @@ def references(obj):
         if obj.identity.object_type in {'PACKAGE_SPEC','PACKAGE_BODY'}:
             analyses=[{'name':routine.name,'types':[p.data_type for p in routine.parameters]+([routine.return_type] if routine.return_type else []),
                        'calls':routine.call_references} for routine in projection.properties.get('routines',())]
-        locals_={item['name'].split('.')[-1].strip('"') for item in analyses}
+        locals_=set()
+        for item in analyses:
+            try:
+                locals_.add(identifier((code_tokens(item['name']) or ())[-1])[0])
+            except (ValueError, IndexError):
+                pass
         for item in analyses:
             for datatype in item['types']:
-                ref=type_reference(datatype,default)
+                ref=type_reference(datatype,default,declared_refs)
                 if ref: refs.append(ref)
             for call in item['calls']:
                 parts=[identifier(t)[0] for t in code_tokens(call) or () if t.text!='.']
@@ -127,7 +153,10 @@ def references(obj):
                 if len(parts)==1:
                     refs.append(DependencyReference(default,'CALLABLE',parts[0],'ROUTINE_CALL'))
                 elif len(parts)==2:
-                    refs.append(DependencyReference(parts[0],'CALLABLE',parts[1],'ROUTINE_CALL'))
+                    package=any(ref['owner']==default and ref['name']==parts[0]
+                                and ref['type'] in {'PACKAGE','PACKAGE_SPEC'} for ref in declared_refs)
+                    refs.append(DependencyReference(default,'PACKAGE_SPEC',parts[0],'ROUTINE_CALL') if package else
+                                DependencyReference(parts[0],'CALLABLE',parts[1],'ROUTINE_CALL'))
                 elif len(parts)==3:
                     refs.append(DependencyReference(parts[0],'PACKAGE_SPEC',parts[1],'ROUTINE_CALL'))
     if declared and declared.state=='KNOWN' and not signature_only_spec(obj,projection):
@@ -145,6 +174,10 @@ def references(obj):
                 refs.append(DependencyReference(owner,'SEQUENCE',name,'SEQUENCE_DEFAULT'))
             except ValueError: pass
         if token.upper in {'FROM','JOIN'} and i+1<len(tokens) and tokens[i+1].text!='(':
+            # TABLE(collection_expression) is a SQL operator, not a relation
+            # whose name is TABLE. Quoted "TABLE" stays a normal identifier.
+            if i+2<len(tokens) and tokens[i+1].upper=='TABLE' and tokens[i+2].text=='(':
+                continue
             try:
                 name=identifier(tokens[i+1])[0];owner=default
                 if i+3<len(tokens) and tokens[i+2].text=='.':
@@ -158,4 +191,4 @@ def references(obj):
                     continue
                 refs.append(DependencyReference(owner,'RELATION',name,'QUERY_RELATION',unqualified=boundary==i+2))
             except ValueError: pass
-    return tuple(sorted(set(refs),key=lambda item:(item.owner,item.object_type,item.name,item.role,item.unqualified)))
+    return tuple(sorted(set(refs),key=lambda item:(item.owner,item.object_type,item.name,item.role,item.unqualified,item.columns)))
