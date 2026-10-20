@@ -145,6 +145,66 @@ def test_each_schema_uses_its_own_credential_and_connection():
     assert all(binds['owner']==owner for owner,connection in connected for _,binds in connection.reader.calls if binds and 'owner' in binds)
 
 
+def test_catalog_reader_captures_real_owner_from_full_catalog_not_visible_subset():
+    from dataclasses import replace
+    from oracle_db_migration_generator.config.models import SchemaMapping
+    target,profile=inputs()
+    target=replace(target,schema_mappings=(SchemaMapping('APP','APP','catalog','AUDITOR'),))
+    class CatalogFake(FakeCursor):
+        def fetchone(self):
+            if 'SYS_CONTEXT' in self.current.upper():return ('AUDITOR',)
+            return super().fetchone()
+        def fetchall(self):
+            sql=self.current.upper()
+            if 'SESSION_ROLES' in sql:return [('SELECT_CATALOG_ROLE',)]
+            if 'DBA_USERS' in sql:return [('APP',)]
+            if 'DBA_OBJECTS' in sql and 'LAST_DDL_TIME' in sql:return [('TABLE','DEMO','VALID','2026-10-20')]
+            if 'ALL_OBJECTS' in sql:raise AssertionError('Visible subset must not prove absence')
+            return []
+    connection=FakeConnection();connection.reader=CatalogFake()
+    result=collect_target(target,lambda _:Credentials('AUDITOR','synthetic-password'),profile,connect=lambda *_:connection)
+    assert result.snapshot is not None
+    assert result.snapshot.schemas==('APP',) and result.snapshot.objects[0].identity.owner.effective_name=='APP'
+    proof=result.snapshot.capabilities['metadata_access']
+    assert proof.state=='KNOWN' and proof.value['query_scope']=='DBA_METADATA'
+    assert result.snapshot.completeness.inventory=='COMPLETE'
+    statements=[sql.upper() for sql,_ in connection.reader.calls]
+    assert statements[0]=='SET TRANSACTION READ ONLY'
+    assert any('DBA_OBJECTS' in sql for sql in statements)
+    assert all(sql.startswith('SELECT') or sql=='SET TRANSACTION READ ONLY' for sql in statements)
+    assert connection.closed and connection.rollbacks>=2
+
+
+def test_catalog_reader_without_catalog_role_cannot_produce_absence_or_ddl():
+    from dataclasses import replace
+    from oracle_db_migration_generator.config.models import SchemaMapping
+    target,profile=inputs();target=replace(target,schema_mappings=(SchemaMapping('APP','APP','catalog','AUDITOR'),))
+    class NoRole(FakeCursor):
+        def fetchone(self):return ('AUDITOR',)
+    connection=FakeConnection();connection.reader=NoRole()
+    result=collect_target(target,lambda _:Credentials('AUDITOR','secret'),profile,connect=lambda *_:connection)
+    assert result.snapshot is None and result.receipt['difference_count'] is None
+    assert result.receipt['status']=='ERROR'
+    assert not any('GET_DDL' in sql for sql,_ in connection.reader.calls)
+    assert connection.closed
+
+
+def test_catalog_reader_cannot_treat_missing_owner_as_empty_target():
+    from dataclasses import replace
+    from oracle_db_migration_generator.config.models import SchemaMapping
+    target,profile=inputs();target=replace(target,schema_mappings=(SchemaMapping('APP','APP','catalog','AUDITOR'),))
+    class MissingOwner(FakeCursor):
+        def fetchone(self):return ('AUDITOR',)
+        def fetchall(self):
+            return [('SELECT_CATALOG_ROLE',)] if 'SESSION_ROLES' in self.current.upper() else []
+    connection=FakeConnection();connection.reader=MissingOwner()
+    result=collect_target(target,lambda _:Credentials('AUDITOR','secret'),profile,connect=lambda *_:connection)
+    assert result.snapshot is None and result.receipt['status']=='ERROR'
+    assert result.receipt['difference_count'] is None
+    assert not any('GET_DDL' in sql for sql,_ in connection.reader.calls)
+    assert connection.closed
+
+
 def test_cleanup_failure_is_an_error_receipt():
     target,profile=inputs();connection=FakeConnection()
     def close(): raise RuntimeError('synthetic-secret')

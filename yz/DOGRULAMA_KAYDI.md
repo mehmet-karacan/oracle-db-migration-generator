@@ -1,5 +1,18 @@
 # Jenkins arşivi ve kaynak devamı — 20 Ekim 2026
 
+- TTBP catalogreader final offline: 587 passed / 82,89 sn / skip0;
+  output/jenkins-setup/pytest-catalog-owner-final.xml. check_contracts VERIFIED.
+  Bağımsız P2 owner-existence düzeltildi; son incelemede açık P1/P2 yok.
+- #15: CONNECT hata zinciri ORA-04088/00604/20983/06512; guard nesnesi tanılandı.
+  #16: mevcut ODI account katalog rolü ve TTBP DDL okuma yetkisi doğrulandı.
+- #17: READ ONLY transaction, doğru reader/rol/owner varlığı; 5.321 DBA envanteri,
+  20 dictionary grubu, örnek TABLE/PACKAGE/TRIGGER DDL erişimi başarılı. Gerçek
+  işletme satırı okuması veya Oracle DDL/DML yok. Kanıt dosyası
+  output/jenkins-setup/ttbp-catalog-readonly-proof.json.
+- v9 wheel 66d4cac0fac63bf2ed509fb2514fdddcc4e3328ffe73d17d67d1da8776fe5a9a;
+  release fcef0159b2287b34d7cd1f7ccf9601c762eae4a24728fd41e5fc6d52fdc34d4a.
+  #18 fresh target karşılaştırması başladı; sonuç henüz tamamlanmadı. Normal v9
+  daily script exact ve 08:00 UI'dan doğrulandı, artifact Git aşaması yok.
 - Son takvim talimatı: günlük Europe/Istanbul 08:00. Canlı Schedule ile script
   trigger aynı; Save sonrası yeniden açılan formda exact script ve açıklama
   doğrulandı. Kanıt output/mail-layout/schedule-0800-proof.json/png.

@@ -27,6 +27,17 @@ Kaynakta örtük NLS/uzunluk semantiği (`VARCHAR2(20)` gibi) net değilse `UNKN
 
 ## Hedef Metadata
 
+20 Ekim TTBP düzeltmesi: schema mapping'de isteğe bağlı `metadata_reader`
+ile önceden yetkilendirilmiş ayrı bir katalog okuyucusu açıkça seçilebilir.
+Mantıksal source/target owner aynı kalır; owner remap yapılmaz. Okuyucunun
+SESSION_USER kimliği, etkin SELECT_CATALOG_ROLE, gerçek hedef kullanıcısının
+varlığı ve DBA kataloğuna erişimi salt okunur transaction içinde doğrulanır.
+Bu modda yalnız sabit/bindli DBA metadata sorguları tam envanteri sağlar;
+ALL_OBJECTS görünür alt kümesinden yokluk kanıtı türetilmez. Yeni yetki,
+istemci kimliği değişikliği veya güvenlik trigger'ına müdahale yapılmaz.
+`capture_timeout_seconds` 30–7.200 saniye aralığında açık hedef bütçesidir;
+varsayılan 900 saniyedir. Eksik veri timeout artırılarak tam sayılmaz.
+
 Asgari: `ALL_OBJECTS`, `ALL_TAB_COLUMNS`/gerekli sürümde `ALL_TAB_COLS`, `ALL_CONSTRAINTS`, `ALL_CONS_COLUMNS`, `ALL_INDEXES`, `ALL_IND_COLUMNS`, gerekirse `ALL_IND_EXPRESSIONS`, `ALL_SEQUENCES`, `ALL_TAB_COMMENTS`, `ALL_COL_COMMENTS`, `ALL_SYNONYMS`, `ALL_TAB_PRIVS`, `ALL_DEPENDENCIES`, `ALL_ERRORS`; nesne DDL'si için `DBMS_METADATA.GET_DDL` ve gerekli dependent DDL.
 
 Tüm sorgular sabit allowlist'tedir; owner/name bind edilir. Metadata dışında iş tablosu satırı okunmaz; `COUNT(*)` dahi varsayılan akışta yoktur. Tablo sayım ihtiyacı raporda doğrulama gereği olarak üretilir. `NEXTVAL`, package fonksiyonu, view sorgusu çalıştırılmaz.

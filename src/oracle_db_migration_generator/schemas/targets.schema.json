@@ -78,6 +78,11 @@
               "thick"
             ]
           },
+          "capture_timeout_seconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 7200
+          },
           "schema_mappings": {
             "type": "array",
             "items": {
@@ -89,6 +94,10 @@
                 },
                 "target_schema": {
                   "type": "string"
+                },
+                "metadata_reader": {
+                  "type": "string",
+                  "minLength": 1
                 },
                 "credential_id": {
                   "type": "string",

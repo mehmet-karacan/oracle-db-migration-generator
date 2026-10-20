@@ -7,7 +7,7 @@ from collections import Counter
 from ..config.loader import ConfigError
 from ..model.identity import Identifier
 from .connection import connect_read_only
-from .queries import DDL_TYPES, DICTIONARY_PROBES, IDENTITY, INVENTORY, READ_ONLY_TRANSACTION, SAMPLE_DDL
+from .queries import DDL_TYPES, DICTIONARY_PROBES, IDENTITY, INVENTORY, CAPTURE_INVENTORY, READ_ONLY_TRANSACTION, SAMPLE_DDL
 
 
 class ProbeError(ValueError):
@@ -37,11 +37,22 @@ def _probe_schema(target, mapping, credentials, connect):
         connection = connect(target, credential)
         cursor = connection.cursor()
         cursor.execute(READ_ONLY_TRANSACTION)
-        cursor.execute(IDENTITY)
-        identity = cursor.fetchone()
-        if identity is None or identity[0] != expected_owner:
-            raise ProbeError('SESSION_OWNER_MISMATCH')
-        cursor.execute(INVENTORY)
+        if mapping.metadata_reader is not None:
+            from .catalog_reader import authorize_catalog_reader,CatalogCursor
+            try:
+                authorize_catalog_reader(cursor,Identifier.parse(mapping.metadata_reader).effective_name,expected_owner)
+            except ValueError as error:
+                code=str(error)
+                raise ProbeError(code if re.fullmatch(r'CATALOG_[A-Z_]+',code) else 'CATALOG_AUTHORIZATION_FAILED') from None
+            cursor=CatalogCursor(cursor)
+            inventory,binds=CAPTURE_INVENTORY,{'owner':expected_owner}
+        else:
+            cursor.execute(IDENTITY)
+            identity = cursor.fetchone()
+            if identity is None or identity[0] != expected_owner:
+                raise ProbeError('SESSION_OWNER_MISMATCH')
+            inventory,binds=INVENTORY,None
+        cursor.execute(inventory,binds)
         before = cursor.fetchall()
         for name, query in DICTIONARY_PROBES.items():
             cursor.execute(query, {'owner': expected_owner})
@@ -58,7 +69,7 @@ def _probe_schema(target, mapping, credentials, connect):
                 raise ProbeError('GET_DDL_RETURNED_EMPTY')
             # Store only access evidence. Real DDL does not enter preflight output.
             result['ddl_sample'] = 'ACCESSIBLE_ONE_OBJECT'
-        cursor.execute(INVENTORY)
+        cursor.execute(inventory,binds)
         after = cursor.fetchall()
         if before != after:
             raise ProbeError('INVENTORY_CHANGED_DURING_PREFLIGHT')

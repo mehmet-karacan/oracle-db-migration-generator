@@ -111,16 +111,27 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
         connection = connect(target, credentials(mapping.credential_id))
         cursor = connection.cursor()
         cursor.execute(READ_ONLY_TRANSACTION)
-        cursor.execute(IDENTITY)
-        if cursor.fetchone() != (owner,):
-            raise CaptureError('SESSION_OWNER_MISMATCH')
+        reader_proof=None
+        if mapping.metadata_reader is not None:
+            from .catalog_reader import authorize_catalog_reader,CatalogCursor
+            try:
+                reader_proof=authorize_catalog_reader(cursor,Identifier.parse(mapping.metadata_reader).effective_name,owner)
+            except ValueError as error:
+                code=str(error)
+                raise CaptureError(code if re.fullmatch(r'CATALOG_[A-Z_]+',code) else 'CATALOG_AUTHORIZATION_FAILED') from None
+            cursor=CatalogCursor(cursor)
+        else:
+            cursor.execute(IDENTITY)
+            if cursor.fetchone() != (owner,):
+                raise CaptureError('SESSION_OWNER_MISMATCH')
         cursor.execute(CAPTURE_INVENTORY, {'owner':owner})
         before = cursor.fetchall()
         groups, failures = _read_groups(cursor,owner)
         objects, evidence = [], []
         scope_id = 'ev-'+digest([target.id,owner,'inventory',before])
         evidence.append(Evidence(scope_id,'ABSENCE_SCOPE','TARGET',None,digest(before),None,None,
-                                 'all_objects','Kendi oturum kullanıcısının tam nesne envanteri.'))
+                                 'dba_objects' if reader_proof else 'all_objects',
+                                 'Yetkisi doğrulanmış katalogdan şema envanteri.' if reader_proof else 'Kendi oturum kullanıcısının tam nesne envanteri.'))
         group_evidence = {}
         for group, rows in groups.items():
             ev_id = 'ev-'+digest([target.id,owner,group,rows,failures.get(group)])
@@ -128,6 +139,11 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             evidence.append(Evidence(ev_id,'TARGET_METADATA','TARGET',None,digest(rows) if rows is not None else None,
                                      None,None,'dictionary.'+group,'Dictionary alan grubu: '+group+'.'))
         capabilities = describe_capabilities(connection.version,groups['nls'],group_evidence['nls'])
+        if reader_proof:
+            reader_id='ev-'+digest([target.id,owner,'catalog-reader',reader_proof])
+            evidence.append(Evidence(reader_id,'TARGET_METADATA','TARGET',None,digest(reader_proof),None,None,
+                'session_roles.dba_objects','Mevcut katalog okuma yetkisi ve açık metadata okuyucusu doğrulandı.'))
+            capabilities['metadata_access']=KnownValue('KNOWN',reader_proof,(reader_id,))
         parameter_rows=None;capability_errors={}
         try:
             cursor.execute(COLLATION_PARAMETERS)
@@ -248,9 +264,9 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             raise CaptureError('TARGET_CAPTURE_CLEANUP_FAILED')
 
 
-def collect_target(config, credentials, profile, *, connect=connect_read_only, progress=None, timeout_seconds=900, source=None):
+def collect_target(config, credentials, profile, *, connect=connect_read_only, progress=None, timeout_seconds=None, source=None):
     started = datetime.now(timezone.utc).isoformat()
-    deadline = time.monotonic()+timeout_seconds
+    deadline = time.monotonic()+(config.capture_timeout_seconds if timeout_seconds is None else timeout_seconds)
     snapshots, receipts, failed = [], [], False
     for mapping in config.schema_mappings:
         for attempt in range(2):

@@ -88,6 +88,8 @@ def load_targets(path: Path, selected: tuple[str, ...]) -> tuple[TargetConfig, .
                 raise ConfigError("CREDENTIAL_ENV_KEY_COLLISION")
             credential_keys[key] = credential_id
             source, target = _owner(mapping['source_schema']), _owner(mapping['target_schema'])
+            if 'metadata_reader' in mapping:
+                _owner(mapping['metadata_reader'])
             if source != target:
                 raise ConfigError("SCHEMA_REMAP_NOT_SUPPORTED")
             if source in source_owners or target in target_owners:
@@ -99,7 +101,8 @@ def load_targets(path: Path, selected: tuple[str, ...]) -> tuple[TargetConfig, .
         if host != host.strip() or any(c.isspace() or c in '/@\\:' for c in host):
             raise ConfigError("INVALID_ENDPOINT_HOST")
         targets.append(TargetConfig(item['id'], item['name'], item['enabled'], Endpoint(**endpoint),
-                                    item['driver_mode'], tuple(SchemaMapping(**m) for m in item['schema_mappings'])))
+                                    item['driver_mode'], tuple(SchemaMapping(**m) for m in item['schema_mappings']),
+                                    item.get('capture_timeout_seconds',900)))
     if not selected or len(set(selected)) != len(selected) or ('ALL' in selected and selected != ('ALL',)):
         raise ConfigError("INVALID_TARGET_SELECTION")
     enabled = {t.id: t for t in targets if t.enabled}

@@ -44,6 +44,7 @@ class SchemaMapping:
     source_schema: str
     target_schema: str
     credential_id: str = field(repr=False)
+    metadata_reader: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,3 +55,4 @@ class TargetConfig:
     endpoint: Endpoint
     driver_mode: str
     schema_mappings: tuple[SchemaMapping, ...]
+    capture_timeout_seconds: int = 900

@@ -40,6 +40,27 @@ def test_registry_unknown_id_fails(tmp_path, registry):
         load_targets(write(tmp_path, registry), ("DEMO-TEST",))
 
 
+def test_explicit_catalog_reader_and_bounded_capture_timeout(tmp_path,registry):
+    registry['targets'][0]['schema_mappings'][0]['metadata_reader']='AUDITOR'
+    registry['targets'][0]['capture_timeout_seconds']=3600
+    target=load_targets(write(tmp_path,registry),('DEMO-TEST',))[0]
+    assert target.schema_mappings[0].metadata_reader=='AUDITOR'
+    assert target.capture_timeout_seconds==3600
+    assert target.schema_mappings[0].source_schema==target.schema_mappings[0].target_schema=='APP'
+
+
+@pytest.mark.parametrize('reader',['','AUDITOR; SELECT 1','A.B',42])
+def test_invalid_catalog_reader_is_rejected(tmp_path,registry,reader):
+    registry['targets'][0]['schema_mappings'][0]['metadata_reader']=reader
+    with pytest.raises(ConfigError):load_targets(write(tmp_path,registry),('DEMO-TEST',))
+
+
+@pytest.mark.parametrize('timeout',[0,29,7201,False,30.5,'3600'])
+def test_invalid_capture_timeout_is_rejected(tmp_path,registry,timeout):
+    registry['targets'][0]['capture_timeout_seconds']=timeout
+    with pytest.raises(ConfigError):load_targets(write(tmp_path,registry),('DEMO-TEST',))
+
+
 @pytest.mark.parametrize("mode", ["both", "neither"])
 def test_registry_requires_exactly_one_service_or_sid(tmp_path, registry, mode):
     endpoint = registry["targets"][0]["endpoint"]

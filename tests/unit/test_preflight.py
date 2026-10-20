@@ -10,6 +10,29 @@ from oracle_db_migration_generator.config.credentials import Credentials, EnvCre
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_explicit_metadata_reader_probes_target_owner_with_catalog_inventory():
+    from dataclasses import replace
+    from oracle_db_migration_generator.config.models import SchemaMapping
+    target=load_targets(ROOT/'examples/targets.example.json',('DEMO-TEST',))[0]
+    target=replace(target,schema_mappings=(SchemaMapping('APP','APP','reader','AUDITOR'),))
+    from tests.unit.test_collector import FakeConnection,FakeCursor
+    class CatalogProbe(FakeCursor):
+        def fetchone(self):
+            if 'SYS_CONTEXT' in self.current.upper():return ('AUDITOR',)
+            return super().fetchone()
+        def fetchall(self):
+            if 'SESSION_ROLES' in self.current.upper():return [('SELECT_CATALOG_ROLE',)]
+            if 'DBA_USERS' in self.current.upper():return [('APP',)]
+            if 'DBA_OBJECTS' in self.current.upper():return []
+            return super().fetchall()
+    connection=FakeConnection();connection.reader=CatalogProbe()
+    result=probe_target(target,lambda _:Credentials('AUDITOR','synthetic'),connect=lambda *_:connection)
+    assert result['status']=='PASSED'
+    assert result['schemas'][0]['schema']=='APP' and result['schemas'][0]['inventory_count']==0
+    assert not any('USER_OBJECTS' in query.upper() for query,_ in connection.reader.calls)
+    assert connection.closed
+
+
 class Cursor:
     def __init__(self, denied=False):
         self.calls = []

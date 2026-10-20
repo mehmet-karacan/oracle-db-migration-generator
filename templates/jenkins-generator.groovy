@@ -62,7 +62,7 @@ set +x
 "$GENERATOR_RUNTIME_DIR/venv/bin/python" "$GENERATOR_RELEASE_DIR/jenkins_run.py" --release "$GENERATOR_RELEASE_DIR" --mode ENVIRONMENT_CHECK --output "output/runs/build-$BUILD_NUMBER"
 ''')
           } else {
-            withCredentials([usernamePassword(credentialsId: '@@TARGET_CREDENTIAL@@', usernameVariable: 'GENERATOR_INNOVA_ODI_USER', passwordVariable: 'GENERATOR_INNOVA_ODI_PASSWORD'), usernamePassword(credentialsId: '@@SOURCE_METADATA_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_ODI_USER', passwordVariable: 'GENERATOR_SOURCE_ODI_PASSWORD'), usernamePassword(credentialsId: '@@TTBP_CREDENTIAL@@', usernameVariable: 'GENERATOR_TTBP_USER', passwordVariable: 'GENERATOR_TTBP_PASSWORD'), usernamePassword(credentialsId: '@@TTBP_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_TTBP_USER', passwordVariable: 'GENERATOR_SOURCE_TTBP_PASSWORD')]) {
+            withCredentials([usernamePassword(credentialsId: '@@TARGET_CREDENTIAL@@', usernameVariable: 'GENERATOR_INNOVA_ODI_USER', passwordVariable: 'GENERATOR_INNOVA_ODI_PASSWORD'), usernamePassword(credentialsId: '@@SOURCE_METADATA_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_ODI_USER', passwordVariable: 'GENERATOR_SOURCE_ODI_PASSWORD'), usernamePassword(credentialsId: '@@TTBP_TARGET_CREDENTIAL@@', usernameVariable: 'GENERATOR_TTBP_USER', passwordVariable: 'GENERATOR_TTBP_PASSWORD'), usernamePassword(credentialsId: '@@TTBP_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_TTBP_USER', passwordVariable: 'GENERATOR_SOURCE_TTBP_PASSWORD')]) {
               code = sh(returnStatus: true, script: '''#!/bin/sh
 set -eu
 set +x

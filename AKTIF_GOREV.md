@@ -63,3 +63,15 @@ Normal karşılaştırma akışı v3 ile geri yüklendi. Kanıt: output/report-r
 Bu, önceki 08:40 saatini değiştirir. Hem canlı cron hem declarative Pipeline
 trigger ve iş açıklaması 08:00 olarak kaydedilip yeniden okunarak doğrulandı.
 Bu takvim değişikliği yeni karşılaştırma veya mail tetiklemez; SQL uygulanmaz.
+
+20 Ekim TTBP kullanıcı görevi: ORA-04088 nedenini salt okunur incele ve TTBP
+fark/DDL raporunu üretip yalnız Jenkins'te sakla. Canlı #15 tanısı hedef TTBP
+CONNECT aşamasında SYS.BLOCK_TOOLS_TTBP / ORA-20983 reddini gösterdi. Trigger,
+kimlik, parola veya yetkiler değiştirilmez. #16 mevcut INNOVA_ODI hesabının
+etkin SELECT_CATALOG_ROLE ve SELECT_TTBP yetkilerini, TTBP GET_DDL erişimini
+kanıtladı. Bu mevcut yetkiyle açık metadata_reader yapılandırması uygulanır;
+session identity + katalog rolü + hedef owner varlığı/DBA envanter erişimi
+doğrulanır. Varsayılan kendi-owner erişimi ve source/target yönü değişmez.
+ALL_OBJECTS görünürlüğü tamlık kanıtı sayılmaz; seçili şemaya bindli kapalı
+DBA metadata sorguları kullanılır. 08:00, tek mail alıcısı ve Jenkins-only
+arşiv politikası korunur. Hiçbir üretilen SQL Oracle'da çalıştırılmaz.

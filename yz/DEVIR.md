@@ -1,5 +1,41 @@
 # Jenkins arşivi ve PARTIAL kaynak devamı — 20 Ekim 2026
 
+TTBP ORA-04088 düzeltmesi uygulanıyor (son kullanıcı görevi): #15 salt okunur
+tanı CONNECT aşamasında SYS.BLOCK_TOOLS_TTBP / ORA-00604 / ORA-20983 zincirini
+gösterdi. Trigger/Oracle güvenliği değiştirilmedi. #16 mevcut INNOVA_ODI hesabında
+etkin SELECT_CATALOG_ROLE, SELECT_TTBP ve katalog okuma yetkileri ile TTBP GET_DDL
+erişimi doğrulandı. #17 yeni kapalı katalog okuyucusuyla READ ONLY transaction,
+gerçek session identity, etkin rol, DBA_USERS owner varlığı, 5.321 nesne, 20 tam
+dictionary grubu ve TABLE/PACKAGE/TRIGGER GET_DDL erişimi 13,71 sn'de doğrulandı.
+ALL_OBJECTS 4.864 görünür alt küme; bu modda DBA kataloğu esas alınır.
+
+Kod: config/models+loader ve iki targets schema dosyası optional metadata_reader
+ve 30–7.200 sn bounded capture_timeout_seconds (default900) içerir. Yeni
+oracle/catalog_reader.py yalnız tam eşleşen sabit metadata SELECT listesiyle
+DBA görünümüne geçer; bind değerleri korunur. collector/preflight explicit
+reader kimliği+rol+mevcut owner/katalog erişimini önce doğrular. Varsayılan kendi
+hesabı yolu değişmez; owner remap veya boşluk varsayımı yapılmaz. Reader kanıtı
+metadata_access capability/evidence kaydına girer. TTBP target credential mevcut
+ODI hesabı, source TTBP metadata credential kendi hesabıdır; Pipeline'da ayrı
+TTBP_TARGET_CREDENTIAL placeholder vardır. Kaynak DDL yine sabit Git SHA'sıdır.
+
+Offline son: PYTHONPATH=src; .venv/Scripts/python.exe -m pytest -q --tb=short
+--junitxml=output/jenkins-setup/pytest-catalog-owner-final.xml → 587 passed /
+82,89 sn / skip0. check_contracts VERIFIED. Bağımsız review P2 (olmayan owner'ı
+boş şema sanma) DBA_USERS kapalı kontrolü ve negatif testlerle kapatıldı;
+son tekrar incelemede açık P1/P2 yok. Yeni wheel/release v9 hash/manifests
+output/jenkins-setup/release-proof-v9.json; eski release cache'lerine yazılmadı.
+
+Jenkins #18 v9 ile başlatıldı: #14 source snapshot dış SHA-256 + sabit Git ref
+ve tüm raw input kanıtları doğrulanarak yeniden kullanılacak, hedefler fresh
+okunacak. TTBP capture bütçesi gerçek 5.321 katalog nesnesi için açık 3.600 sn.
+Normal günlük v9 hemen geri yüklendi: cron Europe/Istanbul 08:00, script exact,
+mevcut yetkili okuyucu ve Jenkins-only arşiv açıklaması UI'dan yeniden doğrulandı.
+Kanıt v9-normal-job-proof.json. Source/target READ ONLY, Oracle DDL/DML/COMPILE
+NOT_RUN, gerçek SQL Git push NOT_RUN. Canlı #18 karşılaştırma henüz bitmedi.
+Sonraki somut adım #18 TTBP plan/DDL/arşiv ve mail kanıtını inceleyip gerçek
+gözlenen farklar/kapsam sınırlamalarını raporlamak; kodu private depoya push etmek.
+
 Güncel takvim: kullanıcının son yanıtıyla her gün Europe/Istanbul 08:00.
 Canlı Schedule ve declarative Pipeline cron birlikte güncellendi; kayıt sonrası
 cron, script byte eşitliği ve açıklama UI'dan doğrulandı. Sonraki planlı başlangıç

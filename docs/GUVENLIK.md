@@ -2,6 +2,13 @@
 
 ## Salt Okuma
 
+`metadata_reader` seçildiğinde mevcut yetkili hesabın gerçek kimliği ve etkin
+katalog rolü doğrulanır; hesap kimliği değiştirilmez, yeni grant verilmez.
+DBA metadata erişimi yalnız tam eşleşen sabit sorgu listesiyle, şema/nesne
+değerleri bind edilerek yapılır. Okuyucu hesabın kendi nesneleri hedef şema
+yerine kullanılamaz. Hedef owner bulunamaz veya katalog yetkisi yetersizse
+çıktı hata olur; boş şema/NO_CHANGE veya uygulanabilir CREATE uydurulmaz.
+
 Target adapter yalnız allowlist SELECT'leri, metadata GET_DDL çağrıları ve gerekiyorsa oturum-içi DBMS_METADATA transform ayarları yapar. Transform ayarı kalıcı schema değişikliği değildir, fakat genel amaçlı `execute(sql)` API'si oluşturulmaz. Runtime'da kaynak SQL/dynamic SQL çalıştırılamaz. `autocommit=False`, JDBC readOnly veya uygulamanın 'read-only' ismi hesabı güvenli hâle getirmez; DBA tanımlı asgari hesap/yetki şarttır.
 
 DBMS_SQL.PARSE ile hedefte DDL syntax kontrolü yapılmaz; SQLPlus çalıştırılmaz. Kaynakta `DROP`, `HOST`, `!`, `CONNECT`, `@`, `@@`, `SPOOL`, Java veya credential ifadesi bulunması execution talimatı değildir. Gösterim/kanıt ihtiyacına göre sınıflanır; yalnız güvenilir generator kendi script direktiflerini üretebilir.

@@ -1,5 +1,15 @@
 # Jenkins arşivi — 20 Ekim 2026 güncel durum
 
+Son görev TTBP ORA-04088: hedefte araç bağlantısını reddeden mevcut logon trigger
+tanılandı. Güvenlik/Oracle kullanıcıları değiştirilmedi. Mevcut ODI katalog okuma
+yetkisiyle explicit metadata_reader desteği tamamlandı; identity+role+owner varlığı
+ve tam DBA metadata erişimi kapalı sorgularla doğrulanır. 587 test passed /
+82,89 sn; bağımsız review P2 kapandı, açık P1/P2 yok. #17 salt okunur canlı erişim:
+5.321 katalog nesnesi, 20 dictionary grubu ve üç DDL türü başarılı. #18 v9 gerçek
+karşılaştırma sürüyor; henüz TTBP plan/DDL tamamlandı iddiası yok. Günlük normal
+v9 script + 08:00 exact UI doğrulandı; yalnız Jenkins arşivi, SQL uygulanmaz.
+Dosya/kanıt/sonraki adım yz/DEVIR.md başındadır.
+
 Son kullanıcı saati: her gün Europe/Istanbul 08:00 (08:40 yerine). Canlı cron,
 declarative trigger ve açıklama kaydedilip yeniden okunarak doğrulandı.
 Sonraki planlı başlangıç 21 Ekim 08:00. Yeni build/mail/DB bağlantısı yok.
