@@ -75,3 +75,13 @@ doğrulanır. Varsayılan kendi-owner erişimi ve source/target yönü değişme
 ALL_OBJECTS görünürlüğü tamlık kanıtı sayılmaz; seçili şemaya bindli kapalı
 DBA metadata sorguları kullanılır. 08:00, tek mail alıcısı ve Jenkins-only
 arşiv politikası korunur. Hiçbir üretilen SQL Oracle'da çalıştırılmaz.
+
+20 Ekim son kullanıcı kapsamı: günlük varsayılan yalnız PROD ortamındaki TTBP.
+INNOVA_ODI karşılaştırması yalnız kullanıcı isterse manuel seçilir. Mevcut ODI
+katalog hesabı TTBP okuma kimliği olarak kalabilir; ODI şeması karşılaştırılmaz.
+Kaynak profil/metadata/hedef listesi aynı seçime daralır. Gerçek hash adlı teknik
+nesneler ve bunların child kayıtları kaynak/targetta filtrelenir; COMMENT/GRANT
+kayıtlarının sentetik S_hash kimliği kullanıcı nesne adı diye gösterilmez,
+kanıtlı gerçek tablo/kolon adı gösterilir. Hedef görünen adı PROD olur, şema TTBP
+ayrı gösterilir. İç target_id/path/kimlik/DDL semantiği korunur. Tüm değişiklikler
+salt okunur sınırı, 08:00 ve Jenkins-only arşiv politikasını korur.

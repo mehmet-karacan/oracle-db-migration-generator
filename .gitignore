@@ -6,7 +6,7 @@ reference-ui/
 # Runtime ve dış repo checkout'ları
 .runtime/
 output/
-artifacts/
+/artifacts/
 work/
 .external/
 # Geliştirme kalıntıları

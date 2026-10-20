@@ -3,6 +3,7 @@
 The technical-name patterns adapt DDL Sync's oracle_client.py
 _SYSTEM_GENERATED_PATTERNS/_is_system_generated (read-only reference).
 Matching uses effective Oracle names, preserving quoted identifier case.
+Exact 64-hex technical names also match quoted case variants by user policy.
 """
 import re
 
@@ -16,10 +17,12 @@ _SYSTEM_GENERATED_PATTERNS = tuple(re.compile(pattern) for pattern in (
     r'^SYS_IOT_OVER_', r'^SYS_IL\d', r'^SYS_FBA_HIST_', r'^SYS_TEMP_FBT',
     r'^C\$_', r'^I\$_', r'^E\$_', r'^JV?\$', r'^T\$',
 ))
+_HASH_NAME_PATTERN = re.compile(r'^(?:S_)?[A-Fa-f0-9]{64}$', re.IGNORECASE)
 
 
-def _technical(name):
-    return any(pattern.match(name) for pattern in _SYSTEM_GENERATED_PATTERNS)
+def _technical(name, kind=None):
+    return bool(_HASH_NAME_PATTERN.fullmatch(name)) or (kind != 'MATERIALIZED_VIEW_LOG'
+            and any(pattern.match(name) for pattern in _SYSTEM_GENERATED_PATTERNS))
 
 
 def _known(obj, key):
@@ -69,8 +72,8 @@ def _exclusions(snapshot, policy):
         kind = obj.identity.object_type
         if kind in excluded_types:
             excluded[key] = ('EXCLUDED_OBJECT_TYPE', None)
-        elif (policy.exclude_system_generated and kind not in {'COMMENT', 'GRANT', 'MATERIALIZED_VIEW_LOG'}
-              and _technical(obj.identity.name.effective_name)):
+        elif (policy.exclude_system_generated and kind not in {'COMMENT', 'GRANT'}
+              and _technical(obj.identity.name.effective_name, kind)):
             excluded[key] = ('SYSTEM_GENERATED_OBJECT', None)
     # Child metadata must be removed with its excluded owner. Keep all other
     # objects, including business routines referencing technical objects.

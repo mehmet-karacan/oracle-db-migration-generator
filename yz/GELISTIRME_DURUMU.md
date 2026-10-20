@@ -1,3 +1,73 @@
+## Güncel kapsam: yalnız PROD / TTBP — 20 Ekim 2026
+
+Son kullanıcı talimatı: günlük varsayılan yalnız TTBP; INNOVA_ODI ancak manuel
+SCHEMA_SCOPE seçimiyle. Jenkins 08:00 Europe/Istanbul korunur. tools/jenkins_scope.py
+build'e özel dört config kapsamını birlikte daraltır; immutable iki şemalı registry
+değişmez. Source/target READ ONLY, Oracle DDL/DML/COMPILE NOT_RUN. Hedef adı PROD;
+TTBP şema olarak görünür, iç LOCAL-TTBP kimliği ve arşiv yolları korunur.
+
+Gerçek 64-hex / S_64-hex teknik nesneler ile bağlı INDEX/COMMENT/GRANT policy
+filtresine dahil edildi. Ham inventory ve scope-exclusions kanıtı korunur.
+Sentetik COMMENT/GRANT hash kimlikleri silinmez: bilinen bağlı nesne/kolon,
+optional object.display_name ile HTML/mail/README'de gösterilir. Belirsiz bağlı
+nesne açık etiketlenir. Planı olmayan hedefte sahte ad/şema yok; UNKNOWN ve
+bilinen hata kodu gösterilir. İç object/operation ID, dosya yolu ve SQL gövdesi
+korunur; plan ID ve SQL header hash değişebilir. Bağımsız son inceleme P1/P2 yok.
+
+Git paket bütünlüğü: eski unanchored artifacts/ ignore kuralı uygulamanın altı
+artifacts Python modülünü de Git dışında bırakmıştı. /artifacts/ olarak düzeltildi;
+6 gerçek kaynak modülü private kod yayınına alınır. Üretilen çıktı/.local/SQL
+arşivleri yine Git dışıdır. Wheel içindeki 123 kaynak/asset dosyası workspace ile
+byte eşitliği üzerinden doğrulandı. Kurumsal sırlar/yapılandırmalar yayımlanmaz.
+
+Doğrulama: check_contracts 7 schema / 8 example VERIFIED. Son tam koşu 636 testte
+630 passed, 6 Windows os.rename WinError5 (assertion/ürün kararı hatası değil),
+skip0. İki dar tekrarın her biri 5 passed / 1 aynı Windows erişim hatası verdi;
+başarılı tekrarların birleşimi aynı altı testin tamamını kapsıyor. Tek koşuda
+tam yeşil iddia edilmez; aralıklı Windows filesystem kilidi açık ortam sınırlamasıdır.
+JUnit: pytest-ttbp-prod-windows-failures.xml, pytest-ttbp-prod-windows-rerun.xml,
+pytest-ttbp-prod-windows-rerun2.xml. Yeni scope 3, hash 22 ve yan kayıt/hata etiket
+23 testleri odak doğrulamalarda geçti. Testler için güvenlik/antivirüs değiştirilmedi.
+
+v11 release SHA f00a4c805204b9faa379266f9ce10c8740b47bbac8b6b590322edecc83842d9a;
+wheel afcd482dfc165429b08ca1c2fb4d86caf3df310ad34ce7b6cbd4a6c7d8d4071b.
+Jenkins normal v11 script UI'dan byte normalize exact-match doğrulandı;
+SCHEMA_SCOPE ilk TTBP/ikinci INNOVA_ODI, RUN_MODE ilk COMPARE, cron 08:00.
+Kanıt release-proof-v11.json ve v11-normal-job-proof.json. #23 seçili TTBP
+ENVIRONMENT_CHECK SUCCESS, Oracle/Git source checkout/mail0.
+#24 TAMAMLANDI: yalnız PROD / TTBP, Jenkins UNSTABLE / run PARTIAL. 43.343 gözlenen
+satır; 1.170 READY SQL / 368 inceleme / 2.355 engel / 966 bilgi. Kısmi envanter/DDL
+ve 37.419 UNKNOWN nedeniyle kesin difference_count=null; dictionary COMPLETE.
+Target error_code=null. Manifest 7.241 dosya VERIFIED; 1.170 SQL / 616.700 byte.
+Plan 98b88b50c2cc256a8272c6df67947d60cf5b001b7ae4de51bdc64aace1e96571.
+Run 45bd3e14-2453-4043-b856-329290b4f6a3; kaynak ce8d62d18f46657b702a12bd5fe6fc58ec27cb5a.
+#18 yakalaması yeniden kullanıldı, fresh_capture=false / source_build=18 /
+Oracle connection_attempts=0 / NOT_EXECUTED. Rapor süresi 7 dk 31 sn, tüm build
+8 dk 2 sn. PROD/TTBP ve gerçek COMMENT tablo/kolon etiketleri HTML/mail'de görüldü;
+görünür LOCAL-ID / S_64hex bulunmadığı DOM metninden doğrulandı. Eski ve yeni
+sayımın aynı kalması beklenen durum: sentetik yan kayıtlar korunur, gerçek hash
+teknik nesneler policy kapsamında dışlanır. Ham inventory/scope-exclusions korunur.
+
+#24 mail açıklamasında yerel tek seferlik helper'ın varsayılan Windows encoding
+ile okunması kaynaklı mojibake görüldü; normal ürün notification helper'ı doğru
+UTF-8'dir. #25 #24 doğrulanmış paketin rapor özetini yeniledi: UTF-8 note doğrulandı,
+targets_equal ve bundle_manifest_unchanged=true; plan ID ve 1.170 SQL değişmedi.
+comparison_rerun=false / sql_regenerated=false / database_connections=0 /
+NOT_EXECUTED, credential binding yok. #25 TAMAMLANDI: 53 sn build, rapor yenileme
+33 sn; Jenkins UNSTABLE / PARTIAL, yeni run 8cff1abe-997a-4c55-92f2-714b63bdcd36.
+Arşiv/fingerprint ve mail yalnız onaylı tek alıcıya Jenkins logunda doğrulandı;
+attachment/log yok. Son mail DOM metninde PROD/TTBP, gerçek tablo/kolonlar ve temiz
+Türkçe not görüldü; görünür LOCAL-ID/S_64hex/mojibake yok. Son hedef raporu açık
+bırakıldı. Kanıt ttbp-prod-final-presentation-build-25.json,
+ttbp-prod-presentation-build-25.log ve ttbp-prod-mail-build-25.png (output/jenkins-setup).
+Normal günlük taze source/target okuyan v11'e geri döndü ve UI exact-match/08:00
+bir kez daha doğrulandı (v11-normal-job-proof-final.json). Özel kod yayını ayrıca
+output/github-code-ttbp-scope-prod-publication-receipt.json ile kanıtlanır;
+üretim SQL'i/raporlar/yerel sırlar bu commit/push kapsamına girmez. Sonraki bakım
+adımı TTBP kısmi kaynak/parse kapsamını nesne bazında azaltmaktır. Mevcut kapsam,
+etiket ve Jenkins-only rapor/DDL teslimi tamamlandı. Artifact Git push NOT_RUN.
+Canlı Oracle compile/iş verisi kabulü NOT_RUN; Oracle'a DDL/DML/COMPILE uygulanmadı.
+
 # Jenkins arşivi — 20 Ekim 2026 güncel durum
 
 ## TTBP — 20 Ekim 2026 güncel ek

@@ -3,6 +3,15 @@ from ..model.serialization import digest
 import hashlib
 
 
+def _sidecar_display_name(obj):
+    if obj.identity.object_type not in {'COMMENT','GRANT'}:return None
+    target=obj.properties.get('target')
+    if target is None or target.state!='KNOWN' or not isinstance(target.value,str) or not target.value:return None
+    column=obj.properties.get('column')
+    if column is not None and (column.state!='KNOWN' or column.value is not None and not isinstance(column.value,str)):return None
+    return target.value+('.'+column.value if column is not None and column.value else '')
+
+
 def operation(context,obj,changes,kind,decision,reason_code,reason_tr,*,statement=None,statement_kind='SQL',
               phase=30,tag='',risk=None,references=(),feature_scope='OBJECT',extra_evidence_ids=(),affected_columns=()):
     changes = tuple(changes)
@@ -18,4 +27,4 @@ def operation(context,obj,changes,kind,decision,reason_code,reason_tr,*,statemen
                       'TARGET_VALIDITY_AND_SCHEMA_POSTCHECK_REQUIRED',ids,'checks/postcheck.sql'),) if intent else ()
     return Operation(operation_id,obj.identity,kind,changes[0].before,changes[0].after,decision,decision_risk,
                      'V1.'+reason_code,(reason_code,),reason_tr,tuple(diff.difference_id for diff in changes),
-                     ids,preconditions=(pre,),postconditions=post,intent=intent)
+                     ids,preconditions=(pre,),postconditions=post,intent=intent,display_name=_sidecar_display_name(obj))

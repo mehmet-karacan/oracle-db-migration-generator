@@ -198,6 +198,10 @@
               "name": {
                 "type": "string"
               },
+              "display_name": {
+                "type": "string",
+                "minLength": 1
+              },
               "quoted": {
                 "type": "boolean"
               },

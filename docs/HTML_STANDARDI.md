@@ -66,3 +66,16 @@ Eksik tablo, hazır olmayan işlem, anahtar yokluğu, görünürlük belirsizli�
 alanı çakışması kendi kanıtıyla açıklanır; doğrulanamayan nesne yok sayılmaz.
 Yayın linki açık host allowlist + current run ID + immutable SHA + erişim kanıtı ister.
 Jenkins fallback ayrıca mevcut run.build_url altındaki sayısal build artifact'i olmalıdır.
+# 20 Ekim 2026 görünür nesne ve ortam etiketleri
+
+Görünen hedef adı registry'deki `name` alanıdır (`PROD`); şema ayrıca gösterilir
+(`TTBP`). Teknik target ID gruplama ve göreli arşiv yollarında kalır. Planı
+üretilemeyen hedefte ad/şema uydurulmaz; UNKNOWN ve bilinen hata kodu görünür.
+
+COMMENT/GRANT kayıtlarının iç `S_<hash>` kimliği nesne adı olarak gösterilmez.
+Bilinen bağlı nesne ve varsa kolon, optional `object.display_name` ile etiketlenir;
+bilinmeyen bağlı nesne açıkça belirtilir. İç kimlik, operation ID ve SQL gövdesi
+korunur. Ek display alanı plan ID'sini ve SQL plan başlık hash'lerini değiştirebilir.
+Gerçek 64 hexadecimal veya `S_` + 64 hexadecimal adlı teknik nesneler
+`exclude_system_generated` politikasıyla karşılaştırmadan dışlanır; bağlı
+index/yorum/grant da aynı politikayı izler. Ham envanter ve dışlama kanıtı korunur.

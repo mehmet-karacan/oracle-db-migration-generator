@@ -2,7 +2,13 @@
 
 Kaynak Git DDL durumu ile Oracle hedefleri arasındaki farklardan SQL/JSON/HTML üretmek için geliştirilen bağımsız Python CLI.
 
-**Mevcut durum:** Yerel karşılaştırma, güvenli DDL kuralları, bağımlılık sırası ve SQL/JSON/HTML paket üretimi çalışır. İlk gerçek kapsam INNOVA_ODI → INNOVA_ODI'dir. Metadata/parse eksikleri planı BLOCKED yapar; ilk rapor tam migration onayı değildir. TTBP ve Jenkins sonraya bırakılmıştır.
+**Mevcut durum (20 Ekim 2026):** Yerel ve Jenkins karşılaştırması, güvenli DDL
+kuralları, bağımlılık sırası ve SQL/JSON/HTML üretimi çalışır. Günlük varsayılan
+`PROD / TTBP`; `INNOVA_ODI` yalnız manuel `SCHEMA_SCOPE` seçimiyle karşılaştırılır.
+Jenkins her gün Türkiye saatiyle 08:00 başlar. Üretilen DDL ve raporlar yalnız
+Jenkins artifact arşivinde, son 20 çalışma için tutulur. Source ve target her
+zaman salt okunurdur; SQL uygulanmaz. Metadata eksikliği UNKNOWN/kısmi kapsam
+olarak görünür; güvenli DDL alt kümesi tam migration onayı sayılmaz.
 
 ## Ürün Sınırı
 

@@ -5,6 +5,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 from .formatting import format_count
+from .labels import object_label
 
 RANK={'ERROR':0,'INCONSISTENT':1,'INCOMPLETE':2,'BLOCKED':3,'REVIEW_REQUIRED':4,'READY':5,'NO_ACTION':6,'NO_CHANGE':7}
 OP_RANK={'BLOCKED':0,'REVIEW_REQUIRED':1,'READY':2,'INFORMATIONAL':3}
@@ -33,8 +34,9 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
     targets=[];unique={};counts={'ready_operations':0,'review_operations':0,'blocked_operations':0}
     for target in run['targets']:
         plan=plans.get(target['id'])
-        item={**target,'name':short(plan['target']['name']) if plan else target['id'],
-              'display_status':target['status']+' / UNKNOWN' if not plan else target['status'],
+        item={**target,'name':short(plan['target']['name']) if plan else 'Hedef adı doğrulanamadı',
+              'schemas':list(plan['target']['schemas']) if plan else [],
+              'display_status':target['status']+' / UNKNOWN'+(' · '+short(target['error_code']) if target.get('error_code') else '') if not plan else target['status'],
               'counts':plan['counts'] if plan else None,'report_path':None,'aggregate_path':None,'manifest_path':None,'objects_path':None}
         if plan:
             base=str(PurePosixPath(target['plan_path']).parent)
@@ -44,14 +46,16 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
             for key in counts: counts[key]+=plan['counts'][key]
             for op in plan['operations']:
                 obj=op['object'];key=tuple(obj[k] for k in ('owner','object_type','name','parent_key'))
-                row=unique.setdefault(key,{'object':obj,'decision':op['decision'],'reason':short(op['reason_tr']), 'targets':set(),'kinds':set(),'operation_count':0})
+                row=unique.setdefault(key,{'object':obj,'object_label':object_label(obj),'evidence_path':target['plan_path'],
+                                          'decision':op['decision'],'reason':short(op['reason_tr']), 'targets':set(),'kinds':set(),'operation_count':0})
                 row['targets'].add(target['id']);row['kinds'].add(op['kind']);row['operation_count']+=1
                 if OP_RANK[op['decision']]<OP_RANK[row['decision']]: row.update(decision=op['decision'],reason=short(op['reason_tr']))
         targets.append(item)
     important=sorted(unique.values(),key=lambda r:(OP_RANK[r['decision']],r['object']['owner'],r['object']['object_type'],r['object']['name']))[:5]
+    target_labels={item['id']:item['name']+(' ('+', '.join(item['schemas'])+')' if item['schemas'] else '') for item in targets}
     for row in important:
         row['targets']=sorted(row['targets']);row['kinds']=sorted(row['kinds']);row['display_status']=DISPLAY.get(row['decision'],row['decision'])
-        row['target_label']=', '.join(row['targets'][:5])+ (f" + {format_count(len(row['targets'])-5)} hedef" if len(row['targets'])>5 else '')
+        row['target_label']=', '.join(target_labels[target] for target in row['targets'][:5])+ (f" + {format_count(len(row['targets'])-5)} hedef" if len(row['targets'])>5 else '')
     unknown=sum(t['difference_count'] is None for t in targets)
     known=sum(t['difference_count'] or 0 for t in targets)
     differences=(format_count(known)+' + ?' if known else 'Bilinmiyor') if unknown else format_count(known)

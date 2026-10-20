@@ -55,12 +55,15 @@ class Operation:
     preconditions: tuple[Condition, ...] = ()
     postconditions: tuple[Condition, ...] = ()
     intent: SqlIntent | None = field(default=None,repr=False,compare=False)
+    display_name: str | None = None
 
     def to_dict(self):
         identity = self.identity
-        return {'id':self.operation_id,'object':{'profile_id':identity.profile_id,'owner':identity.owner.effective_name,
+        obj={'profile_id':identity.profile_id,'owner':identity.owner.effective_name,
                 'object_type':identity.object_type,'name':identity.name.effective_name,'quoted':identity.name.quoted,
-                'parent_key':identity.parent_key},'kind':self.kind,'before':thaw(self.before),'after':thaw(self.after),
+                'parent_key':identity.parent_key}
+        if self.display_name is not None:obj['display_name']=self.display_name
+        return {'id':self.operation_id,'object':obj,'kind':self.kind,'before':thaw(self.before),'after':thaw(self.after),
                 'decision':self.decision,'risk':self.risk,'rule_id':self.rule_id,'reason_codes':list(self.reason_codes),
                 'reason_tr':self.reason_tr,'change_ids':list(self.change_ids),'evidence_ids':list(self.evidence_ids),
                 'depends_on':list(self.dependencies),'sql':thaw(self.sql),'preconditions':thaw(self.preconditions),

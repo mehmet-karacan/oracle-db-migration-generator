@@ -172,3 +172,101 @@ def test_other_unsupported_application_object_still_blocks_with_filters_enabled(
     assert changes.differences
     plan = plan_target(changes, PlanningContext(desired, target, selected, 'Test'))
     assert plan.operations and all(op.decision == 'BLOCKED' for op in plan.operations)
+
+
+def test_exact_hash_database_object_names_are_filtered_on_both_sides_without_mutating_inventory():
+    from oracle_db_migration_generator.compare.scope import scope_exclusions, scoped_objects
+    hash_name = '00580' + 'a'*59
+    mixed_hash = 'aBcD'*16
+    source_names = ['"'+hash_name+'"', 'S_'+'c'*64, '"s_'+mixed_hash+'"']
+    target_names = ['"'+'d'*64+'"', 'S_'+'e'*64, '"s_'+'f'*64+'"']
+    business = ['S_0e13', 'APP$TABLE', '"c$_copy"', 'A'*63, 'A'*65, 'S_'+'G'*64]
+    desired = named(source('CREATE TABLE APP.BASE(ID NUMBER);'), source_names + business)
+    target = named(actual(), target_names)
+    raw_source, raw_target = desired.to_dict(), target.to_dict()
+    selected = policy(exclude_system_generated=True)
+    assert len(scoped_objects(desired, selected)) == len(business)
+    assert scoped_objects(target, selected) == ()
+    differences = compare_snapshots(desired, target, selected)
+    assert {diff.object_key for diff in differences.differences} == {
+        obj.object_key for obj in desired.objects if obj.identity.name.effective_name in {
+            'S_0E13', 'APP$TABLE', 'c$_copy', 'A'*63, 'A'*65, 'S_'+'G'*64}}
+    proof = scope_exclusions(desired, target, selected)
+    assert len(proof) == 6 and {item['side'] for item in proof} == {'SOURCE', 'TARGET'}
+    assert all(item['reason_code'] == 'SYSTEM_GENERATED_OBJECT' for item in proof)
+    assert desired.to_dict() == raw_source and target.to_dict() == raw_target
+    assert len(scoped_objects(desired, policy())) == len(source_names) + len(business)
+
+
+@pytest.mark.parametrize('kind', ['TABLE', 'VIEW', 'INDEX', 'SEQUENCE', 'PROCEDURE', 'MATERIALIZED_VIEW_LOG'])
+def test_hash_name_filter_covers_actual_object_types_but_keeps_real_log_names(kind):
+    from oracle_db_migration_generator.compare.scope import scoped_objects
+    desired = named(source('CREATE TABLE APP.BASE(ID NUMBER);'), ['S_'+'A'*64], kind)
+    assert scoped_objects(desired, policy(exclude_system_generated=True)) == ()
+    real_log = named(source('CREATE TABLE APP.BASE(ID NUMBER);'), ['MLOG$_APP_TABLE'], 'MATERIALIZED_VIEW_LOG')
+    assert scoped_objects(real_log, policy(exclude_system_generated=True)) == real_log.objects
+
+
+def test_hash_parent_exclusion_propagates_to_index_comment_grant_on_source_and_target():
+    from oracle_db_migration_generator.compare.scope import scope_exclusions, scoped_objects
+    name = '00580'+'a'*59
+    ddl = (f'CREATE TABLE APP."{name}"(ID NUMBER); CREATE INDEX APP.IX_HASH_PARENT ON APP."{name}"(ID); '
+           f'COMMENT ON TABLE APP."{name}" IS \'technical\'; GRANT SELECT ON APP."{name}" TO READER;')
+    desired, target = source(ddl), actual(ddl)
+    raw_source, raw_target = desired.to_dict(), target.to_dict()
+    selected = policy(exclude_system_generated=True)
+    assert scoped_objects(desired, selected) == scoped_objects(target, selected) == ()
+    proof = scope_exclusions(desired, target, selected)
+    assert len(proof) == 8
+    assert sum(item['reason_code'] == 'EXCLUDED_PARENT_OBJECT' for item in proof) == 6
+    assert {item['side'] for item in proof} == {'SOURCE', 'TARGET'}
+    assert desired.to_dict() == raw_source and target.to_dict() == raw_target
+
+
+def test_orphan_comment_known_hash_target_is_excluded_but_business_synthetic_identity_is_preserved():
+    from oracle_db_migration_generator.compare.scope import scope_exclusions, scoped_objects
+    name = '00580'+'a'*59
+    desired = source(f'CREATE TABLE APP."{name}"(ID NUMBER); COMMENT ON TABLE APP."{name}" IS \'technical\'; '
+                     'CREATE TABLE APP.BUSINESS(ID NUMBER); COMMENT ON TABLE APP.BUSINESS IS \'business\'; '
+                     'GRANT SELECT ON APP.BUSINESS TO READER;')
+    technical_table = next(obj for obj in desired.objects if obj.identity.name.effective_name == name)
+    desired = replace(desired, objects=tuple(obj for obj in desired.objects if obj is not technical_table))
+    selected = policy(exclude_system_generated=True)
+    proof = scope_exclusions(desired, actual(), selected)
+    assert len(proof) == 1 and proof[0]['object_type'] == 'COMMENT'
+    assert proof[0]['reason_code'] == 'EXCLUDED_PARENT_OBJECT'
+    assert proof[0]['parent_object_key'] == technical_table.object_key
+    kept = scoped_objects(desired, selected)
+    assert len(kept) == 3
+    assert {obj.identity.object_type for obj in kept} == {'TABLE', 'COMMENT', 'GRANT'}
+    assert all(obj.identity.name.effective_name.startswith('S_') for obj in kept if obj.identity.object_type in {'COMMENT', 'GRANT'})
+
+
+def test_hash_parent_via_parent_key_excludes_index_without_using_dependency_edges():
+    from oracle_db_migration_generator.compare.scope import scoped_objects
+    name = 'S_'+'A'*64
+    desired = source(f'CREATE TABLE APP.{name}(ID NUMBER); CREATE INDEX APP.IX ON APP.{name}(ID); '
+                     f'CREATE VIEW APP.BUSINESS_VIEW AS SELECT ID FROM APP.{name};')
+    parent = next(obj for obj in desired.objects if obj.identity.object_type == 'TABLE')
+    index = next(obj for obj in desired.objects if obj.identity.object_type == 'INDEX')
+    index = replace(index, identity=replace(index.identity, parent_key=parent.object_key),
+                    properties={'projection': KnownValue('UNKNOWN', None, index.evidence_ids)})
+    desired = replace(desired, objects=tuple(index if obj.identity.object_type == 'INDEX' else obj for obj in desired.objects))
+    kept = scoped_objects(desired, policy(exclude_system_generated=True))
+    assert [obj.identity.name.effective_name for obj in kept] == ['BUSINESS_VIEW']
+
+
+def test_excluded_hash_consumer_still_prevents_missing_sequence_ready():
+    from oracle_db_migration_generator.planning.rules import PlanningContext, plan_target
+    selected = replace(profile(), policy=policy(exclude_system_generated=True))
+    name = 'S_'+'A'*64
+    consumer = f'CREATE TABLE APP.{name}(ID NUMBER DEFAULT APP.S.NEXTVAL);'
+    desired = source('CREATE SEQUENCE APP.S START WITH 1 NOCACHE;'+consumer, selected)
+    target = actual(consumer, selected)
+    changes = compare_snapshots(desired, target, selected.policy)
+    context = PlanningContext(desired, target, selected, 'PROD')
+    result = plan_target(changes, context)
+    sequence = next(op for op in result.operations if op.identity.object_type == 'SEQUENCE')
+    assert sequence.decision == 'REVIEW_REQUIRED' and sequence.intent is None
+    assert 'SEQUENCE_EXISTING_DATA_COLLISION_UNKNOWN' in sequence.reason_codes
+    assert len(context.source.objects) == 2 and len(context.target.objects) == 1

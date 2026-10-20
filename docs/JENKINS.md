@@ -1,5 +1,17 @@
 # Jenkins Çalışma Sözleşmesi
 
+**Güncel kapsam (20 Ekim son kullanıcı kararı):** Günlük 08:00
+Europe/Istanbul çalışması yalnız TTBP karşılaştırır. `SCHEMA_SCOPE` varsayılanı
+`TTBP`; `INNOVA_ODI` yalnız manuel seçimdir. Görünen hedef adı `PROD`, şema
+`TTBP` olur; teknik target ID ve arşiv yolları değişmez. Mevcut yetkili katalog
+okuyucusu, karşılaştırılan şemayı değiştirmez. Source ve target READ ONLY kalır.
+
+`tools/jenkins_scope.py`, doğrulanmış iki şemalı registry'den seçilen tek şema
+için build'e özel config üretir. Source roots, job scope, target ve kaynak
+metadata listeleri birlikte daraltılır; immutable release değiştirilmez.
+Şablonun `@@SCOPE_BASE64@@` alanına bu doğrulanmış helper yerleştirilir.
+`ENVIRONMENT_CHECK` Oracle bağlantısı veya mail gönderimi yapmaz.
+
 20 Ekim son kullanıcı kararı: mevcut SKY işi rapor/SQL'i yalnız Jenkins
 artifact arşivinde saklar; artifact Git publication aşaması/credential binding
 yoktur. Mail Jenkins build raporunu açar. Aşağıdaki yayın parametreleri mevcut
@@ -8,7 +20,7 @@ işte etkin değildir; yeni açık yetki olmadan kullanılamaz.
 **Durum:** 20 Ekim 2026 kullanıcı talimatıyla ilk INNOVA_ODI işi kuruldu.
 İlk kurulum ve çalışma kanıtı `docs/JENKINS_ILK_KURULUM.md` içindedir.
 Aşağıdaki geniş parametre sözleşmesi sonraki çoklu hedef/yayın düzenidir;
-ilk işte yalnız RUN_MODE ve sabit SHA doğrulamalı GENERATOR_RELEASE görünür.
+mevcut işte SCHEMA_SCOPE, RUN_MODE ve sabit SHA doğrulamalı GENERATOR_RELEASE görünür.
 
 ## Parametreler
 

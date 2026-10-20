@@ -1,5 +1,12 @@
 # İlk Jenkins kurulumu
 
+**Güncel kapsam (20 Ekim son kullanıcı kararı):** Yalnız TTBP varsayılandır.
+`SCHEMA_SCOPE=INNOVA_ODI` yalnız kullanıcı manuel istediğinde seçilir. Seçim
+source roots, hedef ve kaynak metadata hesap kapsamını aynı anda daraltır.
+Raporda `PROD` ve `TTBP` görünür; eski `LOCAL-TTBP` ID'si iç kimlik/bağlantılar
+için korunur. Katalog okuyucusu INNOVA_ODI olması, ODI şemasının da
+karşılaştırıldığı anlamına gelmez. Source ve target READ ONLY kalır.
+
 **Güncel takvim (20 Ekim son kullanıcı yanıtı):** Her gün Türkiye saatiyle
 08:00. Canlı Schedule ve Pipeline trigger birlikte güncellenip yeniden okunarak
 doğrulandı. Aşağıdaki 08:40 kayıtları önceki karardır.
@@ -8,7 +15,7 @@ doğrulandı. Aşağıdaki 08:40 kayıtları önceki karardır.
 artifact arşivinde tutulur. Artifact Git yayın aşaması ve credential binding
 canlı job'dan ve Pipeline şablonundan kaldırıldı. Yerel artifact push da
 yapılmaz. Mail doğrudan ilgili build raporuna gider. Mevcut son 20 build/artifact
-saklama sınırı ve günlük Europe/Istanbul 08:40 korunur. Kod deposunun private
+saklama sınırı ve günlük Europe/Istanbul 08:00 korunur. Kod deposunun private
 push yetkisi sürer. Aşağıdaki önceki artifact yayını yetkisi artık geçerli değildir.
 
 20 Ekim güncellemesi: kullanıcı günlük Europe/Istanbul 08:40 çalışmasını ve
@@ -29,7 +36,7 @@ kanıtlanır. Başarısız yayında SQL/karşılaştırma korunur, mail gerçek 
 arşivine gider; doğrulanmış yayında mail sabit GitHub run README'sine bağlanır.
 Mail yalnız mkaracan@innova.com.tr adresine gider. Source/target salt okunur.
 
-Son kullanıcı kapsamı INNOVA_ODI ve TTBP'yi birlikte içerir. Aynı sabit Git SHA
+Önceki kullanıcı kapsamı INNOVA_ODI ve TTBP'yi birlikte içeriyordu. Aynı sabit Git SHA
 iki owner için okunur; her hedef kendi schema mapping ve credential kimliğiyle
 doğrulanır. Kaynak dictionary kanıtı da her owner için ayrı hesap/oturumdan
 toplanır. Bir hedefin bağlantı veya metadata hatası diğerinin raporunu durdurmaz;
