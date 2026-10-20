@@ -95,10 +95,8 @@ def object_change(context,obj,actual,changes):
         if not missing and all(d.kind=='INFORMATIONAL' for d in changes):
             return decide('INFORMATIONAL','SEQUENCE_COUNTER_PRESERVED','Hedef sequence sayacı korunur.',op_kind='PRESERVE')
         if missing:
-            from ..parsing.dependencies import references
             sequence_owner,sequence_name=obj.identity.owner.effective_name,obj.identity.name.effective_name
-            existing_consumers=[other for other in context.source.objects if other.object_key in context.target_objects
-                                and any(ref.object_type=='SEQUENCE' and ref.owner==sequence_owner and ref.name==sequence_name for ref in references(other))]
+            existing_consumers=context.existing_sequence_consumers(sequence_owner,sequence_name)
             if existing_consumers:
                 return decide('REVIEW_REQUIRED','SEQUENCE_EXISTING_DATA_COLLISION_UNKNOWN','Yeni sequence mevcut tüketicilerde kullanılacak; başlangıcın mevcut verilerle uyumu bilinmiyor.')
             from ..compare.projection_adapter import canonical_fields

@@ -1,5 +1,6 @@
 """Resolve prerequisites and propagate failures before deterministic ordering."""
 from dataclasses import replace
+from heapq import heappop, heappush
 
 from ..model.plan import DependencyReference
 from ..model.validity import report_only_invalid_ddl
@@ -204,16 +205,31 @@ def bind_and_order(operations,context):
                 details=[f'{dep.identity.owner.effective_name}.{dep.identity.name.effective_name} [{dep.identity.object_type}]: '+
                          f'gerekli {dep.kind} işlemi {dep.decision}' for dep in held]
                 result[key]=_block(op,'PREREQUISITE_NOT_READY',details);changed=True
-    pending=dict(result);ordered=[]
-    while pending:
-        done={op.operation_id for op in ordered}
-        ready=[op for op in pending.values() if set(op.dependencies)<=done]
-        if not ready:
-            for op in sorted(pending.values(),key=lambda item:item.operation_id):
-                held=[pending[dep] for dep in op.dependencies if dep in pending]
-                names=', '.join(sorted({f'{dep.identity.owner.effective_name}.{dep.identity.name.effective_name} [{dep.identity.object_type}]' for dep in held}))
-                ordered.append(_block(op,'DEPENDENCY_CYCLE',['SQL sırası çözülemeyen gruptaki önkoşullar: '+names]))
-            break
-        ready.sort(key=lambda op:(op.intent.phase if op.intent else 999,_key(op.identity),op.operation_id))
-        op=ready[0];ordered.append(op);pending.pop(op.operation_id)
+    return _topological_order(result)
+
+
+def _topological_order(operations):
+    """Select the same minimum ready operation without rescanning the graph."""
+    pending=dict(operations);ordered=[];remaining={};dependents={};ready=[]
+    for key,op in pending.items():
+        dependencies=set(op.dependencies)
+        remaining[key]=len(dependencies)
+        for dependency in dependencies:
+            dependents.setdefault(dependency,[]).append(key)
+        if not dependencies:
+            heappush(ready,(op.intent.phase if op.intent else 999,_key(op.identity),key))
+    while ready:
+        _,_,key=heappop(ready)
+        op=pending.pop(key);ordered.append(op)
+        for dependent in dependents.get(key,()):
+            remaining[dependent]-=1
+            if remaining[dependent]==0:
+                candidate=pending[dependent]
+                heappush(ready,(candidate.intent.phase if candidate.intent else 999,
+                                _key(candidate.identity),dependent))
+    # The residual includes cycles and their downstream dependents, as before.
+    for op in sorted(pending.values(),key=lambda item:item.operation_id):
+        held=[pending[dep] for dep in op.dependencies if dep in pending]
+        names=', '.join(sorted({f'{dep.identity.owner.effective_name}.{dep.identity.name.effective_name} [{dep.identity.object_type}]' for dep in held}))
+        ordered.append(_block(op,'DEPENDENCY_CYCLE',['SQL sırası çözülemeyen gruptaki önkoşullar: '+names]))
     return tuple(ordered)

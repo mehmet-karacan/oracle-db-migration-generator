@@ -1,5 +1,68 @@
 # Jenkins arşivi ve PARTIAL kaynak devamı — 20 Ekim 2026
 
+## TTBP raporu ve DDL — 20 Ekim 2026 son çalışma
+
+ORA-04088 bağlantı nedeni: TTBP logon guard. Oracle güvenliği değiştirilmeden,
+mevcut yetkili INNOVA_ODI katalog okuyucusu kullanıldı. #18 gerçek TTBP capture:
+5.321 inventory / 24.508 metadata nesnesi, CAPTURED, capability_errors ve
+dictionary_errors boş, READ ONLY. Süre 33 dk 22 sn. Kaydedilen snapshot 84,82 MiB.
+#18 daha sonra çevrimdışı HTML_SIZE_BUDGET_EXCEEDED nedeniyle tamamlanamadı.
+#20 kayıtlı verilerle hatayı kesin ayırdı: 43.343 gözlenen fark; 1.170 READY,
+368 inceleme, 2.355 engel, 966 bilgi; tüm 1.170 SQL grammar/identity kontrolünden
+geçti, yalnız HTML render boyut sınırı bundle yazılmasını durdurdu. Bu sayılar
+kısmi kaynak kapsamı ve UNKNOWN içerebilir; kesin toplam karşılaştırma değildir.
+
+Düzeltmeler: planning/context.py indexed lookup ve bağlam başına lazy sequence
+consumer index; object_rules.py aynı mevcut tüketici güvenlik kararını korur.
+graph.py son kuyruk heap ile aynı deterministik sıra/döngü gerekçesini üretir.
+reporting/render.py + report.html.j2 200 KiB sınırını artırmadan değişken sayfalama,
+tek büyük kayıtta sınırlı önizleme/kalan sayısı ve tam JSON bağlantısı kullanır.
+Kanonik JSON/SQL/kararlar değişmez; hiçbir işlem atılmaz. Yeni test dosyaları:
+test_planning_lookup_cache.py, test_graph_queue.py, test_report_size_budget.py.
+Bağımsız çapraz incelemelerde açık P1/P2 yok. Tam son test: 615 passed / 90,89 sn /
+skip0; output/jenkins-setup/pytest-ttbp-report-final.xml. İlk Windows Temp koşuları
+os.rename WinError5 verdi; kanıt korunup unique workspace basetemp ile tekrarlandı.
+Önceki performans seti de ayrı workspace içinde 610 passed / 99,96 sn idi.
+
+Yeni immutable v10 release SHA 53a7edc145446301c7ea5c4e7ab19818a705a5c4483c7790996129508399aca4;
+wheel 7e333734e07b95f7aa60703a8d8536e297046da6b0f781e715ac1b4d18f8a0c1.
+Normal günlük v10 script LF normalize edilerek birebir UI doğrulandı; cron
+TZ=Europe/Istanbul / 0 8 * * *, iki parametre ve Jenkins-only/son20 politikası var.
+Kanıt release-proof-v10.json ve v10-normal-job-proof.json. #21 yalnız takvim ve
+parametre geri yükleme, Oracle/Git/SMTP yok. #19 tanı süreci SIGSEGV, sonuç yok;
+#20 başarılı kök neden tanısı; bunlar canlı karşılaştırma başarısı sayılmaz.
+
+#22 TAMAMLANDI: Jenkins UNSTABLE / run PARTIAL, hedef error_code ikisinde de
+null. Arşivde gerçek iki plan/HTML/manifest/nesne SQL dosyaları doğrulandı.
+INNOVA_ODI: 1.857 fark / 559 DDL / 56 inceleme / 4 engel; kapsam COMPLETE.
+TTBP: 43.343 gözlenen satır / 1.170 DDL / 368 inceleme / 2.355 engel / 966 bilgi.
+TTBP fark türleri: MISSING 2.618, CHANGED 2.617, INFORMATIONAL 689, UNKNOWN 37.419.
+TTBP kapsamı PARTIAL (SOURCE_INVENTORY_PARTIAL, SOURCE_DDL_PARTIAL,
+TARGET_DDL_PARTIAL); dictionary COMPLETE. UNKNOWN nedeniyle kesin toplam fark
+null kalır; güvenli hazır alt küme üretilmiştir. Hedef bağlantı ERROR durumu yok.
+
+TTBP manifesti 7.241 dosya VERIFIED, 1.170 nesne SQL toplam 616.700 byte;
+ODI 1.666 dosya VERIFIED, 559 nesne SQL toplam 571.756 byte. İki target plan_id
+ve snapshot SHA-256'ları output/jenkins-setup/ttbp-replay-verified-build-22.json
+arşivden okunup kaydedildi. Run 710e2cee-b185-46b7-86f0-249ac5f5d83b;
+source ce8d62d18f46657b702a12bd5fe6fc58ec27cb5a. Çevrimdışı yeniden üretim
+10 dk 0 sn; fresh_capture=false, source_build=18, Oracle connection attempts=0,
+execution_status=NOT_EXECUTED. Normal günlük kaynak/hedefi yeniden okuyacak v10
+scriptine döndü; 08:00 exact UI kanıtı var. Tüm taze kaynak+capture akışının 09:00
+öncesi biteceği henüz ölçülüp garanti edilmedi; saat kendiliğinden değiştirilmez.
+
+#22 post-action archive/fingerprint tamam; yalnız onaylı tek adrese genel HTML
+mail gönderimi Jenkins logunda doğrulandı. Attachment/log yok. TTBP arşiv HTML
+ve genel iki hedef raporu UI'da açıldı; sayılar, binlik ayraç, logo, kapsam ve DDL
+bağlantıları görüldü. Screenshot output/jenkins-setup/ttbp-report-build-22.png.
+Kanonik 73 MiB plan JSON'u tarayıcıda açmak yerine küçük replay receipt kullanılır.
+Kalan kapsam eksikleri rapordadır; gerçek Oracle syntax/compile/iş verisi kabulü
+NOT_RUN. Oracle DDL/DML/COMPILE NOT_RUN; gerçek DDL Git push NOT_RUN.
+Kod yayını kanıtı output/github-code-ttbp-completion-publication-receipt.json
+ile ayrıca tutulur; çıktı/SQL/yerel sırlar yalnız Git dışındadır.
+Sonraki bakım adımı TTBP parser/kapsam eksiklerini nesne bazında azaltmaktır;
+mevcut görevin TTBP rapor/DDL/Jenkins arşiv teslimi tamamlanmıştır.
+
 TTBP ORA-04088 düzeltmesi uygulanıyor (son kullanıcı görevi): #15 salt okunur
 tanı CONNECT aşamasında SYS.BLOCK_TOOLS_TTBP / ORA-00604 / ORA-20983 zincirini
 gösterdi. Trigger/Oracle güvenliği değiştirilmedi. #16 mevcut INNOVA_ODI hesabında

@@ -1,5 +1,25 @@
 # Jenkins arşivi — 20 Ekim 2026 güncel durum
 
+## TTBP — 20 Ekim 2026 güncel ek
+
+Mevcut yetkili katalog hesabıyla #18 TTBP READ ONLY capture tamamlandı:
+5.321 envanter, 24.508 metadata nesnesi; dictionary/capability hata yok.
+#20 çevrimdışı kesin kök neden HTML_SIZE_BUDGET_EXCEEDED; 1.170 READY SQL'in
+ayrıştırması başarılıydı. HTML boyutuna göre sayfalama ve JSON tam kanıt bağlantısı
+uygulandı. Aynı bağımlılık analizi ve doğrusal lookup tekrarları azaltıldı;
+heap sıralaması eski sıra/engel kararlarını korur. Üç yeni test dosyası dahil
+615 passed / 90,89 sn / skip0; bağımsız incelemede açık P1/P2 yok.
+V10 yeni immutable release + normal günlük 08:00 exact LF/UI doğrulandı.
+#22 tamamlandı: UNSTABLE/PARTIAL, iki hedefte error_code null. INNOVA_ODI
+1.857 fark/559 DDL; TTBP 43.343 gözlenen satır/1.170 DDL/368 inceleme/2.355 engel.
+TTBP 37.419 UNKNOWN ve kısmi kapsam nedeniyle kesin toplam null; hazır alt küme
+arşivlenmiştir. TTBP 7.241 manifest dosyası, 1.170 SQL/616.700 byte VERIFIED.
+Genel HTML mail yalnız tek yetkili alıcıya gönderildi; gerçek iki hedef HTML'i
+arşivde açıldı. #18 yakalamalarından çevrimdışı yeniden üretim10dk0sn,
+Oracle bağlantı girişimi0, SQL NOT_EXECUTED. Normal günlük08:00 v10 geri yüklü.
+Oracle yazma ve DDL Git push NOT_RUN. Kalan parser/kapsam eksikleri rapordadır.
+Kanıtlar ve sonraki bakım adımı DEVIR.md başındaki ek bölümde.
+
 Son görev TTBP ORA-04088: hedefte araç bağlantısını reddeden mevcut logon trigger
 tanılandı. Güvenlik/Oracle kullanıcıları değiştirilmedi. Mevcut ODI katalog okuma
 yetkisiyle explicit metadata_reader desteği tamamlandı; identity+role+owner varlığı

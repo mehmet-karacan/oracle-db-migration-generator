@@ -1,5 +1,33 @@
 # Jenkins arşivi ve kaynak devamı — 20 Ekim 2026
 
+## TTBP v10 doğrulaması — 20 Ekim 2026
+
+- Tam offline: 615 passed / 90,89 sn / skip0; komut .venv/Scripts/python.exe
+  -m pytest -q --basetemp output/pytest-ttbp-report-final-20261020-1725
+  --junitxml output/jenkins-setup/pytest-ttbp-report-final.xml.
+  İlk Temp WinError5 sonuçları korunur; son workspace geçişi hata/skip0.
+- Yeni 6 cache/lookup testi, 17 graph queue testi, 5 HTML byte sınırı testi.
+  Kararlar/tüketiciler/sıra korunur. Bağımsız son incelemelerde açık P1/P2 yok.
+  check_contracts VERIFIED (7 schema / 8 example); diff --check temiz.
+- #18 canlı metadata: TTBP CAPTURED, READ ONLY, 5.321 inventory / 24.508 object;
+  hata grupları boş. receipt output/jenkins-setup/ttbp-capture-build-18.json.
+- #20 çevrimdışı tanı 1.170 SQL sonrası yalnız HTML_SIZE_BUDGET_EXCEEDED;
+  log output/jenkins-setup/ttbp-offline-diagnostic-build-20.log. Snapshot tekrar
+  okuma kaydedilmiş dosyalardan, Oracle bağlantısı yok. #19 tanı SIGSEGV başarılı
+  sayılmaz. #21 yalnız parametre/takvim hazırlığı; DB/Git/SMTP yok.
+- v10 release ve wheel exact hash'leri release-proof-v10.json içinde. Günlük
+  script LF exact, cron 08:00, RUN_MODE/GENERATOR_RELEASE mevcut; UI kanıtı
+  v10-normal-job-proof.json. Artifact Git yayını yok; son20 Jenkins arşivi.
+- #22 arşivden VERIFIED: INNOVA_ODI559 SQL/571.756byte/1.666 dosya;
+  TTBP1.170 SQL/616.700byte/7.241 dosya. İki target error_code null.
+  TTBP counts43.343/1.170/368/2.355, UNKNOWN37.419; kısmi kapsamı korunur,
+  kesin toplam fark null. run PARTIAL / Jenkins UNSTABLE; süre10dk0sn.
+  fresh_capture=false, source_build18, Oracle connection attempts0,
+  execution_status NOT_EXECUTED. Archive/fingerprint ve tek alıcı mail logda.
+  Kanıt ttbp-replay-verified-build-22.json, final-run-build-22.json,
+  ttbp-final-build-22.log ve ttbp-report-build-22.png. Genel/TTBP HTML UI'da açıldı.
+  Oracle syntax/compile/iş verisi kabulü NOT_RUN; gerçek SQL Git push NOT_RUN.
+
 - TTBP catalogreader final offline: 587 passed / 82,89 sn / skip0;
   output/jenkins-setup/pytest-catalog-owner-final.xml. check_contracts VERIFIED.
   Bağımsız P2 owner-existence düzeltildi; son incelemede açık P1/P2 yok.
