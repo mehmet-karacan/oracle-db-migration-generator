@@ -1,5 +1,15 @@
 # Jenkins arşivi — 20 Ekim 2026 güncel durum
 
+Son ek: 489 passed / 84,19 sn / skip 0; son bağımsız inceleme P1/P2 yok.
+Jenkins-only uygulama kodu 97d3992e79dd67f310cf5956af40051555acaf6a normal
+push ile doğrulandı. #13 kaynak snapshot'ı hash piniyle doğruladı; ODI metadata
+405 tablo eşleşti. TTBP DPY-3015 için mevcut Sync Oracle Instant Client 19.28
+yeni v8 release'e lisans/hash/provenance ile alındı; iki owner explicit thick.
+Yeni driver helper kırmızı→yeşil 6 test; thin native load yok, mixed/error
+güvenli reddedilir. Oracle yazma/verifier değişikliği yoktur. v8 normal script
+Jenkins'te birebir kaydedildi; Git publication yok. #14 paket yüklendi ve #13
+ardında kuyruğa girdi. Canlı karşılaştırma sonuçları halen bekleniyor.
+
 Kullanıcı artifact Git push'unu iptal etti. DDL/JSON/HTML yalnız Jenkins build
 artifact arşivinde, son 20 build/artifact saklama ayarıyla tutulur. Mail doğrudan
 Jenkins raporunu açar; 08:40 Europe/Istanbul değişmedi. Kod deposu push yetkisi sürer.

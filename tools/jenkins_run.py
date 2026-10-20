@@ -92,6 +92,20 @@ def environment_check(profile,schemas):
             'schemas':list(schemas),'database_connections':0,'read_only':True,'sql_execution':'NOT_IMPLEMENTED'}
 
 
+def initialize_oracle_driver(targets,client_dir):
+    import oracledb
+    modes={target.driver_mode for target in targets}
+    if modes=={'thin'}:return 'thin'
+    if modes!={'thick'}:raise ValueError('JENKINS_ORACLE_DRIVER_MIXED_MODES')
+    if not client_dir or not Path(client_dir).is_dir():raise ValueError('JENKINS_ORACLE_DRIVER_CLIENT_REQUIRED')
+    try:
+        oracledb.init_oracle_client(lib_dir=str(Path(client_dir).resolve()))
+    except Exception:
+        raise ValueError('JENKINS_ORACLE_DRIVER_CLIENT_LOAD_FAILED') from None
+    if oracledb.is_thin_mode():raise ValueError('JENKINS_ORACLE_DRIVER_MODE_MISMATCH')
+    return 'thick'
+
+
 def reuse_prepared_source(cached,prepared,source_dir,commit,profile,*,snapshot_sha256):
     """Import a prior same-job source, checking every input against pinned Git.
 
@@ -200,9 +214,11 @@ def main(argv=None):
         from jenkins_source_semantics import capture_source_metadata,reconcile_source
     from oracle_db_migration_generator.config.models import Endpoint,TargetConfig
     metadata=metadata_sources(json.loads((config/'source-metadata.json').read_bytes()),settings['schemas'])
+    initialize_oracle_driver(targets,os.environ.get('GENERATOR_ORACLE_CLIENT_DIR'))
     for record in metadata:
         owner=record['schema'];suffix='.'+owner if len(metadata)>1 else ''
-        source_target=TargetConfig('SOURCE-METADATA-'+owner,'Source metadata',True,Endpoint(**record['endpoint']),'thin',())
+        mode=next(target.driver_mode for target in targets if TARGET_OWNERS[target.id]==owner)
+        source_target=TargetConfig('SOURCE-METADATA-'+owner,'Source metadata',True,Endpoint(**record['endpoint']),mode,())
         try:
             capture=capture_source_metadata(source_target,EnvCredentialResolver()(record['credential_id']),owner=owner)
             enriched,proof=reconcile_source(source,capture,prepared)

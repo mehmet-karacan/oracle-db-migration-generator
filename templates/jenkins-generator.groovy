@@ -66,6 +66,8 @@ set +x
               code = sh(returnStatus: true, script: '''#!/bin/sh
 set -eu
 set +x
+export GENERATOR_ORACLE_CLIENT_DIR="$(pwd)/$GENERATOR_RELEASE_DIR/instantclient"
+export LD_LIBRARY_PATH="$GENERATOR_ORACLE_CLIENT_DIR:${LD_LIBRARY_PATH:-}"
 "$GENERATOR_RUNTIME_DIR/venv/bin/python" "$GENERATOR_RELEASE_DIR/jenkins_run.py" --release "$GENERATOR_RELEASE_DIR" --mode COMPARE --source-dir ".source/build-$BUILD_NUMBER" --source-commit "$GENERATOR_SOURCE_SHA" --output "output/runs/build-$BUILD_NUMBER"
 ''')
             }

@@ -1,5 +1,30 @@
 # Jenkins arşivi ve PARTIAL kaynak devamı — 20 Ekim 2026
 
+Son ek: Jenkins-only kodu normal push ile private Generator main üzerinde
+97d3992e79dd67f310cf5956af40051555acaf6a olarak exact remote/API doğrulandı.
+#13 source reuse REUSED_VERIFIED; ODI kaynak metadata 405 tablo eşleşti, 0 red.
+TTBP kaynak metadata DPY-3015 verdi; eski Sync'in aynı hesap için kullandığı
+Oracle Instant Client 19.28 Linux dosyaları salt okunur referanstan yeni v8
+release'e hash/provenance ve orijinal lisansıyla kopyalandı; eski Sync değişmedi.
+Jenkins runner tüm seçili hedefler explicit thick ise istemciyi ilk Oracle
+bağlantısından önce bir kez yükler. Karışık mod, eksik/yüklenmeyen client ve
+mode mismatch güvenli kodla durur. Thin hedeflerde native load yapılmaz.
+Kaynak metadata oturumu da ilgili hedefin yapılandırılmış modunu kullanır.
+DB kullanıcı/parola/verifier değişikliği ve DDL/DML yapılmadı.
+
+Son doğrulama: 489 passed / 84,19 sn / skip 0;
+output/mail-layout/pytest-jenkins-thick-final.xml. Bağımsız dar incelemede açık
+P1/P2 yok. check_contracts VERIFIED; references 36 match / 7 bilinen drift /
+0 missing (önceden inceleme/provenance kaydı var, yeni referans değişikliği yok).
+v8 release SHA 1940221e92f8ecf74670cf64416a18d9eeb9ec64684e7afbd5c02f86ea13ad38;
+aynı v7 wheel kullanılır, yalnız trusted helper/config/native client değişti.
+Normal günlük v8 script kaydedildi ve birebir UI doğrulandı; publication stage
+ve credential yok, 08:40 Europe/Istanbul. Kanıt jenkins-only-v8-proof.json/png.
+#14 v8 COMPARE paketi yüklenip kuyruğa alındı; #13 bitmesini bekliyor.
+#14 normal fresh-source akışıdır, kaynak hazırlığını yeniden yapar. #13/#14 için
+canlı iki-şema tamamlandı iddiası yok; sıradaki adım gerçek iki sonuç ve son
+rapor/mail/arşiv kanıtını kontrol etmektir. Çıktılar yalnız Jenkins'te kalır.
+
 Son kullanıcı kararı önceki artifact Git yayınını iptal etti. DDL/JSON/HTML
 yalnız Jenkins build artifact arşivinde tutulur; yerel artifact push yapılmaz.
 Canlı Pipeline ve templates/jenkins-generator.groovy publication stage ve GitHub

@@ -1,5 +1,16 @@
 # Jenkins arşivi ve kaynak devamı — 20 Ekim 2026
 
+- Son driver delta sonrası: 489 passed / 84,19 sn / skip 0;
+  output/mail-layout/pytest-jenkins-thick-final.xml. Son bağımsız inceleme P1/P2 yok.
+  check_contracts VERIFIED; refs 36 matched / 7 bilinen drift / 0 missing.
+- #13 gerçek source reuse REUSED_VERIFIED; ODI source 405 matched / 0 rejected;
+  TTBP source bağlantısı DPY-3015. Veri tabanına yazmadan mevcut Sync istemcisiyle
+  explicit thick yapılandırıldı. Native client kanıtı yeni v8 release manifestinde.
+- v8 SHA 1940221e92f8ecf74670cf64416a18d9eeb9ec64684e7afbd5c02f86ea13ad38;
+  normal job script exact, 08:40, artifact credential/stage yok. #14 upload ve queue
+  UI'da görüldü; #13 tamamlanmasını bekliyor. Live iki owner henüz tamamlanmadı.
+- Private code 97d3992e79dd67f310cf5956af40051555acaf6a exact remote/API doğrulandı;
+  gerçek DDL Git yayını yapılmadı.
 - Offline: PYTHONPATH=src; .venv/Scripts/python.exe -m pytest -q --tb=short
   --junitxml=output/mail-layout/pytest-jenkins-only-final.xml → 483 passed / 71,90 sn,
   skip 0. Son bağımsız incelemede açık P1/P2 yok.
