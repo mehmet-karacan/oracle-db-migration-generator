@@ -5,9 +5,9 @@ logo açık 156×30 (orijinal PNG byte'ları değişmez), öncelikli ilk 5 nesne
 gerçek started_at/finished_at farkından çalışma süresi. Günlük Europe/Istanbul
 08:40 takvimi UI'dan doğrulandı; sonraki tetikleme 21 Ekim 08:40.
 
-Kod private GitHub Generator deposuna normal push ile yayımlandı:
-d8e88e1c1d4616533a4b142d9cba0f97c0a98808. Son SKY/TTBP/filtre düzeltmeleri bu
-ilk commit'ten sonra tamamlandı; ayrı normal commit ile yayımlanacak.
+Kod private GitHub Generator deposuna normal push ile yayımlandı.
+Son SKY/TTBP/filtre commit'i f4560bdcb158a7fe727febe064e04b8ad66baa65;
+uzak branch SHA ve GitHub commit API yanıtı birebir doğrulandı.
 Artifact deposu da private/yazılabilir doğrulandı; iki depo ayrıdır.
 
 Jenkins #9 aynı #8 planını, yeni Oracle bağlantısı açmadan yeniden sundu.
@@ -47,6 +47,9 @@ Sıradaki somut adım: #12 bitişini ve iki capture receipt'ini doğrula; filtre
 sayıları/ilk5/logo/süre/SKY maili kontrol et. Son raporu private artifact deposuna
 yerelden normal push ile koy; Jenkins otomatik push ağ koşulu ayrıca açık kalır.
 Son code/handoff değişikliklerini private Generator repo'ya normal push et.
+Referans filtresi provenance kaydı docs/YENIDEN_KULLANIM.md içine eklendi:
+güncel Sync dosyası SHA'sı kaydedildi, eski lock'taki önceden mevcut drift gizlenmedi.
+Referans audit sonucu 36 eşleşen / 7 önceden mevcut drift / 0 eksik.
 
 ---
 

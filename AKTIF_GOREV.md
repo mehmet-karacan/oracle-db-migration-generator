@@ -29,3 +29,19 @@ Normal karşılaştırma akışı v3 ile geri yüklendi. Kanıt: output/report-r
   Bu açık talimat önceki dış Git push NOT_RUN sınırını bu iki depo için günceller.
 - Bu işler tamamlanınca INNOVA_ODI'ye ek TTBP salt okunur karşılaştırması yapılır.
   Oracle DDL/DML/COMPILE ve kaynak DDL deposuna push hiçbir aşamada yapılmaz.
+
+20 Ekim son kullanıcı rapor kapsamı:
+
+- Proje/mail konu öneki SKY olur. Genel mail yalnız izinli alıcıya gider.
+- DDL Sync'in teknik nesne ad filtreleri kaynak ve hedefe aynı uygulanır.
+  GRANT kayıtları politika ile kapsam dışında tutulur; gerçek iş nesnelerindeki
+  her `$` karakteri dışlama nedeni değildir. Ham envanter ve kanıt korunur.
+- Genel raporda gerçek başlangıç/bitiş zamanından çalışma süresi gösterilir.
+  Önemli nesneler mevcut karar önceliğiyle sıralanıp ilk 5 ile sınırlandırılır.
+- İki şemanın canlı kontrolü Jenkins #12'de sürmektedir. Offline doğrulama
+  414 test geçti. Son kod normal push ile private Generator deposunda:
+  f4560bdcb158a7fe727febe064e04b8ad66baa65.
+- Jenkins agent GitHub HTTPS bağlantısı ConnectionResetError ile kesiliyor.
+  Bu durum yalnız otomatik artifact yayınını etkiler; karşılaştırmayı durdurmaz.
+  Proxy bilgisi beklenirken son raporun yetkili private artifact deposuna yerel
+  erişimle normal push edilmesi bağımsız sonraki adımdır.

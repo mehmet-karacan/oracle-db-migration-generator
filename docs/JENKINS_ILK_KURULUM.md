@@ -18,6 +18,25 @@ kanıtlanır. Başarısız yayında SQL/karşılaştırma korunur, mail gerçek 
 arşivine gider; doğrulanmış yayında mail sabit GitHub run README'sine bağlanır.
 Mail yalnız mkaracan@innova.com.tr adresine gider. Source/target salt okunur.
 
+Son kullanıcı kapsamı INNOVA_ODI ve TTBP'yi birlikte içerir. Aynı sabit Git SHA
+iki owner için okunur; her hedef kendi schema mapping ve credential kimliğiyle
+doğrulanır. Kaynak dictionary kanıtı da her owner için ayrı hesap/oturumdan
+toplanır. Bir hedefin bağlantı veya metadata hatası diğerinin raporunu durdurmaz;
+doğrulanamayan alanlar UNKNOWN kalır. Oracle DDL/DML/COMPILE uygulanmaz.
+
+Genel konu `SKY | Oracle DB Migration Generator | DURUM | Build #N` biçimindedir.
+Gerçek build başlangıcı ve rapor bitişi arasındaki süre gösterilir; en önemli
+5 nesne mevcut karar sırasıyla seçilir. Teknik nesne filtreleri ve GRANT
+dışlama profilde açık policy olarak tanımlıdır; ham envanter silinmez.
+
+Jenkins agent'tan GitHub HTTPS bağlantısı #10/#11 tanısında ConnectionResetError
+ile kesildi. Sistem CA ile sonuç değişmedi; TLS doğrulaması kapatılmadı. Bu
+ortamda otomatik GitHub yayını henüz doğrulanmış sayılmaz. Karşılaştırma, Jenkins
+arşivi ve tek alıcılı mail çalışmaya devam eder. Yerel yetkili erişimle yapılan
+artifact push ayrıca kaydedilir; Jenkins otomatik yayın kanıtı yerine sunulmaz.
+
+## Tarihsel ilk kurulum kapsamı
+
 Kapsam yalnız INNOVA_ODI. Source Git checkout/metadata okuması, hedef Oracle metadata okuması; DDL/DML, COMPILE ve Git push uygulanmaz. INVALID nesneler rapor bulgusudur. İş otomatik tetiklenmez.
 
 `templates/jenkins-generator.groovy` güvenilir job şablonudur. Kurumsal source/target ayarları ve sır değerleri içermez. İlk kurulumda SHA ile doğrulanan offline ZIP, Stashed File Parameter üzerinden yüklenir. Sonraki build'de dosya seçilmezse korunmuş ZIP aynı SHA ile yeniden doğrulanır. Boş file parametresi yükleme sayılmaz.

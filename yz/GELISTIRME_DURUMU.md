@@ -7,8 +7,8 @@ ham envanter ve UNKNOWN/bağımlılık güvenliği korunur. INNOVA_ODI+TTBP içi
 ayrı credential/sessionowner doğrulamalı runner ve owner bazlı source kanıtı var.
 scope-exclusions.json filtre kanıtını taşır. Dosyalar ve komutlar yz/DEVIR.md başında.
 
-GitHub code ilk push doğrulandı (d8e88e1c1d4616533a4b142d9cba0f97c0a98808);
-son değişimler normal takip commit'iyle gönderilecek. Jenkins günlük08:40
+GitHub code son push doğrulandı (f4560bdcb158a7fe727febe064e04b8ad66baa65);
+SKY/TTBP/filtre uygulaması bu commit'te. Jenkins günlük 08:40
 Europe/Istanbul doğrulandı. #12 v6 release ile canlı salt okunur iki şema koşusu
 sürüyor; henüz tamamlandı iddiası yok. Gerçek Oracle DDL/DML/COMPILE NOT_RUN.
 Jenkins agent GitHub HTTPS ConnectionResetError; proxy kullanıcı yanıtı bekleniyor.

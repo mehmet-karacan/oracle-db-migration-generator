@@ -1,3 +1,28 @@
+# SKY, teknik nesne filtreleri ve TTBP — 20 Ekim 2026
+
+- Entegre offline: `.venv/Scripts/python.exe -m pytest -q --tb=short --junitxml=output/mail-layout/pytest-integrated.xml`
+  → 414 passed / 40,89 sn / skip 0. Bağımsız çapraz incelemede önemli açık bulgu yok.
+- Kod yayını: private Generator deposu; normal push sonrası uzak main ve commit
+  API SHA'sı f4560bdcb158a7fe727febe064e04b8ad66baa65 olarak doğrulandı.
+  Sırlar, bağlantılar, output/.local/.env/reference-ui ve gerçek SQL kod Git'inde yok.
+- Genel mail: %60 Nesne/Fark sütunu, açık 156×30 logo; orijinal PNG değişmedi.
+  SKY konu, gerçek çalışma süresi, mevcut önceliğe göre ilk 5 nesne.
+- Filtreler: 14 Sync teknik öneki; kaynak/hedef simetrik; GRANT opt-in dışlama.
+  Meşru `$` isimleri ve gerçek MATERIALIZED_VIEW_LOG için regresyon kanıtı var.
+  Ham snapshot, UNKNOWN ve gerçek bağımlılık engelleri korunur.
+- Günlük Europe/Istanbul 08:40 takvimi kaydedilmiş Jenkins formunda doğrulandı.
+  Sonraki tetikleme 21 Ekim 08:40. İki şemalı toplam süre henüz ölçülüyor.
+- Jenkins #12: v6 release ile INNOVA_ODI + TTBP gerçek salt okunur capture sürüyor;
+  canlı sonuç henüz tamamlandı sayılmaz. Source SHA ce8d62d18f46657b702a12bd5fe6fc58ec27cb5a.
+- #10/#11 ortam tanısı: Oracle bağlantısı 0; Git var; GitHub HTTPS bağlantısı
+  ConnectionResetError, sistem CA ile aynı; proxy yok. Otomatik artifact push
+  doğrulanamadı. Yerel artifact push son raporla yapılacak; kaynak Git değişmez.
+- Oracle DDL/DML/COMPILE: NOT_RUN. Mail yalnız izinli tek alıcı.
+- Kanıt: output/mail-layout/pytest-integrated.xml, measurement-desktop.json,
+  logo-fixed.png, columns-fixed.png, schedule-0840.png; output/jenkins-setup/release-proof-v6.json.
+
+---
+
 # Rapor gerekçeleri — 20 Ekim 2026
 
 - Offline: `.venv/Scripts/python.exe -m pytest -q --junitxml=output/report-reasons/pytest-final.xml`

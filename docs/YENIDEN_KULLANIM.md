@@ -56,3 +56,17 @@ Dosya hash'i aynıysa tanımlı alım uygulanır. Farklıysa ilgili sembol+regre
 `test_table_extraction.py`, `test_index_extraction.py`, `test_innova_rendering.py`: **60 passed** (paket hazırlama ortamında, ANTLR 4.13.2 izole bağımlılık diziniyle). İlk denemede ortam ANTLR 4.9.3 olduğu için collection durmuş; pakette bulunan 4.13.2 wheel'i izole dizinde kullanılarak tekrar doğrulanmıştır. Orijinal kod değiştirilmemiştir.
 
 Bunlar yalnız seçilmiş referans testleridir. Tüm Analyzer regression suite'i, Sync suite'i, yeni ürün veya Oracle/Jenkins kabulü tamamlandı iddiası değildir.
+
+## 20 Ekim 2026 — Teknik nesne kapsamı
+
+Kullanıcı talimatıyla Sync `oracle_client.py` içindeki
+`_SYSTEM_GENERATED_PATTERNS` / `_is_system_generated` güncel karşılığı salt
+okunur incelendi. Dosya SHA-256:
+`1b20f0ffc5e57b55307cb6bd1154d73cb6851f7fe527fb350f96ed8f49c016c2`.
+Bu, eski paket lock'undaki `8d809b...` sürümünden farklı mevcut yerel sürümdür;
+referans dosyası veya lock geriye zorlanmadı. On dört teknik önek saf
+`compare/scope.py` uyarlamasında kullanılır; eski runtime import edilmez.
+Doğrulanmış parent ilişkileriyle index/COMMENT/GRANT kapsamı yeni modelde
+çözülür. İş nesnesinin bağımlılık kenarı filtreyi o iş nesnesine yaymaz;
+meşru `$` adı ve gerçek materialized view log korunur. GRANT dışlama ayrıca
+kullanıcının açık daraltmasıdır; Sync'in tüm grant desteği kaldırılmış değildir.
