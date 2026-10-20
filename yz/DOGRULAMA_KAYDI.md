@@ -1,5 +1,10 @@
 # Jenkins arşivi ve kaynak devamı — 20 Ekim 2026
 
+- Son takvim talimatı: günlük Europe/Istanbul 08:00. Canlı Schedule ile script
+  trigger aynı; Save sonrası yeniden açılan formda exact script ve açıklama
+  doğrulandı. Kanıt output/mail-layout/schedule-0800-proof.json/png.
+  Yeni build/mail/Oracle bağlantısı 0; uygulama kodu değişmedi, test NOT_RUN.
+  Sonraki planlı tetikleme 21 Ekim 2026 08:00 Türkiye saati.
 - Son driver delta sonrası: 489 passed / 84,19 sn / skip 0;
   output/mail-layout/pytest-jenkins-thick-final.xml. Son bağımsız inceleme P1/P2 yok.
   check_contracts VERIFIED; refs 36 matched / 7 bilinen drift / 0 missing.

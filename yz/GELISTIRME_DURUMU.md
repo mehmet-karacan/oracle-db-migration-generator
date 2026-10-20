@@ -1,5 +1,12 @@
 # Jenkins arşivi — 20 Ekim 2026 güncel durum
 
+Son kullanıcı saati: her gün Europe/Istanbul 08:00 (08:40 yerine). Canlı cron,
+declarative trigger ve açıklama kaydedilip yeniden okunarak doğrulandı.
+Sonraki planlı başlangıç 21 Ekim 08:00. Yeni build/mail/DB bağlantısı yok.
+Kanıt schedule-0800-proof.json/png; uygulama kodu değişmedi, test tekrar edilmedi.
+#14 son canlı sonuç: ODI 1.857 fark/559 DDL; TTBP ERROR/ORA-04088, plan/DDL yok.
+Aşağıdaki kuyruk/08:40 bilgileri önceki durumdur; ayrıntılar yz/DEVIR.md başında.
+
 Son ek: 489 passed / 84,19 sn / skip 0; son bağımsız inceleme P1/P2 yok.
 Jenkins-only uygulama kodu 97d3992e79dd67f310cf5956af40051555acaf6a normal
 push ile doğrulandı. #13 kaynak snapshot'ı hash piniyle doğruladı; ODI metadata

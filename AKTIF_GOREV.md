@@ -58,3 +58,8 @@ Normal karşılaştırma akışı v3 ile geri yüklendi. Kanıt: output/report-r
   Bu hata giderilir; kaynak belirsizliği başarı/tamlık gibi sunulmaz. Tek seferlik
   devam ancak önceki snapshot'ın dışarıdan sabit SHA-256'sı, ham dosyalar ve
   güncel sabit Git SHA'sı doğrulanarak yapılır. Oracle her zaman salt okunurdur.
+
+20 Ekim son kullanıcı takvim kararı: günlük başlangıç Europe/Istanbul 08:00.
+Bu, önceki 08:40 saatini değiştirir. Hem canlı cron hem declarative Pipeline
+trigger ve iş açıklaması 08:00 olarak kaydedilip yeniden okunarak doğrulandı.
+Bu takvim değişikliği yeni karşılaştırma veya mail tetiklemez; SQL uygulanmaz.

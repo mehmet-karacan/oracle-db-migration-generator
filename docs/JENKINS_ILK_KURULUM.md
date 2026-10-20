@@ -1,5 +1,9 @@
 # İlk Jenkins kurulumu
 
+**Güncel takvim (20 Ekim son kullanıcı yanıtı):** Her gün Türkiye saatiyle
+08:00. Canlı Schedule ve Pipeline trigger birlikte güncellenip yeniden okunarak
+doğrulandı. Aşağıdaki 08:40 kayıtları önceki karardır.
+
 **Güncel saklama kararı (20 Ekim):** DDL, JSON ve HTML yalnız Jenkins build
 artifact arşivinde tutulur. Artifact Git yayın aşaması ve credential binding
 canlı job'dan ve Pipeline şablonundan kaldırıldı. Yerel artifact push da

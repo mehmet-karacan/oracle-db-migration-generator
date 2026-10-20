@@ -1,5 +1,19 @@
 # Jenkins arşivi ve PARTIAL kaynak devamı — 20 Ekim 2026
 
+Güncel takvim: kullanıcının son yanıtıyla her gün Europe/Istanbul 08:00.
+Canlı Schedule ve declarative Pipeline cron birlikte güncellendi; kayıt sonrası
+cron, script byte eşitliği ve açıklama UI'dan doğrulandı. Sonraki planlı başlangıç
+21 Ekim 2026 08:00 Türkiye saati. Yeni build/mail/Oracle bağlantısı açılmadı.
+Kanıt: output/mail-layout/schedule-0800-proof.json ve schedule-0800.png;
+güncel yerel job kopyası output/jenkins-setup/Jenkinsfile.normal-v8-0800.groovy.
+Bu yalnız geri alınabilir takvim değişikliği olduğundan uygulama testleri yeniden
+çalıştırılmadı; son kod doğrulaması 489 passed. Aşağıdaki 08:40 kayıtları tarihseldir.
+Son canlı durum önceki turda doğrulandı: #14 tamamlandı, UNSTABLE/PARTIAL;
+INNOVA_ODI 1.857 fark/559 DDL; TTBP ERROR/ORA-04088, fark sayısı bilinmiyor,
+TTBP plan/DDL üretilmedi. Sıradaki teknik adım TTBP okuma hatasını yalnız
+salt okunur kanıtlarla teşhis etmektir; invalid nesneler bu bağlantı hatasıyla
+karıştırılmaz. Çıktılar yalnız Jenkins'te, Oracle yazma NOT_RUN.
+
 Son ek: Jenkins-only kodu normal push ile private Generator main üzerinde
 97d3992e79dd67f310cf5956af40051555acaf6a olarak exact remote/API doğrulandı.
 #13 source reuse REUSED_VERIFIED; ODI kaynak metadata 405 tablo eşleşti, 0 red.
