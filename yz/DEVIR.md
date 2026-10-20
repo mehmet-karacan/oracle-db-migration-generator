@@ -1,4 +1,41 @@
-# SKY raporu, filtreler ve TTBP — 20 Ekim 2026
+# Jenkins arşivi ve PARTIAL kaynak devamı — 20 Ekim 2026
+
+Son kullanıcı kararı önceki artifact Git yayınını iptal etti. DDL/JSON/HTML
+yalnız Jenkins build artifact arşivinde tutulur; yerel artifact push yapılmaz.
+Canlı Pipeline ve templates/jenkins-generator.groovy publication stage ve GitHub
+credential içermez. Mail ilgili Jenkins raporuna gider. Son 20 build/artifact
+saklama sınırı ve Europe/Istanbul 08:40 takvimi korunur. Kod Git push yetkisi sürer.
+Önceki proxy sorusu rapor akışı için artık beklenen bir girdi değildir.
+
+#12 hedef okumaya ulaşmadan FAILED: kaynak 9.773 nesne ile PARTIAL kaydedildi,
+CLI çıkış kodu 10 runner tarafından hatalı fatal sayıldı. tools/jenkins_run.py
+0/10'u kabul eder, diğer kodlarda güvenilir sonuç uydurmaz. Tek seferlik resume
+önceki snapshot'ın dışarıdan sabit dosya SHA-256'sını, model semantic digest'ini,
+kapalı profile/input/manifest ve tüm ham dosyaları yeni sabit Git SHA'sıyla doğrular.
+Eski build'e yazılmaz; yeni build source-snapshots alanına kopyalanır. Günlük
+normal akış her defasında fresh source hazırlar; otomatik cache fallback yoktur.
+
+Yeni model/source_scope.py seçili owner için kanıtlı türetilmiş görünüm oluşturur.
+Ham iki-owner PARTIAL kaydı değişmez. Atanabilen TTBP parser sorunları temiz
+INNOVA_ODI kapsamını bozmaz; açıklanamayan/seçili owner eksiği PARTIAL kalır.
+Güvenilir kolon metadata span'ı özgün DDL kanıtı yerine geçmez. Her hedefin kanıtı
+source-scopes.json; filtrelerin kanıtı scope-exclusions.json. INVALID hedef uyarısı
+genel cümle yerine gerçek nesne, tür ve parser diagnostic kodunu taşır.
+
+Offline: PYTHONPATH=src ile .venv/Scripts/python.exe -m pytest -q --tb=short
+--junitxml=output/mail-layout/pytest-jenkins-only-final.xml → 483 passed / 71,90 sn,
+skip 0. Bağımsız son kod incelemesinde açık P1/P2 yok. v7 wheel/release manifest
+doğrulandı; release-proof-v7.json. Jenkins #13 aynı sabit kaynak SHA'sı ve dış
+snapshot hash piniyle başlatıldı; canlı sonuç henüz tamamlandı iddiası değildir.
+Normal v7 job hemen geri yüklendi; exact script/cron/no-artifact-credential UI
+doğrulaması output/mail-layout/jenkins-only-v7-proof.json ve jenkins-only-v7.png.
+Oracle DDL/DML/COMPILE NOT_RUN; bütün oturumlar salt okunur. Sonraki somut adım:
+#13 iki hedef sonucu, gerçek rapor/mail ve arşiv kanıtlarını incele; kodu private
+depoya normal push et. Gerçek SQL hiçbir Git deposuna gönderilmez.
+
+---
+
+# SKY raporu, filtreler ve TTBP — 20 Ekim 2026 (önceki durum)
 
 Kullanıcı kapsamı güncelledi: konu SKY; geniş Nesne / Fark sütunu (%60/12/12/16),
 logo açık 156×30 (orijinal PNG byte'ları değişmez), öncelikli ilk 5 nesne,

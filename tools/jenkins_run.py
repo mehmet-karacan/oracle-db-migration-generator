@@ -1,5 +1,6 @@
 """Trusted Jenkins entry point. It never applies SQL, pushes Git or sends mail."""
 import argparse
+from dataclasses import asdict
 from datetime import datetime,timezone
 import json
 import os
@@ -91,7 +92,61 @@ def environment_check(profile,schemas):
             'schemas':list(schemas),'database_connections':0,'read_only':True,'sql_execution':'NOT_IMPLEMENTED'}
 
 
+def reuse_prepared_source(cached,prepared,source_dir,commit,profile,*,snapshot_sha256):
+    """Import a prior same-job source, checking every input against pinned Git.
+
+    Only the explicit resume invocation uses this. Fresh owner metadata is
+    still collected below; PARTIAL and UNKNOWN facts are never upgraded.
+    """
+    import hashlib
+    from oracle_db_migration_generator.config.loader import load_source_profile,read_json
+    from oracle_db_migration_generator.model.serialization import digest
+    from oracle_db_migration_generator.model.snapshot_io import load_snapshot,safe_path,write_source_snapshot
+    from oracle_db_migration_generator.source.git_reader import GitRepository,resolve_source,read_source
+    cached=Path(cached).absolute();prepared=Path(prepared).absolute()
+    old=re.fullmatch(r'build-([1-9][0-9]*)',cached.name)
+    new=re.fullmatch(r'build-([1-9][0-9]*)',prepared.name)
+    if (not old or not new or int(old[1])>=int(new[1]) or cached.parent!=prepared.parent
+            or prepared.exists() or not cached.is_dir()
+            or any(path.is_symlink() for path in (cached,*cached.parents))):
+        raise ValueError('SOURCE_REUSE_INVALID')
+    for name in ('source-snapshot.json','source-input.json','source-profile.json'):
+        if (cached/name).is_symlink() or not (cached/name).is_file():raise ValueError('SOURCE_REUSE_INVALID')
+    actual_sha=hashlib.sha256((cached/'source-snapshot.json').read_bytes()).hexdigest()
+    if not isinstance(snapshot_sha256,str) or not re.fullmatch(r'[a-f0-9]{64}',snapshot_sha256) or actual_sha!=snapshot_sha256:
+        raise ValueError('SOURCE_REUSE_SNAPSHOT_MISMATCH')
+    if load_source_profile(cached/'source-profile.json')!=profile:raise ValueError('SOURCE_REUSE_PROFILE_MISMATCH')
+    snapshot=load_snapshot(cached/'source-snapshot.json',require_ddl=True)
+    if read_json(cached/'source-snapshot.json').get('semantic_digest')!=snapshot.semantic_digest:
+        raise ValueError('SOURCE_REUSE_SNAPSHOT_MISMATCH')
+    inputs=read_source(resolve_source(GitRepository(source_dir),commit),profile)
+    manifest=read_json(cached/'source-input.json')
+    expected={'source_commit':commit,'input_digest':inputs.input_digest,
+              'files':[{'path':item.path,'sha256':item.sha256} for item in inputs.artifacts]}
+    if (manifest!=expected or snapshot.side!='SOURCE' or snapshot.source_commit!=commit
+            or snapshot.schemas!=tuple(root.source_schema for root in profile.schema_roots)):
+        raise ValueError('SOURCE_REUSE_INPUT_MISMATCH')
+    for key,value in (('source_profile_sha256',digest(profile)),('source_input_digest',inputs.input_digest)):
+        recorded=snapshot.capabilities.get(key)
+        if recorded is None or recorded.state!='KNOWN' or recorded.value!=value:
+            raise ValueError('SOURCE_REUSE_INPUT_MISMATCH')
+    for item in inputs.artifacts:
+        path=safe_path(cached,item.path)
+        if path.is_symlink() or any(p.is_symlink() for p in path.parents if p.is_relative_to(cached)):
+            raise ValueError('SOURCE_REUSE_INVALID')
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=item.sha256:
+            raise ValueError('SOURCE_REUSE_BLOB_MISMATCH')
+    write_source_snapshot(snapshot,inputs,prepared)
+    imported=load_snapshot(prepared/'source-snapshot.json',require_ddl=True)
+    if imported.semantic_digest!=snapshot.semantic_digest:raise ValueError('SOURCE_REUSE_INPUT_MISMATCH')
+    return imported,{'status':'REUSED_VERIFIED','origin_build':int(old[1]),'source_commit':commit,
+        'source_input_digest':inputs.input_digest,'source_semantic_digest':snapshot.semantic_digest,
+        'snapshot_sha256':actual_sha,
+        'inventory':snapshot.completeness.inventory,'ddl':snapshot.completeness.ddl,'read_only':True}
+
+
 def main(argv=None):
+    import hashlib
     started=build_started_at()
     from oracle_db_migration_generator.artifacts.bundle import verify_bundle
     from oracle_db_migration_generator.cli import main as cli
@@ -104,6 +159,8 @@ def main(argv=None):
     from oracle_db_migration_generator.oracle.preflight import safe_error_code
     parser=argparse.ArgumentParser();parser.add_argument('--release',type=Path,required=True)
     parser.add_argument('--source-dir',type=Path);parser.add_argument('--source-commit');parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--prepared-source',type=Path)
+    parser.add_argument('--prepared-source-sha256')
     parser.add_argument('--mode',choices=('ENVIRONMENT_CHECK','COMPARE'),required=True);args=parser.parse_args(argv)
     config=args.release/'config';settings=validate_settings(json.loads((config/'job-settings.json').read_bytes()))
     profile=load_source_profile(config/'source-profile.json');targets=load_targets(config/'targets.json',selected_target_ids(settings))
@@ -117,10 +174,26 @@ def main(argv=None):
     if args.mode=='ENVIRONMENT_CHECK':return 0
     if not args.source_commit or not re.fullmatch(r'[a-f0-9]{40}|[a-f0-9]{64}',args.source_commit):raise ValueError('SOURCE_SHA_REQUIRED')
     if args.source_dir is None:raise ValueError('SOURCE_CHECKOUT_REQUIRED')
+    if (args.prepared_source is None)!=(args.prepared_source_sha256 is None):raise ValueError('SOURCE_REUSE_PIN_REQUIRED')
     prepared=output.parent/'source-snapshots'/('build-'+os.environ['BUILD_NUMBER'])
-    rc=cli(['prepare-source','--repo',str(args.source_dir),'--ref',args.source_commit,'--source-profile',str(config/'source-profile.json'),'--output',str(prepared)])
-    if rc:raise ValueError('SOURCE_PREPARATION_FAILED')
-    source=load_snapshot(prepared/'source-snapshot.json',require_ddl=True)
+    if args.prepared_source is not None:
+        source,proof=reuse_prepared_source(args.prepared_source,prepared,args.source_dir,args.source_commit,profile,
+                                         snapshot_sha256=args.prepared_source_sha256)
+        (output/'source-preparation.json').write_bytes(canonical_bytes(proof)+b'\n')
+        print(json.dumps({'phase':'source_preparation',**proof}),flush=True)
+    else:
+        rc=cli(['prepare-source','--repo',str(args.source_dir),'--ref',args.source_commit,'--source-profile',str(config/'source-profile.json'),'--output',str(prepared)])
+        # 10 means a saved PARTIAL source, not a failed preparation. Preserve its
+        # UNKNOWN/coverage evidence and let both targets produce honest reports.
+        if rc not in {0,10}:raise ValueError('SOURCE_PREPARATION_FAILED')
+        source=load_snapshot(prepared/'source-snapshot.json',require_ddl=True)
+        proof={'status':'PREPARED_VERIFIED','source_commit':source.source_commit,
+            'source_semantic_digest':source.semantic_digest,
+            'snapshot_sha256':hashlib.sha256((prepared/'source-snapshot.json').read_bytes()).hexdigest(),
+            'inventory':source.completeness.inventory,'ddl':source.completeness.ddl,
+            'preparation_exit_code':rc,'read_only':True}
+        (output/'source-preparation.json').write_bytes(canonical_bytes(proof)+b'\n')
+        print(json.dumps({'phase':'source_preparation',**proof}),flush=True)
     try:
         from .jenkins_source_semantics import capture_source_metadata,reconcile_source
     except ImportError:
@@ -148,9 +221,16 @@ def main(argv=None):
         (output/('source-metadata-receipt'+suffix+'.json')).write_bytes(canonical_bytes(receipt)+b'\n')
     (prepared/'source-snapshot.enriched.json').write_bytes(canonical_bytes(source.to_dict())+b'\n')
     from oracle_db_migration_generator.compare.scope import scope_exclusions
-    results=[];scope_receipts=[]
+    from oracle_db_migration_generator.model.source_scope import source_for_schemas
+    from oracle_db_migration_generator.model.serialization import thaw
+    results=[];scope_receipts=[];source_scopes=[]
     for target in targets:
-        result=run_target(source,target,profile,EnvCredentialResolver(),output,
+        owner_source=source_for_schemas(source,profile,tuple(mapping.source_schema for mapping in target.schema_mappings))
+        source_scopes.append({'target_id':target.id,'schemas':owner_source.schemas,
+            'semantic_digest':owner_source.semantic_digest,'coverage':asdict(owner_source.completeness),
+            'proof':thaw(owner_source.capabilities['owner_scope_proof'].value)})
+        (output/'source-scopes.json').write_bytes(canonical_bytes({'targets':source_scopes})+b'\n')
+        result=run_target(owner_source,target,profile,EnvCredentialResolver(),output,
             progress=lambda i,n: print(json.dumps({'phase':'read_only_target_metadata','target_id':target.id,'processed':i,'total':n}),flush=True) if i%50==0 else None)
         results.append(result)
         snapshot=output/'observations'/target.id/'target-snapshot.json'

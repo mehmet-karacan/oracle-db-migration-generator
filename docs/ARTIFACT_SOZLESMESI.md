@@ -41,6 +41,10 @@ SHA-256, UTF-8 ve sıralı JSON serialization standardı kullanılır. Semantic/
 
 ## Artifact Repository
 
+20 Ekim güncel kullanıcı kararı: üretilen DDL/JSON/HTML şimdilik yalnız Jenkins
+build artifact arşivindedir; Git yayını kapalıdır. Aşağıdaki depo düzeni mevcut
+SKY işinde kullanılmaz. Uygulama kodu ve gerçek çıktılar ayrı tutulur.
+
 Kök başlangıç belgeleri `templates/artifact_repo/` içindedir. Önerilen yapı:
 
 `plans/<source-profile-id>/<target-id>/<plan-id>/` değiştirilemez payload, `catalog.json` keşif indeksi, `latest/<profile>/<target>.json` son plan kimliği. Her yeni **benzersiz** payload için root katalog/pointer atomik güncellenir. Aynı plan tekrar üretildiyse payload yeniden yazılmaz; her build yeni küçük runs/YYYY/MM/DD/build-NNN-run-id kaydıyla mevcut plana bağlanır.

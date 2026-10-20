@@ -1,5 +1,12 @@
 # İlk Jenkins kurulumu
 
+**Güncel saklama kararı (20 Ekim):** DDL, JSON ve HTML yalnız Jenkins build
+artifact arşivinde tutulur. Artifact Git yayın aşaması ve credential binding
+canlı job'dan ve Pipeline şablonundan kaldırıldı. Yerel artifact push da
+yapılmaz. Mail doğrudan ilgili build raporuna gider. Mevcut son 20 build/artifact
+saklama sınırı ve günlük Europe/Istanbul 08:40 korunur. Kod deposunun private
+push yetkisi sürer. Aşağıdaki önceki artifact yayını yetkisi artık geçerli değildir.
+
 20 Ekim güncellemesi: kullanıcı günlük Europe/Istanbul 08:40 çalışmasını ve
 mevcut iki private GitHub deposuna kod/artifact push'unu açıkça yetkilendirdi.
 Kod ve runtime raporları ayrı depolardır. Geçici GitHub hedefi, kurumiçi depo

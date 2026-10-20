@@ -37,6 +37,9 @@ def test_preserved_target_only_invalid_parse_failure_is_reported_without_blockin
     assert plan.status=='READY'
     assert any('TARGET_INVALID_OBJECT' in warning and 'APP.BAD' in warning for warning in plan.warnings)
     assert any('TARGET_INVALID_DDL_REPORTED' in warning for warning in plan.warnings)
+    assert all('Hedefe özgü nesne korunuyor; parse hatası karşılaştırmayı engellemez' not in warning for warning in plan.warnings)
+    assert any('TARGET_INVALID_DDL_REPORTED' in warning and 'APP.BAD' in warning
+               and 'PARSER_SYNTAX_ERROR' in warning for warning in plan.warnings)
     assert all('synthetic-secret' not in warning for warning in plan.warnings)
     bad=next(op for op in plan.operations if op.identity.name.effective_name=='BAD')
     assert bad.decision=='INFORMATIONAL' and bad.intent is None

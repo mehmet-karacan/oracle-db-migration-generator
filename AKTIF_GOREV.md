@@ -43,5 +43,18 @@ Normal karşılaştırma akışı v3 ile geri yüklendi. Kanıt: output/report-r
   f4560bdcb158a7fe727febe064e04b8ad66baa65.
 - Jenkins agent GitHub HTTPS bağlantısı ConnectionResetError ile kesiliyor.
   Bu durum yalnız otomatik artifact yayınını etkiler; karşılaştırmayı durdurmaz.
-  Proxy bilgisi beklenirken son raporun yetkili private artifact deposuna yerel
-  erişimle normal push edilmesi bağımsız sonraki adımdır.
+  Bu önceki yayın planı aşağıdaki son kullanıcı kararıyla iptal edilmiştir.
+
+20 Ekim son kullanıcı saklama kararı:
+
+- Üretilen DDL, JSON ve HTML şimdilik yalnız Jenkins build artifact arşivinde
+  tutulur. Artifact Git deposuna push yetkisi geri alınmıştır; yerel yayın da
+  yapılmaz. Generator uygulama kodu için önceki private Git push yetkisi sürer.
+- Canlı job ve Pipeline şablonundan artifact publication aşaması ve ilgili
+  credential binding kaldırıldı. Mail doğrudan ilgili Jenkins raporunu açar.
+  Mevcut 20 build/artifact saklama sınırı korunur; saat Europe/Istanbul 08:40.
+- #12 kaynak hazırlığını tamamladı fakat PARTIAL kaydın çıkış kodu 10 runner
+  tarafından hatalı fatal sayıldığı için hedef karşılaştırmasına ulaşmadı.
+  Bu hata giderilir; kaynak belirsizliği başarı/tamlık gibi sunulmaz. Tek seferlik
+  devam ancak önceki snapshot'ın dışarıdan sabit SHA-256'sı, ham dosyalar ve
+  güncel sabit Git SHA'sı doğrulanarak yapılır. Oracle her zaman salt okunurdur.

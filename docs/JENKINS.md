@@ -1,5 +1,10 @@
 # Jenkins Çalışma Sözleşmesi
 
+20 Ekim son kullanıcı kararı: mevcut SKY işi rapor/SQL'i yalnız Jenkins
+artifact arşivinde saklar; artifact Git publication aşaması/credential binding
+yoktur. Mail Jenkins build raporunu açar. Aşağıdaki yayın parametreleri mevcut
+işte etkin değildir; yeni açık yetki olmadan kullanılamaz.
+
 **Durum:** 20 Ekim 2026 kullanıcı talimatıyla ilk INNOVA_ODI işi kuruldu.
 İlk kurulum ve çalışma kanıtı `docs/JENKINS_ILK_KURULUM.md` içindedir.
 Aşağıdaki geniş parametre sözleşmesi sonraki çoklu hedef/yayın düzenidir;

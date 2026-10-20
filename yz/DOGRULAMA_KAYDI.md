@@ -1,4 +1,26 @@
-# SKY, teknik nesne filtreleri ve TTBP — 20 Ekim 2026
+# Jenkins arşivi ve kaynak devamı — 20 Ekim 2026
+
+- Offline: PYTHONPATH=src; .venv/Scripts/python.exe -m pytest -q --tb=short
+  --junitxml=output/mail-layout/pytest-jenkins-only-final.xml → 483 passed / 71,90 sn,
+  skip 0. Son bağımsız incelemede açık P1/P2 yok.
+- Artifact Git stage/credential hem canlı job hem şablondan kaldırıldı. Yeni v7
+  release config storage_approved=false, push_authorized=false. Yerel artifact
+  yayın helper'ı kaldırıldı; hiç çalıştırılmadı. DDL Git push NOT_RUN.
+- UI proof: output/mail-layout/jenkins-only-v7-proof.json; script birebir,
+  artifact credential yok, cron TZ=Europe/Istanbul ve 40 8 * * *.
+- #12: SOURCE PREPARED/PARTIAL; CLI exit10 bug nedeniyle FAILED, target NOT_RUN.
+  Snapshot 69.918.714 byte; dışarıdan SHA-256 ve model digest doğrulandı.
+- Red→green: partial kaynak devamı, eski snapshot bütünlüğü/tamper/yanlış profile,
+  manifest/commit/path/pin reddi, owner scope kanıtı ve gerçek metadata reconcile,
+  diğer-owner partial izolasyonu, somut INVALID diagnostics, Jenkins-only stage.
+- v7 wheel b31ede6f59a98a126adf4a423ab5239aab9560103a1482fb18f0ce0953acc784;
+  release 011e3987880b13a476dbe1bffdd6dbd61c96c4f8e0946563222cdfc345a050ad.
+- #13 hash-pinli devam başlatıldı; normal v7 günlük akış geri yüklendi.
+  İki hedef canlı sonucu henüz tamamlanmış sayılmaz. Oracle DDL/DML/COMPILE NOT_RUN.
+
+---
+
+# SKY, teknik nesne filtreleri ve TTBP — 20 Ekim 2026 (önceki durum)
 
 - Entegre offline: `.venv/Scripts/python.exe -m pytest -q --tb=short --junitxml=output/mail-layout/pytest-integrated.xml`
   → 414 passed / 40,89 sn / skip 0. Bağımsız çapraz incelemede önemli açık bulgu yok.

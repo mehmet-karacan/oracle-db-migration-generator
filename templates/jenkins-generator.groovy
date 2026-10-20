@@ -78,27 +78,6 @@ set +x
         }
       }
     }
-    stage('Private artifact Git yayını') {
-      when { expression { params.RUN_MODE == 'COMPARE' } }
-      steps {
-        script {
-          if (fileExists("output/runs/build-${env.BUILD_NUMBER}/run.json")) {
-            withCredentials([usernamePassword(credentialsId: '@@ARTIFACT_CREDENTIAL@@', usernameVariable: 'GENERATOR_ARTIFACT_USER', passwordVariable: 'GENERATOR_ARTIFACT_PASSWORD')]) {
-              def code = sh(returnStatus: true, script: '''#!/bin/sh
-set -eu
-set +x
-"$GENERATOR_RUNTIME_DIR/venv/bin/python" "$GENERATOR_RELEASE_DIR/jenkins_publication.py" --release "$GENERATOR_RELEASE_DIR" --run-root "output/runs/build-$BUILD_NUMBER"
-''')
-              if (code == 10) {
-                unstable('Artifact Git yayını doğrulanamadı; karşılaştırma raporu Jenkins arşivindedir.')
-              } else if (code != 0) {
-                error("Artifact yayın adımı çalışamadı; güvenli hata kodu ${code}.")
-              }
-            }
-          }
-        }
-      }
-    }
   }
   post {
     always {

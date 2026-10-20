@@ -1,4 +1,21 @@
-# SKY, süre, ilk 5 ve iki şema — 20 Ekim 2026
+# Jenkins arşivi — 20 Ekim 2026 güncel durum
+
+Kullanıcı artifact Git push'unu iptal etti. DDL/JSON/HTML yalnız Jenkins build
+artifact arşivinde, son 20 build/artifact saklama ayarıyla tutulur. Mail doğrudan
+Jenkins raporunu açar; 08:40 Europe/Istanbul değişmedi. Kod deposu push yetkisi sürer.
+Canlı job ve template publication stage/credential içermez; v7 exact UI doğrulandı.
+
+Offline 483 passed / 71,90 sn / skip 0; bağımsız son incelemede açık P1/P2 yok.
+#12 PARTIAL prepare exit10 runner hatası giderildi; ham UNKNOWN korunur.
+Yeni owner scope kapalı kanıtla doğrulanır; TTBP kaynağındaki parser eksikleri
+temiz ODI envanterine taşınmaz. Dış dosya hash piniyle aynı SHA snapshot resume
+doğrulanır; günlük normal akış fresh source hazırlar. #13 gerçek iki hedef
+salt okunur çalışma sürüyor; live henüz tamamlandı sayılmaz. Oracle DDL/DML/COMPILE
+NOT_RUN. Dosya, komut, sonraki somut adım yz/DEVIR.md başındadır.
+
+---
+
+# SKY, süre, ilk 5 ve iki şema — 20 Ekim 2026 (önceki durum)
 
 Offline uygulama: 414 passed / 40,89 sn; bağımsız çapraz inceleme temiz.
 SKY konu, %60 Nesne/Fark sütunu, 156×30 logo, süre ve öncelikli5nesne hazır.

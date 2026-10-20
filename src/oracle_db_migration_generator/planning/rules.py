@@ -51,7 +51,8 @@ def plan_target(differences,context):
                             ' ['+obj.identity.object_type+']'+(' · '+','.join(codes) if codes else ''))
             if obj.object_key not in context.source_objects and report_only_invalid_ddl(obj):
                 warnings.append('TARGET_INVALID_DDL_REPORTED: '+obj.identity.owner.effective_name+'.'+obj.identity.name.effective_name+
-                                ' ['+obj.identity.object_type+'] · Hedefe özgü nesne korunuyor; parse hatası karşılaştırmayı engellemez.')
+                                ' ['+obj.identity.object_type+'] · INVALID; DDL ayrıştırması doğrulanamadı: '+
+                                ', '.join(sorted(obj.coverage.diagnostics))+'.')
     external=context.target.capabilities.get('reference_objects')
     if external and external.state=='KNOWN':
         for ref in external.value:

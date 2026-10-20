@@ -48,7 +48,8 @@ def test_report_start_time_uses_jenkins_build_start_and_rejects_unsafe_values(mo
 
 
 @pytest.mark.parametrize('unavailable',[False,True])
-def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_failed_target(tmp_path,monkeypatch,unavailable):
+@pytest.mark.parametrize('prepare_code',[0,10,30])
+def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_failed_target(tmp_path,monkeypatch,unavailable,prepare_code):
     import hashlib
     from tools import jenkins_run,jenkins_source_semantics
     from tests.factories import profile,ROOT
@@ -63,8 +64,12 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
     artifacts=[]
     for owner in settings()['schemas']:
         raw=f'CREATE TABLE {owner}.T (C VARCHAR2(20));'.encode()
-        artifacts.append(SourceArtifact(owner+'/table.sql',owner,'DDL','TABLE',raw,hashlib.sha256(raw).hexdigest()))
+        root='odi' if owner=='INNOVA_ODI' else 'ttbp'
+        artifacts.append(SourceArtifact(root+'/table.sql',owner,'DDL','TABLE',raw,hashlib.sha256(raw).hexdigest()))
     source=parse_source(SourceInput(SourceRevision('a'*40,None),tuple(artifacts),'b'*64),selected)
+    prepared_partial=prepare_code==10
+    if prepared_partial:
+        source=replace(source,completeness=Coverage('PARTIAL','PARTIAL','NOT_APPLICABLE',('SOURCE_FILE_UNPARSED',)))
     config=tmp_path/'release/config';config.mkdir(parents=True)
     document=json.loads((ROOT/'examples/source-profile.example.json').read_bytes())
     document['schema_roots']=[{'path':'odi','source_schema':'INNOVA_ODI'},{'path':'ttbp','source_schema':'TTBP'}]
@@ -88,7 +93,9 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
     assert json.loads((tmp_path/'environment/environment-check.json').read_bytes())['database_connections']==0
     phases=[]
     def prepare(argv):
-        phases.append('prepare');path=__import__('pathlib').Path(argv[argv.index('--output')+1]);path.mkdir(parents=True);return 0
+        phases.append('prepare');path=__import__('pathlib').Path(argv[argv.index('--output')+1]);path.mkdir(parents=True)
+        (path/'source-snapshot.json').write_text(json.dumps(source.to_dict()))
+        return prepare_code
     monkeypatch.setattr('oracle_db_migration_generator.cli.main',prepare)
     monkeypatch.setattr('oracle_db_migration_generator.model.snapshot_io.load_snapshot',lambda *a,**kw:source)
     def capture(target,credentials,*,owner):
@@ -99,6 +106,8 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
     monkeypatch.setattr(jenkins_source_semantics,'capture_source_metadata',capture)
     def collect(target,credentials,profile,*,source,progress):
         owner=target.schema_mappings[0].source_schema
+        assert source.schemas==(owner,)
+        assert {obj.identity.owner.effective_name for obj in source.objects}=={owner}
         assert credentials(target.schema_mappings[0].credential_id).username==owner
         phases.append('target-'+owner)
         for obj in source.objects:
@@ -118,12 +127,28 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
     import tools.jenkins_notification as notification
     monkeypatch.setattr(notification,'write_notification',lambda *a,**kw:None)
     output=tmp_path/'output/runs/build-42'
-    code=jenkins_run.main(['--release',str(config.parent),'--source-dir',str(tmp_path/'source'),
-        '--source-commit','a'*40,'--output',str(output),'--mode','COMPARE'])
+    arguments=['--release',str(config.parent),'--source-dir',str(tmp_path/'source'),
+        '--source-commit','a'*40,'--output',str(output),'--mode','COMPARE']
+    if prepare_code==30:
+        with pytest.raises(ValueError,match='SOURCE_PREPARATION_FAILED'):jenkins_run.main(arguments)
+        assert phases==['prepare'] and not (output/'run.json').exists()
+        return
+    code=jenkins_run.main(arguments)
     run=json.loads((output/'run.json').read_bytes())
     assert phases==['prepare','source-INNOVA_ODI','source-TTBP','target-INNOVA_ODI','target-TTBP']
-    assert code==10 and [(item['id'],item['status']) for item in run['targets']]==[('LOCAL-ODI','ERROR'),('LOCAL-TTBP','NO_CHANGE')]
+    assert code==10 and [(item['id'],item['status']) for item in run['targets']]==[('LOCAL-ODI','ERROR'),('LOCAL-TTBP','BLOCKED' if prepared_partial else 'NO_CHANGE')]
+    if prepared_partial:
+        assert run['targets'][1]['difference_count'] is None
+        plan=json.loads((output/'targets/LOCAL-TTBP/plan.json').read_bytes())
+        assert plan['scope']['inventory']==plan['scope']['ddl']=='PARTIAL'
     assert run['started_at']=='2026-10-19T20:00:00+00:00' and run['build_url']==settings()['job_url']+'42/'
+    preparation=json.loads((output/'source-preparation.json').read_bytes())
+    assert preparation['preparation_exit_code']==prepare_code
+    assert preparation['inventory']==('PARTIAL' if prepared_partial else 'COMPLETE')
+    assert len(preparation['snapshot_sha256'])==64
+    scopes=json.loads((output/'source-scopes.json').read_bytes())['targets']
+    assert [item['target_id'] for item in scopes]==['LOCAL-ODI','LOCAL-TTBP']
+    assert all(item['proof']['status']==('UNVERIFIED' if prepared_partial else 'VERIFIED') for item in scopes)
     assert (output/'source-metadata-receipt.INNOVA_ODI.json').is_file() and (output/'source-metadata-receipt.TTBP.json').is_file()
     if unavailable:
         receipt=json.loads((output/'source-metadata-receipt.INNOVA_ODI.json').read_bytes())

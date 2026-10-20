@@ -132,6 +132,14 @@ def test_jenkins_notification_is_visible_html_body_with_consistent_subject():
     assert "attachmentsPattern: ''" in text
 
 
+def test_ddl_stays_in_jenkins_without_artifact_git_stage_or_credential():
+    text=Path('templates/jenkins-generator.groovy').read_text(encoding='utf-8')
+    assert 'jenkins_publication.py' not in text
+    assert 'GENERATOR_ARTIFACT_PASSWORD' not in text and '@@ARTIFACT_CREDENTIAL@@' not in text
+    assert 'archiveArtifacts(artifacts: "output/runs/build-${env.BUILD_NUMBER}/**"' in text
+    assert 'excludes: "output/runs/build-${env.BUILD_NUMBER}/observations/**"' in text
+
+
 def test_notification_has_fixed_build_link_and_no_sql_body(tmp_path):
     import json
     from tools.jenkins_notification import write_notification
