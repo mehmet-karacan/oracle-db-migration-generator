@@ -1,0 +1,501 @@
+{
+  "schema_version": "provenance/1.0",
+  "status": "MINIMAL_PARSER_DIFF_CLOSURE_ADAPTED",
+  "copied_files": [
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/identities.py",
+      "original_sha256": "bc3747c0e07ee973f46f3337e1be182d328c559e84530b2b1e024c0da528432c",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/identities.py",
+      "adapted_sha256": "bc3747c0e07ee973f46f3337e1be182d328c559e84530b2b1e024c0da528432c",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/scanner.py",
+      "original_sha256": "4ee2c5b056ea5d0c0d57a9a897e241cecaf4150b6ca9c267432ad84e6572c249",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/scanner.py",
+      "adapted_sha256": "4ee2c5b056ea5d0c0d57a9a897e241cecaf4150b6ca9c267432ad84e6572c249",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/ddl_tokens.py",
+      "original_sha256": "aec5e939011da8d4e8f292c456c120fb17dd75c53347a0d669b6bd57e89ff756",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/ddl_tokens.py",
+      "adapted_sha256": "aec5e939011da8d4e8f292c456c120fb17dd75c53347a0d669b6bd57e89ff756",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/table.py",
+      "original_sha256": "99957e402aaa305d4c28a77a2e9554946a521d74fee9e5b42a91c2c0018a8e53",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/table.py",
+      "adapted_sha256": "99957e402aaa305d4c28a77a2e9554946a521d74fee9e5b42a91c2c0018a8e53",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/index.py",
+      "original_sha256": "f62e138bb50d92bd62393bf86573bb763d9ebc98f8fb078ce6bfc3ea580b7237",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/index.py",
+      "adapted_sha256": "f62e138bb50d92bd62393bf86573bb763d9ebc98f8fb078ce6bfc3ea580b7237",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/sequence.py",
+      "original_sha256": "83c6c7242825a475ad497b49fca9e5eca9856cab09ddfbd354a2fe5dafd336a8",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/sequence.py",
+      "adapted_sha256": "83c6c7242825a475ad497b49fca9e5eca9856cab09ddfbd354a2fe5dafd336a8",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/view.py",
+      "original_sha256": "53044e88140bf3f92aa1409f860d07b85f723cee447823d5ff6cfdbd2e2e299d",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/view.py",
+      "adapted_sha256": "53044e88140bf3f92aa1409f860d07b85f723cee447823d5ff6cfdbd2e2e299d",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/package.py",
+      "original_sha256": "488f91a2aab185ac8e3af6dd677d9a41f18577861e005b118a3626c6c3a18657",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/package.py",
+      "adapted_sha256": "49f31573357e2c464dcdc846ef16a91829380ee300daab6ca36ee2811a9546bf",
+      "adaptation": "Optional verified parse-tree input avoids repeated grammar parsing inside the bounded worker; original default behavior and extraction rules retained.",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/dynamic_sql.py",
+      "original_sha256": "bb9f18d0041a699b572ec19a24321e9ec52ab20be432ee82dc145fa5135733e9",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/dynamic_sql.py",
+      "adapted_sha256": "bb9f18d0041a699b572ec19a24321e9ec52ab20be432ee82dc145fa5135733e9",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/parser_worker.py",
+      "original_sha256": "11f50d5b477d78ce4a7db83005910f09f7332aae26311a18576564113c977379",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/parser_worker.py",
+      "adapted_sha256": "11f50d5b477d78ce4a7db83005910f09f7332aae26311a18576564113c977379",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/projections.py",
+      "original_sha256": "21d69728bc0acb758075d269c5d5e69add2cd90e5077518a82f1598f701c8e53",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/projections.py",
+      "adapted_sha256": "f1513162691013d5e73aac10ba768c59b4abfa21beacc0cda369e86e4f8909d9",
+      "adaptation": "Optional verified parse-tree input avoids repeated grammar parsing inside the bounded worker; original default behavior and extraction rules retained.",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/changes.py",
+      "original_sha256": "becc376162ccd85f4eda46020f309ebe4f948776668300cab471987360332bd3",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/changes.py",
+      "adapted_sha256": "becc376162ccd85f4eda46020f309ebe4f948776668300cab471987360332bd3",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/taxonomy/catalog.py",
+      "original_sha256": "3a89ca00632b430bda4d15a409423b25cb031eb74000099176f1d27360f4b717",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/taxonomy/catalog.py",
+      "adapted_sha256": "93951d606b99edc4d3c3166d80921a88d6f4a11995d494bcc8b0c92cc0f06b8f",
+      "adaptation": "Resource package path only",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/taxonomy/change-catalog.json",
+      "original_sha256": "23f2c5077853516a3847d51affa951d8345da08e1d29564522e08a75db4d6a0e",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/taxonomy/change-catalog.json",
+      "adapted_sha256": "23f2c5077853516a3847d51affa951d8345da08e1d29564522e08a75db4d6a0e",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/taxonomy/object-catalog.json",
+      "original_sha256": "8e7926082fc1e189ebde2d8c6118119ee0bc6fcac0922f548a1a1a32884dbbd8",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/taxonomy/object-catalog.json",
+      "adapted_sha256": "8e7926082fc1e189ebde2d8c6118119ee0bc6fcac0922f548a1a1a32884dbbd8",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/__init__.py",
+      "original_sha256": "352bdf0733c75d5003d055d9ab986b8f1882c59e6b662acb3c2b0dceecf5ee64",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/__init__.py",
+      "adapted_sha256": "352bdf0733c75d5003d055d9ab986b8f1882c59e6b662acb3c2b0dceecf5ee64",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/manifest.json",
+      "original_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/manifest.json",
+      "adapted_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/PlSqlLexer.py",
+      "original_sha256": "752e47e5bd8e4517f8fe41574fb7ebd1ebd7b4059ac1e218519fb77892615b18",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/PlSqlLexer.py",
+      "adapted_sha256": "752e47e5bd8e4517f8fe41574fb7ebd1ebd7b4059ac1e218519fb77892615b18",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/PlSqlLexerBase.py",
+      "original_sha256": "a078fcacef0a3d300a492988377defd788bc5287b67bae4f25cad53c9af4d727",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/PlSqlLexerBase.py",
+      "adapted_sha256": "a078fcacef0a3d300a492988377defd788bc5287b67bae4f25cad53c9af4d727",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/PlSqlParser.py",
+      "original_sha256": "328e20802e53e0f4e571c4c2a186cd08786e3f5bd61d8585812274dfffa1fb61",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/PlSqlParser.py",
+      "adapted_sha256": "328e20802e53e0f4e571c4c2a186cd08786e3f5bd61d8585812274dfffa1fb61",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/PlSqlParserBase.py",
+      "original_sha256": "af8c6665389faeee18046aae2b8d4e1c5d113f5e2845f5a65f746cce57ef914e",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/PlSqlParserBase.py",
+      "adapted_sha256": "af8c6665389faeee18046aae2b8d4e1c5d113f5e2845f5a65f746cce57ef914e",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "src/db_change_analyzer/oracle/generated/PlSqlParserVisitor.py",
+      "original_sha256": "43a2872eca44e7476381b7aa51db09b618a05ad29aa318bf395e5588769ec495",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/oracle/generated/PlSqlParserVisitor.py",
+      "adapted_sha256": "43a2872eca44e7476381b7aa51db09b618a05ad29aa318bf395e5588769ec495",
+      "adaptation": "Byte-identical minimal parser/diff closure",
+      "license": "LicenseRef-Proprietary; generated grammar see LICENSE-and-NOTICE.txt"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "vendor/antlr-plsql/LICENSE-and-NOTICE.txt",
+      "original_sha256": "870a81879c979cf2f393e0d271cf8444823deb1f103260cce3eab14e58fb573b",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/licenses/LICENSE-and-NOTICE.txt",
+      "adapted_sha256": "870a81879c979cf2f393e0d271cf8444823deb1f103260cce3eab14e58fb573b",
+      "adaptation": "Preserved license/grammar provenance",
+      "license": "See file"
+    },
+    {
+      "source_project": "analyzer",
+      "source_path": "vendor/antlr-plsql/manifest.json",
+      "original_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+      "adapted_path": "src/oracle_db_migration_generator/_vendor/analyzer_core/licenses/manifest.json",
+      "adapted_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+      "adaptation": "Preserved license/grammar provenance",
+      "license": "See file"
+    }
+  ],
+  "runtime_reference_imports": false,
+  "notes": [
+    "No source files have been vendored at this stage.",
+    "Reference drift is recorded; upstream files were not modified.",
+    "Proprietary sources/assets have no public publication authorization.",
+    "Analyzer workflow/LLM/SMTP/history and Sync write/prune/push code were not copied."
+  ],
+  "references": [
+    {
+      "id": "ddl_sync",
+      "commit": "ef9b8c0578799ff50b8a3e0250bd77fb47e3dbd8",
+      "files": [
+        {
+          "path": "pyproject.toml",
+          "expected_sha256": "080df3ed54894e48e2015f8a424c3564870af58be9efa47cbf389c4b5a82cd70",
+          "actual_sha256": "1324661236f8087d95ea680f8aef07646266218c1f1091c7c115348bcabf0e71",
+          "status": "changed"
+        },
+        {
+          "path": "src/oracle_ddl_sync/oracle_client.py",
+          "expected_sha256": "8d809b175a24435ddb38acd8da56f3aa969b04e3b09d00e7bcb2d9307e42b014",
+          "actual_sha256": "1b20f0ffc5e57b55307cb6bd1154d73cb6851f7fe527fb350f96ed8f49c016c2",
+          "status": "changed"
+        },
+        {
+          "path": "src/oracle_ddl_sync/metadata.py",
+          "expected_sha256": "c7bee37645845a5301a86180368e014c95bf6a9d274687ef271fe8ee006899da",
+          "actual_sha256": "c7bee37645845a5301a86180368e014c95bf6a9d274687ef271fe8ee006899da",
+          "status": "matched"
+        },
+        {
+          "path": "src/oracle_ddl_sync/layout.py",
+          "expected_sha256": "367f5bd0283f9e9f54e9a3be7635e183457e9314905973f93b12ccbcf09d90aa",
+          "actual_sha256": "74e735d0b400f0982da38cc7b4920330bcf35eaa3124f93e2119b36e0342ee06",
+          "status": "changed"
+        },
+        {
+          "path": "src/oracle_ddl_sync/writer.py",
+          "expected_sha256": "890d84fda5d41b7278e87378f20aaf64cc186a7731a1962a5ca7e4622593311c",
+          "actual_sha256": "c954de6d622d808db0038bff4db7ac75a553d1cf7135756fcf549df1322f94b1",
+          "status": "changed"
+        },
+        {
+          "path": "config/sky-db.toml",
+          "expected_sha256": "896af7534927a82dc8a7c142dbf819fd628a979613fa0ef9960b70542294ae03",
+          "actual_sha256": "896af7534927a82dc8a7c142dbf819fd628a979613fa0ef9960b70542294ae03",
+          "status": "matched"
+        },
+        {
+          "path": "templates/mail_report.html",
+          "expected_sha256": "9b642cdacbabeaea1ba3ad40bc43b790224718f97d17c0d7d6bea6fd7c918a18",
+          "actual_sha256": "a521a39e310471b4b2e5d40e315c14cf3d1f08a243a62392c73fd608adff479e",
+          "status": "changed"
+        }
+      ]
+    },
+    {
+      "id": "analyzer",
+      "commit": "6b041e54f335692e818ce117ac9fdb1837c42fe5",
+      "files": [
+        {
+          "path": "pyproject.toml",
+          "expected_sha256": "663dbeb7957d618e03da6e7724662ef4b8628d4582e0761b322f7da47b74072c",
+          "actual_sha256": "663dbeb7957d618e03da6e7724662ef4b8628d4582e0761b322f7da47b74072c",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/assets/innova-logo-approved.png",
+          "expected_sha256": "a2c9bf53db4c693d39ea8b746a6dd8a5866e592084976d04b8fbac6ab3539ad1",
+          "actual_sha256": "a2c9bf53db4c693d39ea8b746a6dd8a5866e592084976d04b8fbac6ab3539ad1",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/dependencies.py",
+          "expected_sha256": "7d88400a0c639b3ed3dcca3221d943c95cfe32eea26da0d2dd356ec77de2af6b",
+          "actual_sha256": "7d88400a0c639b3ed3dcca3221d943c95cfe32eea26da0d2dd356ec77de2af6b",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/identities.py",
+          "expected_sha256": "bc3747c0e07ee973f46f3337e1be182d328c559e84530b2b1e024c0da528432c",
+          "actual_sha256": "bc3747c0e07ee973f46f3337e1be182d328c559e84530b2b1e024c0da528432c",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/innova_rendering.py",
+          "expected_sha256": "f4868a76d4aaa7a046e381051c9201f7cb449f675460fa13439748f2bd867681",
+          "actual_sha256": "f4868a76d4aaa7a046e381051c9201f7cb449f675460fa13439748f2bd867681",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/inventory.py",
+          "expected_sha256": "f3f68b0788dd148cad00cc4525af10247facbc4d540956214646d47360fd95fb",
+          "actual_sha256": "f3f68b0788dd148cad00cc4525af10247facbc4d540956214646d47360fd95fb",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/changes.py",
+          "expected_sha256": "becc376162ccd85f4eda46020f309ebe4f948776668300cab471987360332bd3",
+          "actual_sha256": "becc376162ccd85f4eda46020f309ebe4f948776668300cab471987360332bd3",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/ddl_tokens.py",
+          "expected_sha256": "aec5e939011da8d4e8f292c456c120fb17dd75c53347a0d669b6bd57e89ff756",
+          "actual_sha256": "aec5e939011da8d4e8f292c456c120fb17dd75c53347a0d669b6bd57e89ff756",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/dynamic_sql.py",
+          "expected_sha256": "bb9f18d0041a699b572ec19a24321e9ec52ab20be432ee82dc145fa5135733e9",
+          "actual_sha256": "bb9f18d0041a699b572ec19a24321e9ec52ab20be432ee82dc145fa5135733e9",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlLexer.py",
+          "expected_sha256": "752e47e5bd8e4517f8fe41574fb7ebd1ebd7b4059ac1e218519fb77892615b18",
+          "actual_sha256": "752e47e5bd8e4517f8fe41574fb7ebd1ebd7b4059ac1e218519fb77892615b18",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlLexerBase.py",
+          "expected_sha256": "a078fcacef0a3d300a492988377defd788bc5287b67bae4f25cad53c9af4d727",
+          "actual_sha256": "a078fcacef0a3d300a492988377defd788bc5287b67bae4f25cad53c9af4d727",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlParser.py",
+          "expected_sha256": "328e20802e53e0f4e571c4c2a186cd08786e3f5bd61d8585812274dfffa1fb61",
+          "actual_sha256": "328e20802e53e0f4e571c4c2a186cd08786e3f5bd61d8585812274dfffa1fb61",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlParserBase.py",
+          "expected_sha256": "af8c6665389faeee18046aae2b8d4e1c5d113f5e2845f5a65f746cce57ef914e",
+          "actual_sha256": "af8c6665389faeee18046aae2b8d4e1c5d113f5e2845f5a65f746cce57ef914e",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlParserVisitor.py",
+          "expected_sha256": "43a2872eca44e7476381b7aa51db09b618a05ad29aa318bf395e5588769ec495",
+          "actual_sha256": "43a2872eca44e7476381b7aa51db09b618a05ad29aa318bf395e5588769ec495",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/__init__.py",
+          "expected_sha256": "352bdf0733c75d5003d055d9ab986b8f1882c59e6b662acb3c2b0dceecf5ee64",
+          "actual_sha256": "352bdf0733c75d5003d055d9ab986b8f1882c59e6b662acb3c2b0dceecf5ee64",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/manifest.json",
+          "expected_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+          "actual_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/index.py",
+          "expected_sha256": "f62e138bb50d92bd62393bf86573bb763d9ebc98f8fb078ce6bfc3ea580b7237",
+          "actual_sha256": "f62e138bb50d92bd62393bf86573bb763d9ebc98f8fb078ce6bfc3ea580b7237",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/normalize.py",
+          "expected_sha256": "2f153c2e62c574f48b4e4bf286c7a403e5717bde8e6ffdccdac1aa8328219dd2",
+          "actual_sha256": "2f153c2e62c574f48b4e4bf286c7a403e5717bde8e6ffdccdac1aa8328219dd2",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/package.py",
+          "expected_sha256": "488f91a2aab185ac8e3af6dd677d9a41f18577861e005b118a3626c6c3a18657",
+          "actual_sha256": "488f91a2aab185ac8e3af6dd677d9a41f18577861e005b118a3626c6c3a18657",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/parser_worker.py",
+          "expected_sha256": "11f50d5b477d78ce4a7db83005910f09f7332aae26311a18576564113c977379",
+          "actual_sha256": "11f50d5b477d78ce4a7db83005910f09f7332aae26311a18576564113c977379",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/projections.py",
+          "expected_sha256": "21d69728bc0acb758075d269c5d5e69add2cd90e5077518a82f1598f701c8e53",
+          "actual_sha256": "21d69728bc0acb758075d269c5d5e69add2cd90e5077518a82f1598f701c8e53",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/scanner.py",
+          "expected_sha256": "4ee2c5b056ea5d0c0d57a9a897e241cecaf4150b6ca9c267432ad84e6572c249",
+          "actual_sha256": "4ee2c5b056ea5d0c0d57a9a897e241cecaf4150b6ca9c267432ad84e6572c249",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/sequence.py",
+          "expected_sha256": "83c6c7242825a475ad497b49fca9e5eca9856cab09ddfbd354a2fe5dafd336a8",
+          "actual_sha256": "83c6c7242825a475ad497b49fca9e5eca9856cab09ddfbd354a2fe5dafd336a8",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/table.py",
+          "expected_sha256": "99957e402aaa305d4c28a77a2e9554946a521d74fee9e5b42a91c2c0018a8e53",
+          "actual_sha256": "99957e402aaa305d4c28a77a2e9554946a521d74fee9e5b42a91c2c0018a8e53",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/view.py",
+          "expected_sha256": "53044e88140bf3f92aa1409f860d07b85f723cee447823d5ff6cfdbd2e2e299d",
+          "actual_sha256": "53044e88140bf3f92aa1409f860d07b85f723cee447823d5ff6cfdbd2e2e299d",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/taxonomy/catalog.py",
+          "expected_sha256": "3a89ca00632b430bda4d15a409423b25cb031eb74000099176f1d27360f4b717",
+          "actual_sha256": "3a89ca00632b430bda4d15a409423b25cb031eb74000099176f1d27360f4b717",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/taxonomy/change-catalog.json",
+          "expected_sha256": "23f2c5077853516a3847d51affa951d8345da08e1d29564522e08a75db4d6a0e",
+          "actual_sha256": "23f2c5077853516a3847d51affa951d8345da08e1d29564522e08a75db4d6a0e",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/taxonomy/object-catalog.json",
+          "expected_sha256": "8e7926082fc1e189ebde2d8c6118119ee0bc6fcac0922f548a1a1a32884dbbd8",
+          "actual_sha256": "8e7926082fc1e189ebde2d8c6118119ee0bc6fcac0922f548a1a1a32884dbbd8",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/templates/innova_v1/report_email.html.j2",
+          "expected_sha256": "df4e116eb042c3a529fe87d4b52452df3b9e9779a90c8c923705544951332c20",
+          "actual_sha256": "df4e116eb042c3a529fe87d4b52452df3b9e9779a90c8c923705544951332c20",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/templates/innova_v1/report_email.txt.j2",
+          "expected_sha256": "e18ced7ee8497e45b7e72173d02801c398121bf001c8287c530a893222204e79",
+          "actual_sha256": "e18ced7ee8497e45b7e72173d02801c398121bf001c8287c530a893222204e79",
+          "status": "matched"
+        },
+        {
+          "path": "src/db_change_analyzer/workflow.py",
+          "expected_sha256": "3225c264371c10d413bdc24e17ab364f63719ff4abe12d2ac7f6bf87f8c7dfd8",
+          "actual_sha256": "76fc71d1d7a3734437691545a83b7b6c1fec04563943cf90349a8c8aa4a71f12",
+          "status": "changed"
+        },
+        {
+          "path": "tests/test_index_extraction.py",
+          "expected_sha256": "03e9233d07a140ee9c5835d1667b2fb4eb1699050bd5058e320cb881f162d75a",
+          "actual_sha256": "03e9233d07a140ee9c5835d1667b2fb4eb1699050bd5058e320cb881f162d75a",
+          "status": "matched"
+        },
+        {
+          "path": "tests/test_innova_rendering.py",
+          "expected_sha256": "5ea67a245e2a1fae0bd6e5dcf962f9aaa8811e7259f6436e3231da02f3d81bbb",
+          "actual_sha256": "ec9eb0413af3b3457b7f28784c6095aedbe021ecba4f680340ea6646dcc03a90",
+          "status": "changed"
+        },
+        {
+          "path": "tests/test_table_extraction.py",
+          "expected_sha256": "ddb58857ad066d0706d13c3c150b02ef1b7008a0e74ec1affd634cfcf17d6be6",
+          "actual_sha256": "ddb58857ad066d0706d13c3c150b02ef1b7008a0e74ec1affd634cfcf17d6be6",
+          "status": "matched"
+        },
+        {
+          "path": "vendor/antlr-plsql/LICENSE-and-NOTICE.txt",
+          "expected_sha256": "870a81879c979cf2f393e0d271cf8444823deb1f103260cce3eab14e58fb573b",
+          "actual_sha256": "870a81879c979cf2f393e0d271cf8444823deb1f103260cce3eab14e58fb573b",
+          "status": "matched"
+        },
+        {
+          "path": "vendor/antlr-plsql/manifest.json",
+          "expected_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+          "actual_sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+          "status": "matched"
+        }
+      ]
+    }
+  ]
+}

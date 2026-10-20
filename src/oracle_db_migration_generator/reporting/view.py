@@ -1,0 +1,64 @@
+"""Bounded presentation derived from canonical plans; no comparison decisions here."""
+import re
+from pathlib import PurePosixPath
+from urllib.parse import urlsplit
+
+from .formatting import format_count
+
+RANK={'ERROR':0,'INCONSISTENT':1,'INCOMPLETE':2,'BLOCKED':3,'REVIEW_REQUIRED':4,'READY':5,'NO_ACTION':6,'NO_CHANGE':7}
+OP_RANK={'BLOCKED':0,'REVIEW_REQUIRED':1,'READY':2,'INFORMATIONAL':3}
+DISPLAY={'READY':'AUTO_GENERATED','INFORMATIONAL':'NO_ACTION'}
+
+
+def short(value,limit=500):
+    text=str(value)
+    return text if len(text)<=limit else text[:limit]+'…'
+
+
+def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,allowed_link_hosts=()):
+    targets=[];unique={};counts={'ready_operations':0,'review_operations':0,'blocked_operations':0}
+    for target in run['targets']:
+        plan=plans.get(target['id'])
+        item={**target,'name':short(plan['target']['name']) if plan else target['id'],
+              'display_status':target['status']+' / UNKNOWN' if not plan else target['status'],
+              'counts':plan['counts'] if plan else None,'report_path':None,'aggregate_path':None,'manifest_path':None,'objects_path':None}
+        if plan:
+            base=str(PurePosixPath(target['plan_path']).parent)
+            item.update(report_path=base+'/index.html',manifest_path=base+'/bundle-manifest.json',objects_path=base+'/README.md')
+            if plan['counts']['ready_operations']:
+                item['aggregate_path']=base+('/migration.sql' if plan['status']=='READY' else '/partial-ready.sql')
+            for key in counts: counts[key]+=plan['counts'][key]
+            for op in plan['operations']:
+                obj=op['object'];key=tuple(obj[k] for k in ('owner','object_type','name','parent_key'))
+                row=unique.setdefault(key,{'object':obj,'decision':op['decision'],'reason':short(op['reason_tr']), 'targets':set(),'kinds':set(),'operation_count':0})
+                row['targets'].add(target['id']);row['kinds'].add(op['kind']);row['operation_count']+=1
+                if OP_RANK[op['decision']]<OP_RANK[row['decision']]: row.update(decision=op['decision'],reason=short(op['reason_tr']))
+        targets.append(item)
+    important=sorted(unique.values(),key=lambda r:(OP_RANK[r['decision']],r['object']['owner'],r['object']['object_type'],r['object']['name']))[:10]
+    for row in important:
+        row['targets']=sorted(row['targets']);row['kinds']=sorted(row['kinds']);row['display_status']=DISPLAY.get(row['decision'],row['decision'])
+        row['target_label']=', '.join(row['targets'][:5])+ (f" + {format_count(len(row['targets'])-5)} hedef" if len(row['targets'])>5 else '')
+    unknown=sum(t['difference_count'] is None for t in targets)
+    known=sum(t['difference_count'] or 0 for t in targets)
+    differences=(format_count(known)+' + ?' if known else 'Bilinmiyor') if unknown else format_count(known)
+    metrics=[{'label':'Hedef','value':format_count(len(targets))},{'label':'Fark','value':differences},
+             {'label':'Üretilen DDL','value':format_count(counts['ready_operations'])},
+             {'label':'İnceleme','value':format_count(counts['review_operations'])},{'label':'Engelli','value':format_count(counts['blocked_operations'])}]
+    link=None;note='Git yayını yapılmadı veya bağlantı doğrulanmadı. Dosyalar yerel çalışma arşivinde.'
+    if publication and publication.status=='PUBLISHED' and publication.url and publication.commit_sha and url_check:
+        p=urlsplit(publication.url);sha=publication.commit_sha
+        path=p.path
+        immutable=bool(re.fullmatch('[a-f0-9]{40}',sha) and (f'/blob/{sha}/runs/' in path or ('/browse/runs/' in path and p.query=='at='+sha)))
+        current=bool(re.search(r'/build-[A-Za-z0-9-]*-'+re.escape(run['run_id'])+r'/README\.md$',path))
+        from .links import safe_https
+        try: safe_https(publication.url,allowed_link_hosts);allowed=True
+        except ValueError: allowed=False
+        if allowed and immutable and current and url_check(publication.url) is True:
+            link=publication.url;note='Bu çalışmanın sabit Git commit kaydı. Erişim yetkisi gereklidir.'
+    if link is None and fallback and url_check and run.get('build_url'):
+        from .links import verified_archive
+        checked=verified_archive(fallback.url,allowed_link_hosts,url_check,build_url=run['build_url'])
+        if checked: link=checked.url;note=checked.note
+    return {'run':run,'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
+            'metrics':metrics,'important_objects':important,'unique_objects':len(unique),'unknown_targets':unknown,
+            'counts':counts,'link':link,'link_note':note}

@@ -1,0 +1,111 @@
+{
+  "schema_version": "snapshot/1.0",
+  "synthetic": true,
+  "side": "SOURCE",
+  "profile_id": "demo-source",
+  "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "target_id": null,
+  "schemas": [
+    "APP"
+  ],
+  "objects": [
+    {
+      "object_key": "eef19272272747482c69b14d3c090d987b416cc39e9e238c0438cac3086e132d",
+      "identity": {
+        "profile_id": "demo-source",
+        "owner": "APP",
+        "object_type": "TABLE",
+        "name": "DEMO_NOTE",
+        "quoted": true,
+        "parent_key": null
+      },
+      "properties": {
+        "TITLE.data_type": {
+          "state": "KNOWN",
+          "value": "VARCHAR2",
+          "evidence_ids": [
+            "ev-source-title"
+          ]
+        },
+        "TITLE.length": {
+          "state": "KNOWN",
+          "value": 80,
+          "evidence_ids": [
+            "ev-source-title"
+          ]
+        },
+        "TITLE.length_semantics": {
+          "state": "KNOWN",
+          "value": "CHAR",
+          "evidence_ids": [
+            "ev-source-title"
+          ]
+        },
+        "TITLE.partition_key": {
+          "state": "KNOWN",
+          "value": false,
+          "evidence_ids": [
+            "ev-source-title"
+          ]
+        },
+        "TITLE.domain_index_dependency": {
+          "state": "KNOWN",
+          "value": false,
+          "evidence_ids": [
+            "ev-source-title"
+          ]
+        }
+      },
+      "ddl_path": "synthetic/source/app/tables/DEMO_NOTE/ddl.sql",
+      "ddl_sha256": "f22b4c37ef0a13f2204ea39d26e403f6d1644c55419cec9e9806d990f31f5613",
+      "coverage": {
+        "inventory": "COMPLETE",
+        "ddl": "COMPLETE",
+        "dictionary": "NOT_APPLICABLE",
+        "diagnostics": []
+      },
+      "evidence_ids": [
+        "ev-source-title"
+      ]
+    }
+  ],
+  "coverage": {
+    "inventory": "COMPLETE",
+    "ddl": "COMPLETE",
+    "dictionary": "NOT_APPLICABLE",
+    "diagnostics": []
+  },
+  "capabilities": {
+    "oracle_version": {
+      "state": "KNOWN",
+      "value": "19c (synthetic fixture)",
+      "evidence_ids": [
+        "ev-source-title"
+      ]
+    },
+    "max_varchar2_bytes": {
+      "state": "KNOWN",
+      "value": 4000,
+      "evidence_ids": [
+        "ev-source-title"
+      ]
+    }
+  },
+  "evidence": [
+    {
+      "id": "ev-source-title",
+      "kind": "SOURCE_SPAN",
+      "side": "SOURCE",
+      "path": "synthetic/source/app/tables/DEMO_NOTE/ddl.sql",
+      "sha256": "f22b4c37ef0a13f2204ea39d26e403f6d1644c55419cec9e9806d990f31f5613",
+      "start_line": 4,
+      "end_line": 5,
+      "query_id": null,
+      "detail_tr": "Sentetik kaynak DDL: TITLE VARCHAR2(80 CHAR).",
+      "start_byte": null,
+      "end_byte": null
+    }
+  ],
+  "observed_consistency": "NOT_APPLICABLE",
+  "semantic_digest": "d3686ee5b85d41dad89c304abc4f7827f7ef86fc8fec80efc336da8b2bdfee70"
+}

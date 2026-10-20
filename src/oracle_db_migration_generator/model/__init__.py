@@ -1,0 +1,1 @@
+"""Immutable canonical domain primitives."""

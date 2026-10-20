@@ -1,0 +1,301 @@
+{
+  "schema_version": "handoff-manifest/1.0",
+  "excludes_self": true,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 113,
+      "sha256": "59dd3003c7c3aec3dd1d76a6349f4284f5d211deea6eb512b31560d970090423"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 353,
+      "sha256": "cfe13410dd7dd5b00c3503d7c6e215bb8472ee5dfa2a02928236a152f05ef166"
+    },
+    {
+      "path": ".local/README.md",
+      "bytes": 414,
+      "sha256": "6d512c531ec6459938300f2e33d0d5b20f7c689893b0b127da023aa0d602a983"
+    },
+    {
+      "path": ".local/session-context.json",
+      "bytes": 1318,
+      "sha256": "ac9c3f0e60c43b973397413c10c78da02b321ce807656a52e5b79e0a992a04e5"
+    },
+    {
+      "path": ".local/source-profile.sky.json",
+      "bytes": 841,
+      "sha256": "a85f8f8e05bcd9bb07a7cb5178675b3c965d6fd6cf4b47a05896142542a85e7a"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 5100,
+      "sha256": "4b1ec6fc9bfd4c35af0fe2f9e2636e27b6c0c651b70321e0b4bd744441e86dae"
+    },
+    {
+      "path": "AKTIF_GOREV.md",
+      "bytes": 24190,
+      "sha256": "cac461dfe0bf87be0109f2f3857d06da5dc911abf89b6d34738f802657aeddee"
+    },
+    {
+      "path": "BASLANGIC.md",
+      "bytes": 3492,
+      "sha256": "ed652ccb513b06d581872dc3b3b41ce865dd98b3f70ef8cc98b18204e15ec032"
+    },
+    {
+      "path": "PAKET_DOGRULAMA.json",
+      "bytes": 2101,
+      "sha256": "bb99b80534ed76825b45796e64bb7d4e876d1b7882c4a7f9cb9ba21dbda39cb2"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2411,
+      "sha256": "62d07c144a007159d3423e3be9581f74984ff11c1e7389cb39107259b18185cf"
+    },
+    {
+      "path": "docs/ARTIFACT_SOZLESMESI.md",
+      "bytes": 7527,
+      "sha256": "e486dd6a101565ffc8175c7abe495ad383a062431c3d75cbf14ae82f564de8d0"
+    },
+    {
+      "path": "docs/CODEX_ARAYUZLERI.md",
+      "bytes": 9226,
+      "sha256": "525fa9cb15d09d8d009573b5b809afe9ef6514526141b3d8a164a53b5d13f880"
+    },
+    {
+      "path": "docs/DDL_KURALLARI.md",
+      "bytes": 10481,
+      "sha256": "f62f476d49af5ee8a499b61f3d1c7d67380c0e62dcffd22637f66c8d5d007002"
+    },
+    {
+      "path": "docs/DIS_KAYNAKLAR.md",
+      "bytes": 3436,
+      "sha256": "e2f68c205889cab38c8d50f6491190dfe9366f07612a74b1edaff876b76658a7"
+    },
+    {
+      "path": "docs/DOGRULAMA.md",
+      "bytes": 11227,
+      "sha256": "e07a30ebaacef6c968f92135c53bbaeda4c15915681d0b8c9a667333719a1c3f"
+    },
+    {
+      "path": "docs/GUVENLIK.md",
+      "bytes": 4063,
+      "sha256": "a36effd89dc1c03de11cb85afd71be64cf56cfa972139817a7e6fcc22f096af3"
+    },
+    {
+      "path": "docs/HTML_STANDARDI.md",
+      "bytes": 4769,
+      "sha256": "b8220a999884efbc8ce3b5891ab9edff874a4f651bec89de2a8543e15f5f9452"
+    },
+    {
+      "path": "docs/JENKINS.md",
+      "bytes": 6066,
+      "sha256": "9298f9ecb0225371ed590d9a7cd5e5263bcc47aa3c6aae1e5c603d0ad5611e62"
+    },
+    {
+      "path": "docs/KAYNAK_HEDEF_SOZLESMESI.md",
+      "bytes": 6432,
+      "sha256": "c9b7110e46bb237fdfd5b40dc54484928ba29416c14cc94214a0d603069d8fc8"
+    },
+    {
+      "path": "docs/MIMARI.md",
+      "bytes": 7155,
+      "sha256": "cebea58635ec551c438acd77d324ffc21d938f030a20e2e05181df127a5931f6"
+    },
+    {
+      "path": "docs/YENIDEN_KULLANIM.md",
+      "bytes": 7181,
+      "sha256": "7086ffb5f760b3d203da9a56db50e0331a811b0e97f67fd5ca909a1087623c6f"
+    },
+    {
+      "path": "examples/README.md",
+      "bytes": 887,
+      "sha256": "c0840664bbaaf599f499eec2b0fda4adac082bcdc47baed8aef80686e49c76fe"
+    },
+    {
+      "path": "examples/bundle-manifest.example.json",
+      "bytes": 1443,
+      "sha256": "cfc8c375d98d1a1269f4454c38dea108aa4087067f9988e5da125af8c8f52610"
+    },
+    {
+      "path": "examples/expected/objects/op-title-widen.sql",
+      "bytes": 183,
+      "sha256": "77e2584008339a1541da20b71dad7118eb5da5681b9f9db46709ac8f39658fda"
+    },
+    {
+      "path": "examples/plan.example.json",
+      "bytes": 5153,
+      "sha256": "af9fffb693cd5da963771b80f7e2804c8fa647ce9fcf7e8ce50e41a92357d685"
+    },
+    {
+      "path": "examples/run.example.json",
+      "bytes": 634,
+      "sha256": "5808595efa2830702b0db5f7ffc73d33cbefe348003eca35c35b1538069ba23a"
+    },
+    {
+      "path": "examples/source-profile.example.json",
+      "bytes": 764,
+      "sha256": "5c3c947704e2834dd4220b01f6986b8bca33d1ccd6651a0fec1c6edf0e0868ed"
+    },
+    {
+      "path": "examples/source-snapshot.example.json",
+      "bytes": 2820,
+      "sha256": "400f2b3ecbb603eedaa41e034b0780344b93ed159fe722578fad5dd3eb1fd7ff"
+    },
+    {
+      "path": "examples/synthetic/source/app/_manifest.json",
+      "bytes": 125,
+      "sha256": "8c13586cf1a32572cfdc25fab3f883afe9ef03e0064ab6347576d29e7642e63e"
+    },
+    {
+      "path": "examples/synthetic/source/app/tables/DEMO_NOTE/ddl.sql",
+      "bytes": 157,
+      "sha256": "f22b4c37ef0a13f2204ea39d26e403f6d1644c55419cec9e9806d990f31f5613"
+    },
+    {
+      "path": "examples/synthetic/target/DEMO_NOTE.sql",
+      "bytes": 157,
+      "sha256": "2e027ab0ed1990ed76cd577f731de2c137dffeac0e081bb3bb168cc64359137c"
+    },
+    {
+      "path": "examples/target-snapshot.example.json",
+      "bytes": 2798,
+      "sha256": "d6dd0050f38a95385cd5b48db6df9f3bdd662984687c2b4fff5a4803e113ffe2"
+    },
+    {
+      "path": "examples/targets.example.json",
+      "bytes": 1315,
+      "sha256": "a6da15d9c340de361d5372c49b286a28c72eeaad6d84468e16ffe5582894d445"
+    },
+    {
+      "path": "reference-lock.json",
+      "bytes": 58406,
+      "sha256": "b04a8afbbaa3fe0b3fca460de98a6ce6be270eca441c7056077bd296897487b1"
+    },
+    {
+      "path": "reference-ui/README.md",
+      "bytes": 1305,
+      "sha256": "be2e73d2c0f38501d06855d5a849fdbda2db2842ab82f5dc072e26e22ac8e627"
+    },
+    {
+      "path": "reference-ui/ddl-sync-report.secondary.html.j2",
+      "bytes": 29353,
+      "sha256": "9b642cdacbabeaea1ba3ad40bc43b790224718f97d17c0d7d6bea6fd7c918a18"
+    },
+    {
+      "path": "reference-ui/design-tokens.json",
+      "bytes": 807,
+      "sha256": "32c1c139849142b78aeb7476ec86a8c55d8a06545cf1118c08ddd8a2423122f4"
+    },
+    {
+      "path": "reference-ui/innova-logo-approved.png",
+      "bytes": 28793,
+      "sha256": "a2c9bf53db4c693d39ea8b746a6dd8a5866e592084976d04b8fbac6ab3539ad1"
+    },
+    {
+      "path": "reference-ui/innova-report.original.html.j2",
+      "bytes": 17738,
+      "sha256": "df4e116eb042c3a529fe87d4b52452df3b9e9779a90c8c923705544951332c20"
+    },
+    {
+      "path": "reference-ui/innova-report.original.txt.j2",
+      "bytes": 1813,
+      "sha256": "e18ced7ee8497e45b7e72173d02801c398121bf001c8287c530a893222204e79"
+    },
+    {
+      "path": "reference-ui/reference-desktop.png",
+      "bytes": 119512,
+      "sha256": "c0521cc6527bca5971fab58ba22d14a169205b3ca04d05373a53ee11a847a51a"
+    },
+    {
+      "path": "reference-ui/reference-view.synthetic.json",
+      "bytes": 34187,
+      "sha256": "85263ca828ee4deef8814cf0f0131b9f403e9c4ac4c7483dfc88b36d68f70944"
+    },
+    {
+      "path": "reference-ui/reference.html",
+      "bytes": 64490,
+      "sha256": "809d3ee8e1de0a02664bf825d063e3e4a35cbe47a2a4ad4dc421f983a8df1b82"
+    },
+    {
+      "path": "schemas/bundle-manifest.schema.json",
+      "bytes": 1467,
+      "sha256": "7d51fc7010fc5420066bf687562ddc1be8d43525f7c00ef0430e9a3ed8b97f83"
+    },
+    {
+      "path": "schemas/plan.schema.json",
+      "bytes": 22485,
+      "sha256": "b146346dab9e3452504c372a5f766de9fe6fc86c20bdf40390f5cf229366002b"
+    },
+    {
+      "path": "schemas/run.schema.json",
+      "bytes": 3472,
+      "sha256": "822954fe54b9a3eaa2cb1e2ac2b8c7a2ef49fdb42872ec5116a171865b136fc0"
+    },
+    {
+      "path": "schemas/snapshot.schema.json",
+      "bytes": 12091,
+      "sha256": "09f426f2bd45eb53d66beee0bfb429c96a83e18ea9f69ed3335e3452cf5a74dc"
+    },
+    {
+      "path": "schemas/source-profile.schema.json",
+      "bytes": 2696,
+      "sha256": "369273e7f15a0119c7e2597e07c551202be0b0f97dfb1db8b50ed9f6b947141e"
+    },
+    {
+      "path": "schemas/targets.schema.json",
+      "bytes": 2979,
+      "sha256": "9ebbdb97e44176b8e47963f281a82f9cf8330dd244ed286102cfd2f356f0274c"
+    },
+    {
+      "path": "templates/artifact_repo/AGENTS.md",
+      "bytes": 1236,
+      "sha256": "4316241367ccc0ef9d6a1fa2f77e4bbfea4c6a6a4b2b0960367246ecbce96708"
+    },
+    {
+      "path": "templates/artifact_repo/FORMAT.md",
+      "bytes": 976,
+      "sha256": "88e6de17d2cda757a54a39cd1a5eaf759c5d3ab7c2e7a86ec8851287183c8c45"
+    },
+    {
+      "path": "templates/artifact_repo/README.md",
+      "bytes": 1138,
+      "sha256": "73d430be8b5159737dc8bd0662bbb68f1ddd621ace58b470ce781b7eca9b8737"
+    },
+    {
+      "path": "verification/verify_package.py",
+      "bytes": 8989,
+      "sha256": "bf1f4068936d32076ec5814c968d2a0e11eb058c2dbcbb0517693bd5d02a61ac"
+    },
+    {
+      "path": "yz/DEVIR.md",
+      "bytes": 991,
+      "sha256": "0971f6638aa4aeac5a98f18b63537b852ea68ce2aa1c43dc02386d95072d36ac"
+    },
+    {
+      "path": "yz/DOGRULAMA_KAYDI.md",
+      "bytes": 2371,
+      "sha256": "42c114aa15ae51d130e1291e7c8569770d197a93bf26ccf61806ca628eebf2fd"
+    },
+    {
+      "path": "yz/GELISTIRME_DURUMU.md",
+      "bytes": 890,
+      "sha256": "c5439983263490b33dcb746570cae0d7a76c78b316f37f8e4c77a97a29d5406e"
+    },
+    {
+      "path": "yz/MIMARI_KARARLAR.md",
+      "bytes": 5686,
+      "sha256": "79bc5036b6e560170a28a183dedd4b2e7a7b4b7e5344158c5333a78e588dc2e5"
+    },
+    {
+      "path": "yz/PROJE_BELLEGI.md",
+      "bytes": 1465,
+      "sha256": "b0c504c5a22fc6b6e57db9afc515cb0b28792165437361d0de96240df7ee5ea8"
+    },
+    {
+      "path": "yz/REFERANS_TEST_SONUCU.txt",
+      "bytes": 99,
+      "sha256": "47a95640f4e176876478c360e87162432c82ebf1b28a0e3addc62d0325748e2d"
+    }
+  ]
+}

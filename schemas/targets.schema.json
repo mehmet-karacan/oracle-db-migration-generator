@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.invalid/oracle-db-migration-generator/1.0/targets.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "targets/1.0"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "host": {
+                "type": "string",
+                "minLength": 1
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "service_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sid": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "host",
+              "port"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "service_name"
+                ],
+                "not": {
+                  "required": [
+                    "sid"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "sid"
+                ],
+                "not": {
+                  "required": [
+                    "service_name"
+                  ]
+                }
+              }
+            ]
+          },
+          "driver_mode": {
+            "enum": [
+              "thin",
+              "thick"
+            ]
+          },
+          "schema_mappings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_schema": {
+                  "type": "string"
+                },
+                "target_schema": {
+                  "type": "string"
+                },
+                "credential_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "source_schema",
+                "target_schema",
+                "credential_id"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "endpoint",
+          "driver_mode",
+          "schema_mappings"
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "targets"
+  ]
+}

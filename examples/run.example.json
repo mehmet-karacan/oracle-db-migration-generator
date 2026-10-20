@@ -1,0 +1,23 @@
+{
+  "schema_version": "run/1.0",
+  "synthetic": true,
+  "run_id": "demo-run-001",
+  "started_at": "2026-10-19T14:00:00Z",
+  "finished_at": "2026-10-19T14:00:01Z",
+  "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "status": "COMPLETE",
+  "exit_code": 0,
+  "build_url": null,
+  "targets": [
+    {
+      "id": "DEMO-TEST",
+      "status": "READY",
+      "difference_count": 1,
+      "plan_id": "9f6c3dd29fd6a06c8999a467fbe27cd5231f7feb20e1ea2960e788e5f7cd4ac5",
+      "plan_path": "plan.example.json",
+      "captured_at": "2026-10-19T14:00:00Z",
+      "error_code": null,
+      "publication": "NOT_REQUESTED"
+    }
+  ]
+}

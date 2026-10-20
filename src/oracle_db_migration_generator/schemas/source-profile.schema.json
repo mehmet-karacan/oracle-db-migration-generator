@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.invalid/oracle-db-migration-generator/1.0/source-profile.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "source-profile/1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "layout": {
+      "enum": [
+        "by_object",
+        "flat"
+      ]
+    },
+    "layout_version": {
+      "const": 1
+    },
+    "schema_roots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+          },
+          "source_schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "path",
+          "source_schema"
+        ]
+      },
+      "minItems": 1
+    },
+    "object_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "TABLE",
+          "INDEX",
+          "SEQUENCE",
+          "VIEW",
+          "PACKAGE_SPEC",
+          "PACKAGE_BODY",
+          "PROCEDURE",
+          "FUNCTION",
+          "TRIGGER",
+          "TYPE_SPEC",
+          "TYPE_BODY",
+          "SYNONYM",
+          "COMMENT",
+          "GRANT",
+          "MATERIALIZED_VIEW",
+          "MATERIALIZED_VIEW_LOG"
+        ]
+      },
+      "minItems": 1
+    },
+    "source_length_semantics": {
+      "enum": [
+        "BYTE",
+        "CHAR",
+        "UNKNOWN"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow_drop": {
+          "const": false
+        },
+        "allow_schema_remap": {
+          "const": false
+        },
+        "compare_physical_storage": {
+          "type": "boolean"
+        },
+        "grant_allowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        },
+        "existing_sequence_state": {
+          "const": "REPORT_ONLY"
+        },
+        "require_complete_metadata": {
+          "const": true
+        }
+      },
+      "required": [
+        "allow_drop",
+        "allow_schema_remap",
+        "compare_physical_storage",
+        "grant_allowlist",
+        "existing_sequence_state",
+        "require_complete_metadata"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "layout",
+    "layout_version",
+    "schema_roots",
+    "object_types",
+    "source_length_semantics",
+    "policy"
+  ]
+}

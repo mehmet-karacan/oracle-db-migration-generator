@@ -1,0 +1,45 @@
+{
+  "schema_version": "bundle-manifest/1.0",
+  "synthetic": true,
+  "plan_id": "9f6c3dd29fd6a06c8999a467fbe27cd5231f7feb20e1ea2960e788e5f7cd4ac5",
+  "target_id": "DEMO-TEST",
+  "files": [
+    {
+      "path": "plan.example.json",
+      "sha256": "af9fffb693cd5da963771b80f7e2804c8fa647ce9fcf7e8ce50e41a92357d685",
+      "bytes": 5153,
+      "media_type": "application/json"
+    },
+    {
+      "path": "source-snapshot.example.json",
+      "sha256": "400f2b3ecbb603eedaa41e034b0780344b93ed159fe722578fad5dd3eb1fd7ff",
+      "bytes": 2820,
+      "media_type": "application/json"
+    },
+    {
+      "path": "target-snapshot.example.json",
+      "sha256": "d6dd0050f38a95385cd5b48db6df9f3bdd662984687c2b4fff5a4803e113ffe2",
+      "bytes": 2798,
+      "media_type": "application/json"
+    },
+    {
+      "path": "expected/objects/op-title-widen.sql",
+      "sha256": "77e2584008339a1541da20b71dad7118eb5da5681b9f9db46709ac8f39658fda",
+      "bytes": 183,
+      "media_type": "text/plain"
+    },
+    {
+      "path": "synthetic/source/app/tables/DEMO_NOTE/ddl.sql",
+      "sha256": "f22b4c37ef0a13f2204ea39d26e403f6d1644c55419cec9e9806d990f31f5613",
+      "bytes": 157,
+      "media_type": "text/plain"
+    },
+    {
+      "path": "synthetic/target/DEMO_NOTE.sql",
+      "sha256": "2e027ab0ed1990ed76cd577f731de2c137dffeac0e081bb3bb168cc64359137c",
+      "bytes": 157,
+      "media_type": "text/plain"
+    }
+  ],
+  "execution_status": "NOT_EXECUTED"
+}

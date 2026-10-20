@@ -1,0 +1,180 @@
+{
+  "schema_version": "plan/1.0",
+  "synthetic": true,
+  "generator_version": "0.1.0-spec",
+  "rule_version": "oracle-rules/1.0",
+  "source": {
+    "profile_id": "demo-source",
+    "commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ddl_digest": "d3686ee5b85d41dad89c304abc4f7827f7ef86fc8fec80efc336da8b2bdfee70"
+  },
+  "target": {
+    "id": "DEMO-TEST",
+    "name": "Örnek Test",
+    "schemas": [
+      "APP"
+    ]
+  },
+  "target_snapshot_digest": "b91c2d051bf6a3dde5d6bae88eacb0f4bc43c3e3bb5faee7e924715d5fa3905a",
+  "scope": {
+    "inventory": "COMPLETE",
+    "ddl": "COMPLETE",
+    "dictionary": "COMPLETE",
+    "diagnostics": []
+  },
+  "status": "READY",
+  "counts": {
+    "observed_differences": 1,
+    "ready_operations": 1,
+    "review_operations": 0,
+    "blocked_operations": 0,
+    "informational_changes": 0
+  },
+  "operations": [
+    {
+      "id": "op-title-widen",
+      "object": {
+        "profile_id": "demo-source",
+        "owner": "APP",
+        "object_type": "TABLE",
+        "name": "DEMO_NOTE",
+        "quoted": true,
+        "parent_key": null
+      },
+      "kind": "MODIFY_COLUMN",
+      "before": {
+        "state": "KNOWN",
+        "value": 40,
+        "evidence_ids": [
+          "ev-target-title"
+        ]
+      },
+      "after": {
+        "state": "KNOWN",
+        "value": 80,
+        "evidence_ids": [
+          "ev-source-title"
+        ]
+      },
+      "decision": "READY",
+      "risk": "MEDIUM",
+      "rule_id": "COLUMN_VARCHAR_WIDEN_SAME_SEMANTICS_V1",
+      "reason_codes": [
+        "SAME_TYPE_SAFE_WIDENING"
+      ],
+      "reason_tr": "TITLE uzunluğu 40 CHAR değerinden 80 CHAR değerine yükseltilir; aynı tip/semantik ve uygun metadata yalnız sentetik örnekte doğrulanmıştır.",
+      "change_ids": [
+        "change-title-length"
+      ],
+      "evidence_ids": [
+        "ev-target-title",
+        "ev-source-title"
+      ],
+      "depends_on": [],
+      "sql": {
+        "path": "expected/objects/op-title-widen.sql",
+        "sha256": "77e2584008339a1541da20b71dad7118eb5da5681b9f9db46709ac8f39658fda",
+        "statement_kind": "SQL"
+      },
+      "preconditions": [
+        {
+          "id": "pre-title-semantics",
+          "kind": "METADATA",
+          "status": "SATISFIED",
+          "reason_code": "SYNTHETIC_SAME_TYPE_SEMANTICS",
+          "evidence_ids": [
+            "ev-source-title",
+            "ev-target-title"
+          ],
+          "check_path": null
+        }
+      ],
+      "postconditions": [
+        {
+          "id": "post-title-length",
+          "kind": "POSTCHECK",
+          "status": "NOT_EVALUATED",
+          "reason_code": "TARGET_LENGTH_EQUALS_DESIRED_AFTER_EXTERNAL_APPLY",
+          "evidence_ids": [],
+          "check_path": null
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-source-title",
+      "kind": "SOURCE_SPAN",
+      "side": "SOURCE",
+      "path": "synthetic/source/app/tables/DEMO_NOTE/ddl.sql",
+      "sha256": "f22b4c37ef0a13f2204ea39d26e403f6d1644c55419cec9e9806d990f31f5613",
+      "start_line": 4,
+      "end_line": 5,
+      "query_id": null,
+      "detail_tr": "Sentetik kaynak DDL: TITLE VARCHAR2(80 CHAR).",
+      "start_byte": null,
+      "end_byte": null
+    },
+    {
+      "id": "ev-target-title",
+      "kind": "TARGET_METADATA",
+      "side": "TARGET",
+      "path": "synthetic/target/DEMO_NOTE.sql",
+      "sha256": "2e027ab0ed1990ed76cd577f731de2c137dffeac0e081bb3bb168cc64359137c",
+      "start_line": 4,
+      "end_line": 5,
+      "query_id": "FIXTURE_ALL_TAB_COLUMNS",
+      "detail_tr": "Sentetik hedef metadata: TITLE VARCHAR2(40 CHAR); canlı sorgu değildir.",
+      "start_byte": null,
+      "end_byte": null
+    }
+  ],
+  "validation": {
+    "level": "NOT_VALIDATED",
+    "execution_status": "NOT_EXECUTED",
+    "checks": [
+      "JSON_SCHEMA_EXAMPLE"
+    ],
+    "limitations_tr": [
+      "Bu bir sözleşme örneğidir; Generator ürünü veya Oracle SQL execution testi değildir."
+    ]
+  },
+  "warnings": [
+    "SYNTHETIC_EXAMPLE_NOT_FOR_DEPLOYMENT"
+  ],
+  "input_fingerprint": {
+    "profile_sha256": "155970db6c77f1a99b664cdfd6d006d1ee19880fc5b602c133764cebcfa66c4b",
+    "policy_sha256": "67ec2ae187210d61b0752300e642e143df0935899d2148b9a3068e21f7a19fe6",
+    "parser_version": "synthetic-contract-fixture/1.0",
+    "parser_artifact_sha256": "65d88c6399af86025bce0bbbd91ff3defd28d8b27a09a67a7ff61f2da2136256",
+    "canonicalizer_version": "oracle-canonical/1.0",
+    "schema_contract_version": "plan/1.0"
+  },
+  "differences": [
+    {
+      "id": "change-title-length",
+      "object_key": "eef19272272747482c69b14d3c090d987b416cc39e9e238c0438cac3086e132d",
+      "property_path": "columns.TITLE.length",
+      "kind": "CHANGED",
+      "before": {
+        "state": "KNOWN",
+        "value": 40,
+        "evidence_ids": [
+          "ev-target-title"
+        ]
+      },
+      "after": {
+        "state": "KNOWN",
+        "value": 80,
+        "evidence_ids": [
+          "ev-source-title"
+        ]
+      },
+      "evidence_ids": [
+        "ev-target-title",
+        "ev-source-title"
+      ]
+    }
+  ],
+  "plan_id": "9f6c3dd29fd6a06c8999a467fbe27cd5231f7feb20e1ea2960e788e5f7cd4ac5"
+}

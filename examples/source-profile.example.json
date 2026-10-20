@@ -1,0 +1,39 @@
+{
+  "schema_version": "source-profile/1.0",
+  "id": "demo-source",
+  "layout": "by_object",
+  "layout_version": 1,
+  "schema_roots": [
+    {
+      "path": "app",
+      "source_schema": "APP"
+    }
+  ],
+  "object_types": [
+    "TABLE",
+    "INDEX",
+    "SEQUENCE",
+    "VIEW",
+    "PACKAGE_SPEC",
+    "PACKAGE_BODY",
+    "PROCEDURE",
+    "FUNCTION",
+    "TRIGGER",
+    "TYPE_SPEC",
+    "TYPE_BODY",
+    "SYNONYM",
+    "COMMENT",
+    "GRANT",
+    "MATERIALIZED_VIEW",
+    "MATERIALIZED_VIEW_LOG"
+  ],
+  "source_length_semantics": "CHAR",
+  "policy": {
+    "allow_drop": false,
+    "allow_schema_remap": false,
+    "compare_physical_storage": false,
+    "grant_allowlist": [],
+    "existing_sequence_state": "REPORT_ONLY",
+    "require_complete_metadata": true
+  }
+}

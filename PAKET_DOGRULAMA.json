@@ -1,0 +1,57 @@
+{
+  "schema_version": "handoff-verification/1.0",
+  "prepared_at": "2026-10-19",
+  "package_status": "PREPARED_AND_VALIDATED",
+  "scope": "Architecture and Codex implementation handoff; not the application",
+  "counts": {
+    "architecture_decisions": 22,
+    "implementation_phases": 14,
+    "specified_acceptance_test_scenarios": 76,
+    "reference_source_files": 43
+  },
+  "contract_validation": {
+    "status": "PASS",
+    "scope": "handoff package only",
+    "schemas": 6,
+    "positive_json_instances": 8,
+    "negative_schema_cases": 8,
+    "markdown_links": 11,
+    "example_plan_integrity": "PASS",
+    "reference_asset_hashes": "PASS",
+    "generator_implementation_tests": "NOT_RUN",
+    "live_oracle_jenkins": "NOT_RUN"
+  },
+  "reference_tests": {
+    "status": "PASSED",
+    "passed": 60,
+    "failed": 0,
+    "scope": "Existing Analyzer selected table/index/innova rendering tests only",
+    "duration_seconds": 2.75,
+    "log": "yz/REFERANS_TEST_SONUCU.txt",
+    "python_version": "3.13.5",
+    "antlr_runtime": "4.13.2 (isolated directory; original code unchanged)"
+  },
+  "reference_ui": {
+    "status": "RENDERED_AND_VISUALLY_INSPECTED",
+    "template_family": "innova-db-report/1.0",
+    "synthetic_data": true,
+    "viewport": {
+      "width": 1100,
+      "height": 1000
+    },
+    "reference": "reference-ui/reference.html",
+    "screenshot": "reference-ui/reference-desktop.png",
+    "scope": "Existing report template; new Generator UI not implemented"
+  },
+  "new_generator_implementation": "NOT_IMPLEMENTED_IN_THIS_DELIVERY",
+  "new_generator_test_suite": "NOT_RUN",
+  "live_oracle_validation": "NOT_RUN",
+  "jenkins_installation": "NOT_RUN",
+  "source_bitbucket_remote_access": "NOT_VERIFIED",
+  "user_windows_directories": "NOT_ACCESSIBLE_FROM_THIS_SESSION",
+  "remote_git_writes": "NONE",
+  "secrets_included": false,
+  "font_files_included": false,
+  "verification_command": "python verification/verify_package.py",
+  "integrity_contract": "PACKAGE_MANIFEST.json lists all other delivered files with byte lengths and SHA-256; re-run verifier for final manifest status."
+}

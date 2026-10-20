@@ -1,0 +1,9 @@
+{
+  "schema": "APP",
+  "layout": "by_object",
+  "layout_version": 1,
+  "object_count": 1,
+  "counts": {
+    "TABLE": 1
+  }
+}

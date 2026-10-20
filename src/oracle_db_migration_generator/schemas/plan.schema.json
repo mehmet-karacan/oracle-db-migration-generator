@@ -1,0 +1,940 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.invalid/oracle-db-migration-generator/1.0/plan.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "plan/1.0"
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "generator_version": {
+      "type": "string"
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "ddl_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "profile_id",
+        "commit_sha",
+        "ddl_digest"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "schemas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "schemas"
+      ]
+    },
+    "target_snapshot_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inventory": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNAVAILABLE"
+          ]
+        },
+        "ddl": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNAVAILABLE"
+          ]
+        },
+        "dictionary": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNAVAILABLE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "inventory",
+        "ddl",
+        "dictionary",
+        "diagnostics"
+      ]
+    },
+    "status": {
+      "enum": [
+        "NO_CHANGE",
+        "NO_ACTION",
+        "READY",
+        "REVIEW_REQUIRED",
+        "BLOCKED"
+      ]
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observed_differences": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ready_operations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_operations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_operations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "informational_changes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "observed_differences",
+        "ready_operations",
+        "review_operations",
+        "blocked_operations",
+        "informational_changes"
+      ]
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "object_type": {
+                "enum": [
+                  "TABLE",
+                  "INDEX",
+                  "SEQUENCE",
+                  "VIEW",
+                  "PACKAGE_SPEC",
+                  "PACKAGE_BODY",
+                  "PROCEDURE",
+                  "FUNCTION",
+                  "TRIGGER",
+                  "TYPE_SPEC",
+                  "TYPE_BODY",
+                  "SYNONYM",
+                  "COMMENT",
+                  "GRANT",
+                  "MATERIALIZED_VIEW",
+                  "MATERIALIZED_VIEW_LOG"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "quoted": {
+                "type": "boolean"
+              },
+              "parent_key": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "profile_id",
+              "owner",
+              "object_type",
+              "name",
+              "quoted",
+              "parent_key"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "CREATE",
+              "ADD_COLUMN",
+              "MODIFY_COLUMN",
+              "REPLACE",
+              "ADD_CONSTRAINT",
+              "CREATE_INDEX",
+              "COMMENT",
+              "GRANT",
+              "REVIEW",
+              "PRESERVE"
+            ]
+          },
+          "before": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "enum": [
+                  "KNOWN",
+                  "ABSENT",
+                  "UNKNOWN",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "value": {},
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "state",
+              "value",
+              "evidence_ids"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "ABSENT",
+                        "UNKNOWN",
+                        "NOT_APPLICABLE"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "after": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "enum": [
+                  "KNOWN",
+                  "ABSENT",
+                  "UNKNOWN",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "value": {},
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "state",
+              "value",
+              "evidence_ids"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "ABSENT",
+                        "UNKNOWN",
+                        "NOT_APPLICABLE"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "decision": {
+            "enum": [
+              "READY",
+              "REVIEW_REQUIRED",
+              "BLOCKED",
+              "INFORMATIONAL"
+            ]
+          },
+          "risk": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "UNKNOWN"
+            ]
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "reason_tr": {
+            "type": "string"
+          },
+          "change_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "sql": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "statement_kind": {
+                    "enum": [
+                      "SQL",
+                      "PLSQL",
+                      "SQLPLUS_WRAPPER"
+                    ]
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256",
+                  "statement_kind"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preconditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "METADATA",
+                    "POLICY",
+                    "POSTCHECK"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "SATISFIED",
+                    "NOT_EVALUATED",
+                    "FAILED"
+                  ]
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 0
+                },
+                "check_path": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "status",
+                "reason_code",
+                "evidence_ids",
+                "check_path"
+              ]
+            },
+            "minItems": 0
+          },
+          "postconditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "METADATA",
+                    "POLICY",
+                    "POSTCHECK"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "SATISFIED",
+                    "NOT_EVALUATED",
+                    "FAILED"
+                  ]
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 0
+                },
+                "check_path": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "status",
+                "reason_code",
+                "evidence_ids",
+                "check_path"
+              ]
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "id",
+          "object",
+          "kind",
+          "before",
+          "after",
+          "decision",
+          "risk",
+          "rule_id",
+          "reason_codes",
+          "reason_tr",
+          "change_ids",
+          "evidence_ids",
+          "depends_on",
+          "sql",
+          "preconditions",
+          "postconditions"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "BLOCKED",
+                    "INFORMATIONAL"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "sql": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 0
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "SOURCE_SPAN",
+              "TARGET_METADATA",
+              "ABSENCE_SCOPE",
+              "DEPENDENCY",
+              "POLICY"
+            ]
+          },
+          "side": {
+            "enum": [
+              "SOURCE",
+              "TARGET",
+              "POLICY"
+            ]
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end_line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "query_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail_tr": {
+            "type": "string"
+          },
+          "start_byte": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end_byte": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "side",
+          "path",
+          "sha256",
+          "start_line",
+          "end_line",
+          "query_id",
+          "detail_tr",
+          "start_byte",
+          "end_byte"
+        ]
+      },
+      "minItems": 0
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "NOT_VALIDATED",
+            "OFFLINE_VALIDATED",
+            "ORACLE_SANDBOX_VALIDATED"
+          ]
+        },
+        "execution_status": {
+          "const": "NOT_EXECUTED"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        },
+        "limitations_tr": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "level",
+        "execution_status",
+        "checks",
+        "limitations_tr"
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "input_fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parser_version": {
+          "type": "string"
+        },
+        "parser_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "canonicalizer_version": {
+          "type": "string"
+        },
+        "schema_contract_version": {
+          "const": "plan/1.0"
+        }
+      },
+      "required": [
+        "profile_sha256",
+        "policy_sha256",
+        "parser_version",
+        "parser_artifact_sha256",
+        "canonicalizer_version",
+        "schema_contract_version"
+      ]
+    },
+    "differences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object_key": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "property_path": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "MISSING",
+              "EXTRA",
+              "CHANGED",
+              "UNKNOWN",
+              "INFORMATIONAL"
+            ]
+          },
+          "before": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "enum": [
+                  "KNOWN",
+                  "ABSENT",
+                  "UNKNOWN",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "value": {},
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "state",
+              "value",
+              "evidence_ids"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "ABSENT",
+                        "UNKNOWN",
+                        "NOT_APPLICABLE"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "after": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "enum": [
+                  "KNOWN",
+                  "ABSENT",
+                  "UNKNOWN",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "value": {},
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "state",
+              "value",
+              "evidence_ids"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "ABSENT",
+                        "UNKNOWN",
+                        "NOT_APPLICABLE"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "object_key",
+          "property_path",
+          "kind",
+          "before",
+          "after",
+          "evidence_ids"
+        ]
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "synthetic",
+    "plan_id",
+    "generator_version",
+    "rule_version",
+    "source",
+    "target",
+    "target_snapshot_digest",
+    "scope",
+    "status",
+    "counts",
+    "operations",
+    "evidence",
+    "validation",
+    "warnings",
+    "input_fingerprint",
+    "differences"
+  ]
+}

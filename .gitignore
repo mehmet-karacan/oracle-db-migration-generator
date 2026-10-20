@@ -1,0 +1,30 @@
+/.env.local
+
+# Yerel kurumsal bağlam ve değiştirilemez referans kopyaları
+.local/
+reference-ui/
+# Runtime ve dış repo checkout'ları
+.runtime/
+output/
+artifacts/
+work/
+.external/
+# Geliştirme kalıntıları
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.env
+.env.*
+# Yerel anahtarlar
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+/oracle-db-migration-baslangic-paketi.zip

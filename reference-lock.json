@@ -1,0 +1,1932 @@
+{
+  "schema_version": "reference-lock/1.0",
+  "prepared_at": "2026-10-19",
+  "scope": "Inspected read-only references, not installed product dependencies",
+  "local_paths_location": ".local/session-context.json",
+  "archives": [
+    {
+      "label": "ddl_sync",
+      "filename": "gpu-db-ddl-sync-master@87c867aa5ba (1)(1).zip",
+      "sha256": "35f098fa6025e0d5328e62d5a768a93bf99c7f49970821eb869e19d6f245e704",
+      "bytes": 40314652,
+      "short_ref_from_filename_not_full_commit": "87c867aa5ba"
+    },
+    {
+      "label": "analyzer",
+      "filename": "gpu-ai-db-change-analyzer-master@30012f17d1d(1).zip",
+      "sha256": "7ba5ec1dcf4b4f1aa0ef7bf1558fec7eab4c436100d70c8ee90bf9bd7b03dda6",
+      "bytes": 11025070,
+      "short_ref_from_filename_not_full_commit": "30012f17d1d"
+    }
+  ],
+  "projects": [
+    {
+      "id": "ddl_sync",
+      "files": [
+        {
+          "path": "pyproject.toml",
+          "sha256": "080df3ed54894e48e2015f8a424c3564870af58be9efa47cbf389c4b5a82cd70",
+          "bytes": 500
+        },
+        {
+          "path": "src/oracle_ddl_sync/oracle_client.py",
+          "sha256": "8d809b175a24435ddb38acd8da56f3aa969b04e3b09d00e7bcb2d9307e42b014",
+          "bytes": 13107,
+          "symbols": [
+            {
+              "name": "_is_system_generated",
+              "kind": "function",
+              "start_line": 70,
+              "end_line": 71
+            },
+            {
+              "name": "DdlObject",
+              "kind": "class",
+              "start_line": 75,
+              "end_line": 79
+            },
+            {
+              "name": "_set_transform_params",
+              "kind": "function",
+              "start_line": 82,
+              "end_line": 95
+            },
+            {
+              "name": "_get_ddl",
+              "kind": "function",
+              "start_line": 98,
+              "end_line": 104
+            },
+            {
+              "name": "_get_dependent_ddl",
+              "kind": "function",
+              "start_line": 107,
+              "end_line": 125
+            },
+            {
+              "name": "ObjectRef",
+              "kind": "class",
+              "start_line": 139,
+              "end_line": 152
+            },
+            {
+              "name": "list_objects",
+              "kind": "function",
+              "start_line": 158,
+              "end_line": 189
+            },
+            {
+              "name": "ExtractionError",
+              "kind": "class",
+              "start_line": 192,
+              "end_line": 193
+            },
+            {
+              "name": "_extract_with_context",
+              "kind": "function",
+              "start_line": 196,
+              "end_line": 205
+            },
+            {
+              "name": "_extract_one",
+              "kind": "function",
+              "start_line": 208,
+              "end_line": 247
+            },
+            {
+              "name": "extract_schema_ddl",
+              "kind": "function",
+              "start_line": 250,
+              "end_line": 273
+            },
+            {
+              "name": "extract_parallel",
+              "kind": "function",
+              "start_line": 276,
+              "end_line": 324
+            },
+            {
+              "name": "init_thick_mode",
+              "kind": "function",
+              "start_line": 327,
+              "end_line": 333
+            },
+            {
+              "name": "connect",
+              "kind": "function",
+              "start_line": 336,
+              "end_line": 337
+            }
+          ]
+        },
+        {
+          "path": "src/oracle_ddl_sync/metadata.py",
+          "sha256": "c7bee37645845a5301a86180368e014c95bf6a9d274687ef271fe8ee006899da",
+          "bytes": 9253,
+          "symbols": [
+            {
+              "name": "Column",
+              "kind": "class",
+              "start_line": 19,
+              "end_line": 34
+            },
+            {
+              "name": "Constraint",
+              "kind": "class",
+              "start_line": 38,
+              "end_line": 44
+            },
+            {
+              "name": "Index",
+              "kind": "class",
+              "start_line": 48,
+              "end_line": 54
+            },
+            {
+              "name": "Trigger",
+              "kind": "class",
+              "start_line": 58,
+              "end_line": 65
+            },
+            {
+              "name": "Synonym",
+              "kind": "class",
+              "start_line": 69,
+              "end_line": 73
+            },
+            {
+              "name": "Dependency",
+              "kind": "class",
+              "start_line": 77,
+              "end_line": 80
+            },
+            {
+              "name": "Grant",
+              "kind": "class",
+              "start_line": 84,
+              "end_line": 87
+            },
+            {
+              "name": "SchemaMetadata",
+              "kind": "class",
+              "start_line": 91,
+              "end_line": 103
+            },
+            {
+              "name": "_rows",
+              "kind": "function",
+              "start_line": 106,
+              "end_line": 112
+            },
+            {
+              "name": "_num",
+              "kind": "function",
+              "start_line": 115,
+              "end_line": 116
+            },
+            {
+              "name": "load",
+              "kind": "function",
+              "start_line": 119,
+              "end_line": 261
+            }
+          ]
+        },
+        {
+          "path": "src/oracle_ddl_sync/layout.py",
+          "sha256": "367f5bd0283f9e9f54e9a3be7635e183457e9314905973f93b12ccbcf09d90aa",
+          "bytes": 23147,
+          "symbols": [
+            {
+              "name": "Placement",
+              "kind": "class",
+              "start_line": 68,
+              "end_line": 76
+            },
+            {
+              "name": "_segment",
+              "kind": "function",
+              "start_line": 79,
+              "end_line": 80
+            },
+            {
+              "name": "plan",
+              "kind": "function",
+              "start_line": 83,
+              "end_line": 121
+            },
+            {
+              "name": "missing_ddl",
+              "kind": "function",
+              "start_line": 124,
+              "end_line": 126
+            },
+            {
+              "name": "_q",
+              "kind": "function",
+              "start_line": 133,
+              "end_line": 134
+            },
+            {
+              "name": "_sql_str",
+              "kind": "function",
+              "start_line": 137,
+              "end_line": 138
+            },
+            {
+              "name": "_md",
+              "kind": "function",
+              "start_line": 141,
+              "end_line": 142
+            },
+            {
+              "name": "_yaml",
+              "kind": "function",
+              "start_line": 145,
+              "end_line": 146
+            },
+            {
+              "name": "_front_matter",
+              "kind": "function",
+              "start_line": 149,
+              "end_line": 154
+            },
+            {
+              "name": "_dep_line",
+              "kind": "function",
+              "start_line": 157,
+              "end_line": 162
+            },
+            {
+              "name": "_deps_for",
+              "kind": "function",
+              "start_line": 165,
+              "end_line": 175
+            },
+            {
+              "name": "comments_sql",
+              "kind": "function",
+              "start_line": 178,
+              "end_line": 194
+            },
+            {
+              "name": "grants_sql",
+              "kind": "function",
+              "start_line": 197,
+              "end_line": 207
+            },
+            {
+              "name": "dependencies_json",
+              "kind": "function",
+              "start_line": 210,
+              "end_line": 220
+            },
+            {
+              "name": "_columns_section",
+              "kind": "function",
+              "start_line": 223,
+              "end_line": 234
+            },
+            {
+              "name": "_keys_section",
+              "kind": "function",
+              "start_line": 237,
+              "end_line": 253
+            },
+            {
+              "name": "_children_sections",
+              "kind": "function",
+              "start_line": 256,
+              "end_line": 280
+            },
+            {
+              "name": "card",
+              "kind": "function",
+              "start_line": 283,
+              "end_line": 325
+            },
+            {
+              "name": "schema_readme",
+              "kind": "function",
+              "start_line": 328,
+              "end_line": 378
+            },
+            {
+              "name": "manifest",
+              "kind": "function",
+              "start_line": 381,
+              "end_line": 392
+            },
+            {
+              "name": "agents_md",
+              "kind": "function",
+              "start_line": 395,
+              "end_line": 426
+            },
+            {
+              "name": "_write_if_changed",
+              "kind": "function",
+              "start_line": 433,
+              "end_line": 440
+            },
+            {
+              "name": "write_schema",
+              "kind": "function",
+              "start_line": 443,
+              "end_line": 521
+            },
+            {
+              "name": "_prune",
+              "kind": "function",
+              "start_line": 524,
+              "end_line": 537
+            },
+            {
+              "name": "root_readme",
+              "kind": "function",
+              "start_line": 540,
+              "end_line": 556
+            },
+            {
+              "name": "write_root_readme",
+              "kind": "function",
+              "start_line": 559,
+              "end_line": 562
+            },
+            {
+              "name": "write_agents_md",
+              "kind": "function",
+              "start_line": 565,
+              "end_line": 568
+            }
+          ]
+        },
+        {
+          "path": "src/oracle_ddl_sync/writer.py",
+          "sha256": "890d84fda5d41b7278e87378f20aaf64cc186a7731a1962a5ca7e4622593311c",
+          "bytes": 9925,
+          "symbols": [
+            {
+              "name": "UnsafeObjectNameError",
+              "kind": "class",
+              "start_line": 64,
+              "end_line": 65
+            },
+            {
+              "name": "_safe_filename",
+              "kind": "function",
+              "start_line": 68,
+              "end_line": 80
+            },
+            {
+              "name": "_to_crlf_bytes",
+              "kind": "function",
+              "start_line": 83,
+              "end_line": 92
+            },
+            {
+              "name": "_write_atomic",
+              "kind": "function",
+              "start_line": 95,
+              "end_line": 109
+            },
+            {
+              "name": "write_objects",
+              "kind": "function",
+              "start_line": 112,
+              "end_line": 187
+            },
+            {
+              "name": "_folder_for",
+              "kind": "function",
+              "start_line": 194,
+              "end_line": 198
+            },
+            {
+              "name": "_managed_folders",
+              "kind": "function",
+              "start_line": 201,
+              "end_line": 202
+            },
+            {
+              "name": "prune_stale",
+              "kind": "function",
+              "start_line": 205,
+              "end_line": 219
+            },
+            {
+              "name": "remove_objects",
+              "kind": "function",
+              "start_line": 222,
+              "end_line": 251
+            }
+          ]
+        },
+        {
+          "path": "config/sky-db.toml",
+          "sha256": "896af7534927a82dc8a7c142dbf819fd628a979613fa0ef9960b70542294ae03",
+          "bytes": 1653
+        },
+        {
+          "path": "templates/mail_report.html",
+          "sha256": "9b642cdacbabeaea1ba3ad40bc43b790224718f97d17c0d7d6bea6fd7c918a18",
+          "bytes": 29353
+        }
+      ]
+    },
+    {
+      "id": "analyzer",
+      "files": [
+        {
+          "path": "pyproject.toml",
+          "sha256": "663dbeb7957d618e03da6e7724662ef4b8628d4582e0761b322f7da47b74072c",
+          "bytes": 1380
+        },
+        {
+          "path": "src/db_change_analyzer/assets/innova-logo-approved.png",
+          "sha256": "a2c9bf53db4c693d39ea8b746a6dd8a5866e592084976d04b8fbac6ab3539ad1",
+          "bytes": 28793
+        },
+        {
+          "path": "src/db_change_analyzer/dependencies.py",
+          "sha256": "7d88400a0c639b3ed3dcca3221d943c95cfe32eea26da0d2dd356ec77de2af6b",
+          "bytes": 18767,
+          "symbols": [
+            {
+              "name": "Relation",
+              "kind": "class",
+              "start_line": 12,
+              "end_line": 20
+            },
+            {
+              "name": "Resolution",
+              "kind": "class",
+              "start_line": 23,
+              "end_line": 26
+            },
+            {
+              "name": "SnapshotObject",
+              "kind": "class",
+              "start_line": 30,
+              "end_line": 37
+            },
+            {
+              "name": "DependencyEdge",
+              "kind": "class",
+              "start_line": 41,
+              "end_line": 59
+            },
+            {
+              "name": "_RoutineShape",
+              "kind": "class",
+              "start_line": 90,
+              "end_line": 94
+            },
+            {
+              "name": "_routine_shapes",
+              "kind": "function",
+              "start_line": 97,
+              "end_line": 124
+            },
+            {
+              "name": "_split_call_arguments",
+              "kind": "function",
+              "start_line": 127,
+              "end_line": 163
+            },
+            {
+              "name": "_call_arguments",
+              "kind": "function",
+              "start_line": 166,
+              "end_line": 185
+            },
+            {
+              "name": "_call_binding_reason",
+              "kind": "function",
+              "start_line": 188,
+              "end_line": 226
+            },
+            {
+              "name": "_local_call_allowed",
+              "kind": "function",
+              "start_line": 229,
+              "end_line": 238
+            },
+            {
+              "name": "_unquote",
+              "kind": "function",
+              "start_line": 241,
+              "end_line": 245
+            },
+            {
+              "name": "_parts",
+              "kind": "function",
+              "start_line": 248,
+              "end_line": 255
+            },
+            {
+              "name": "DependencyGraph",
+              "kind": "class",
+              "start_line": 258,
+              "end_line": 300
+            },
+            {
+              "name": "_resolve",
+              "kind": "function",
+              "start_line": 303,
+              "end_line": 310
+            },
+            {
+              "name": "_resolve_call",
+              "kind": "function",
+              "start_line": 313,
+              "end_line": 344
+            },
+            {
+              "name": "build_dependency_graph",
+              "kind": "function",
+              "start_line": 347,
+              "end_line": 411
+            },
+            {
+              "name": "resolve_synonym",
+              "kind": "function",
+              "start_line": 414,
+              "end_line": 428
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/identities.py",
+          "sha256": "bc3747c0e07ee973f46f3337e1be182d328c559e84530b2b1e024c0da528432c",
+          "bytes": 1263,
+          "symbols": [
+            {
+              "name": "CanonicalIdentifier",
+              "kind": "class",
+              "start_line": 13,
+              "end_line": 17
+            },
+            {
+              "name": "canonical_identifier",
+              "kind": "function",
+              "start_line": 20,
+              "end_line": 25
+            },
+            {
+              "name": "object_key",
+              "kind": "function",
+              "start_line": 28,
+              "end_line": 32
+            },
+            {
+              "name": "stable_id",
+              "kind": "function",
+              "start_line": 35,
+              "end_line": 37
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/innova_rendering.py",
+          "sha256": "f4868a76d4aaa7a046e381051c9201f7cb449f675460fa13439748f2bd867681",
+          "bytes": 18813,
+          "symbols": [
+            {
+              "name": "InnovaRenderError",
+              "kind": "class",
+              "start_line": 25,
+              "end_line": 26
+            },
+            {
+              "name": "_format_analysis_duration",
+              "kind": "function",
+              "start_line": 29,
+              "end_line": 45
+            },
+            {
+              "name": "_display_model_name",
+              "kind": "function",
+              "start_line": 48,
+              "end_line": 53
+            },
+            {
+              "name": "_sequence_start_direction",
+              "kind": "function",
+              "start_line": 56,
+              "end_line": 73
+            },
+            {
+              "name": "_diff_row_sort_key",
+              "kind": "function",
+              "start_line": 105,
+              "end_line": 114
+            },
+            {
+              "name": "_build_professional_summary",
+              "kind": "function",
+              "start_line": 117,
+              "end_line": 131
+            },
+            {
+              "name": "_build_impact_commentary",
+              "kind": "function",
+              "start_line": 134,
+              "end_line": 159
+            },
+            {
+              "name": "_new_analysis_context",
+              "kind": "function",
+              "start_line": 162,
+              "end_line": 299
+            },
+            {
+              "name": "InnovaRendered",
+              "kind": "class",
+              "start_line": 303,
+              "end_line": 313
+            },
+            {
+              "name": "_template_digest",
+              "kind": "function",
+              "start_line": 316,
+              "end_line": 321
+            },
+            {
+              "name": "render_innova_view",
+              "kind": "function",
+              "start_line": 324,
+              "end_line": 369
+            },
+            {
+              "name": "build_innova_render_manifest",
+              "kind": "function",
+              "start_line": 372,
+              "end_line": 394
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/inventory.py",
+          "sha256": "f3f68b0788dd148cad00cc4525af10247facbc4d540956214646d47360fd95fb",
+          "bytes": 18028,
+          "symbols": [
+            {
+              "name": "_cache_put",
+              "kind": "function",
+              "start_line": 34,
+              "end_line": 38
+            },
+            {
+              "name": "_persistent_cache_get",
+              "kind": "function",
+              "start_line": 41,
+              "end_line": 51
+            },
+            {
+              "name": "_persistent_cache_put",
+              "kind": "function",
+              "start_line": 54,
+              "end_line": 58
+            },
+            {
+              "name": "_persistent_fragment_get",
+              "kind": "function",
+              "start_line": 61,
+              "end_line": 71
+            },
+            {
+              "name": "_persistent_fragment_put",
+              "kind": "function",
+              "start_line": 74,
+              "end_line": 81
+            },
+            {
+              "name": "FileInventory",
+              "kind": "class",
+              "start_line": 85,
+              "end_line": 95
+            },
+            {
+              "name": "_newline_style",
+              "kind": "function",
+              "start_line": 98,
+              "end_line": 104
+            },
+            {
+              "name": "_parse_in_worker",
+              "kind": "function",
+              "start_line": 107,
+              "end_line": 155
+            },
+            {
+              "name": "_parse_fragments_in_worker",
+              "kind": "function",
+              "start_line": 158,
+              "end_line": 220
+            },
+            {
+              "name": "inventory_bytes",
+              "kind": "function",
+              "start_line": 223,
+              "end_line": 288
+            },
+            {
+              "name": "inventory_revision",
+              "kind": "function",
+              "start_line": 291,
+              "end_line": 380
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/changes.py",
+          "sha256": "becc376162ccd85f4eda46020f309ebe4f948776668300cab471987360332bd3",
+          "bytes": 17931,
+          "symbols": [
+            {
+              "name": "Value",
+              "kind": "class",
+              "start_line": 16,
+              "end_line": 19
+            },
+            {
+              "name": "Change",
+              "kind": "class",
+              "start_line": 23,
+              "end_line": 32
+            },
+            {
+              "name": "ChangeSet",
+              "kind": "class",
+              "start_line": 36,
+              "end_line": 42
+            },
+            {
+              "name": "_text",
+              "kind": "function",
+              "start_line": 45,
+              "end_line": 54
+            },
+            {
+              "name": "_field",
+              "kind": "function",
+              "start_line": 57,
+              "end_line": 58
+            },
+            {
+              "name": "_routine_groups",
+              "kind": "function",
+              "start_line": 61,
+              "end_line": 68
+            },
+            {
+              "name": "_flatten",
+              "kind": "function",
+              "start_line": 71,
+              "end_line": 180
+            },
+            {
+              "name": "_value",
+              "kind": "function",
+              "start_line": 183,
+              "end_line": 188
+            },
+            {
+              "name": "compare_projections",
+              "kind": "function",
+              "start_line": 191,
+              "end_line": 313
+            },
+            {
+              "name": "_id",
+              "kind": "function",
+              "start_line": 316,
+              "end_line": 318
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/ddl_tokens.py",
+          "sha256": "aec5e939011da8d4e8f292c456c120fb17dd75c53347a0d669b6bd57e89ff756",
+          "bytes": 2711,
+          "symbols": [
+            {
+              "name": "DdlToken",
+              "kind": "class",
+              "start_line": 14,
+              "end_line": 21
+            },
+            {
+              "name": "_Errors",
+              "kind": "class",
+              "start_line": 24,
+              "end_line": 29
+            },
+            {
+              "name": "code_tokens",
+              "kind": "function",
+              "start_line": 32,
+              "end_line": 44
+            },
+            {
+              "name": "top_level_items",
+              "kind": "function",
+              "start_line": 47,
+              "end_line": 67
+            },
+            {
+              "name": "enclosed",
+              "kind": "function",
+              "start_line": 70,
+              "end_line": 81
+            },
+            {
+              "name": "source_span",
+              "kind": "function",
+              "start_line": 84,
+              "end_line": 85
+            },
+            {
+              "name": "identifier",
+              "kind": "function",
+              "start_line": 88,
+              "end_line": 91
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/dynamic_sql.py",
+          "sha256": "bb9f18d0041a699b572ec19a24321e9ec52ab20be432ee82dc145fa5135733e9",
+          "bytes": 3263,
+          "symbols": [
+            {
+              "name": "DynamicSqlProfile",
+              "kind": "class",
+              "start_line": 10,
+              "end_line": 25
+            },
+            {
+              "name": "_outside_expression",
+              "kind": "function",
+              "start_line": 28,
+              "end_line": 43
+            },
+            {
+              "name": "_literal_value",
+              "kind": "function",
+              "start_line": 46,
+              "end_line": 50
+            },
+            {
+              "name": "_has_static_target",
+              "kind": "function",
+              "start_line": 53,
+              "end_line": 60
+            },
+            {
+              "name": "classify_dynamic_sql",
+              "kind": "function",
+              "start_line": 63,
+              "end_line": 84
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlLexer.py",
+          "sha256": "752e47e5bd8e4517f8fe41574fb7ebd1ebd7b4059ac1e218519fb77892615b18",
+          "bytes": 1188610
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlLexerBase.py",
+          "sha256": "a078fcacef0a3d300a492988377defd788bc5287b67bae4f25cad53c9af4d727",
+          "bytes": 157
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlParser.py",
+          "sha256": "328e20802e53e0f4e571c4c2a186cd08786e3f5bd61d8585812274dfffa1fb61",
+          "bytes": 6354437
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlParserBase.py",
+          "sha256": "af8c6665389faeee18046aae2b8d4e1c5d113f5e2845f5a65f746cce57ef914e",
+          "bytes": 1309
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/PlSqlParserVisitor.py",
+          "sha256": "43a2872eca44e7476381b7aa51db09b618a05ad29aa318bf395e5588769ec495",
+          "bytes": 233633
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/__init__.py",
+          "sha256": "352bdf0733c75d5003d055d9ab986b8f1882c59e6b662acb3c2b0dceecf5ee64",
+          "bytes": 257
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/generated/manifest.json",
+          "sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+          "bytes": 1259
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/index.py",
+          "sha256": "f62e138bb50d92bd62393bf86573bb763d9ebc98f8fb078ce6bfc3ea580b7237",
+          "bytes": 7239,
+          "symbols": [
+            {
+              "name": "_top_level_positions",
+              "kind": "function",
+              "start_line": 17,
+              "end_line": 27
+            },
+            {
+              "name": "_physical_option",
+              "kind": "function",
+              "start_line": 30,
+              "end_line": 39
+            },
+            {
+              "name": "IndexExtraction",
+              "kind": "class",
+              "start_line": 43,
+              "end_line": 51
+            },
+            {
+              "name": "extract_index",
+              "kind": "function",
+              "start_line": 54,
+              "end_line": 151
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/normalize.py",
+          "sha256": "2f153c2e62c574f48b4e4bf286c7a403e5717bde8e6ffdccdac1aa8328219dd2",
+          "bytes": 735,
+          "symbols": [
+            {
+              "name": "token_normalized",
+              "kind": "function",
+              "start_line": 6,
+              "end_line": 18
+            },
+            {
+              "name": "classify_text_change",
+              "kind": "function",
+              "start_line": 21,
+              "end_line": 26
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/package.py",
+          "sha256": "488f91a2aab185ac8e3af6dd677d9a41f18577861e005b118a3626c6c3a18657",
+          "bytes": 13411,
+          "symbols": [
+            {
+              "name": "Parameter",
+              "kind": "class",
+              "start_line": 18,
+              "end_line": 25
+            },
+            {
+              "name": "Routine",
+              "kind": "class",
+              "start_line": 29,
+              "end_line": 47
+            },
+            {
+              "name": "PackageExtraction",
+              "kind": "class",
+              "start_line": 51,
+              "end_line": 57
+            },
+            {
+              "name": "_span",
+              "kind": "function",
+              "start_line": 60,
+              "end_line": 63
+            },
+            {
+              "name": "_walk",
+              "kind": "function",
+              "start_line": 66,
+              "end_line": 70
+            },
+            {
+              "name": "_walk_current_routine",
+              "kind": "function",
+              "start_line": 73,
+              "end_line": 81
+            },
+            {
+              "name": "_walk_current_routine_with_parents",
+              "kind": "function",
+              "start_line": 84,
+              "end_line": 92
+            },
+            {
+              "name": "_parse",
+              "kind": "function",
+              "start_line": 95,
+              "end_line": 109
+            },
+            {
+              "name": "_parameters",
+              "kind": "function",
+              "start_line": 112,
+              "end_line": 125
+            },
+            {
+              "name": "_routine",
+              "kind": "function",
+              "start_line": 128,
+              "end_line": 191
+            },
+            {
+              "name": "extract_package",
+              "kind": "function",
+              "start_line": 194,
+              "end_line": 245
+            },
+            {
+              "name": "extract_standalone_routine",
+              "kind": "function",
+              "start_line": 248,
+              "end_line": 273
+            },
+            {
+              "name": "_visible_tokens",
+              "kind": "function",
+              "start_line": 276,
+              "end_line": 283
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/parser_worker.py",
+          "sha256": "11f50d5b477d78ce4a7db83005910f09f7332aae26311a18576564113c977379",
+          "bytes": 3675,
+          "symbols": [
+            {
+              "name": "CollectingErrorListener",
+              "kind": "class",
+              "start_line": 18,
+              "end_line": 23
+            },
+            {
+              "name": "ParseResult",
+              "kind": "class",
+              "start_line": 27,
+              "end_line": 33
+            },
+            {
+              "name": "_attempt",
+              "kind": "function",
+              "start_line": 36,
+              "end_line": 53
+            },
+            {
+              "name": "parse_text",
+              "kind": "function",
+              "start_line": 56,
+              "end_line": 60
+            },
+            {
+              "name": "main",
+              "kind": "function",
+              "start_line": 63,
+              "end_line": 98
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/projections.py",
+          "sha256": "21d69728bc0acb758075d269c5d5e69add2cd90e5077518a82f1598f701c8e53",
+          "bytes": 5141,
+          "symbols": [
+            {
+              "name": "Projection",
+              "kind": "class",
+              "start_line": 17,
+              "end_line": 22
+            },
+            {
+              "name": "project",
+              "kind": "function",
+              "start_line": 25,
+              "end_line": 90
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/scanner.py",
+          "sha256": "4ee2c5b056ea5d0c0d57a9a897e241cecaf4150b6ca9c267432ad84e6572c249",
+          "bytes": 9127,
+          "symbols": [
+            {
+              "name": "ScanOccurrence",
+              "kind": "class",
+              "start_line": 30,
+              "end_line": 44
+            },
+            {
+              "name": "ScanResult",
+              "kind": "class",
+              "start_line": 48,
+              "end_line": 51
+            },
+            {
+              "name": "_mask_sql",
+              "kind": "function",
+              "start_line": 54,
+              "end_line": 145
+            },
+            {
+              "name": "mask_sql_code",
+              "kind": "function",
+              "start_line": 148,
+              "end_line": 177
+            },
+            {
+              "name": "_identifier",
+              "kind": "function",
+              "start_line": 180,
+              "end_line": 183
+            },
+            {
+              "name": "_byte_offsets",
+              "kind": "function",
+              "start_line": 186,
+              "end_line": 192
+            },
+            {
+              "name": "scan",
+              "kind": "function",
+              "start_line": 195,
+              "end_line": 260
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/sequence.py",
+          "sha256": "83c6c7242825a475ad497b49fca9e5eca9856cab09ddfbd354a2fe5dafd336a8",
+          "bytes": 1396,
+          "symbols": [
+            {
+              "name": "extract_sequence_options",
+              "kind": "function",
+              "start_line": 25,
+              "end_line": 40
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/table.py",
+          "sha256": "99957e402aaa305d4c28a77a2e9554946a521d74fee9e5b42a91c2c0018a8e53",
+          "bytes": 27374,
+          "symbols": [
+            {
+              "name": "TableExtraction",
+              "kind": "class",
+              "start_line": 12,
+              "end_line": 19
+            },
+            {
+              "name": "TableContextStatement",
+              "kind": "class",
+              "start_line": 23,
+              "end_line": 27
+            },
+            {
+              "name": "constraint_properties",
+              "kind": "function",
+              "start_line": 39,
+              "end_line": 102
+            },
+            {
+              "name": "_name_parts",
+              "kind": "function",
+              "start_line": 105,
+              "end_line": 106
+            },
+            {
+              "name": "table_context_statements",
+              "kind": "function",
+              "start_line": 109,
+              "end_line": 139
+            },
+            {
+              "name": "_constraint",
+              "kind": "function",
+              "start_line": 142,
+              "end_line": 151
+            },
+            {
+              "name": "_constraint_uses_any_column",
+              "kind": "function",
+              "start_line": 154,
+              "end_line": 163
+            },
+            {
+              "name": "_apply_context",
+              "kind": "function",
+              "start_line": 166,
+              "end_line": 306
+            },
+            {
+              "name": "_top_level_position",
+              "kind": "function",
+              "start_line": 309,
+              "end_line": 319
+            },
+            {
+              "name": "_top_level_positions",
+              "kind": "function",
+              "start_line": 322,
+              "end_line": 332
+            },
+            {
+              "name": "_column",
+              "kind": "function",
+              "start_line": 335,
+              "end_line": 401
+            },
+            {
+              "name": "extract_table",
+              "kind": "function",
+              "start_line": 404,
+              "end_line": 521
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/oracle/view.py",
+          "sha256": "53044e88140bf3f92aa1409f860d07b85f723cee447823d5ff6cfdbd2e2e299d",
+          "bytes": 6291,
+          "symbols": [
+            {
+              "name": "ViewExtraction",
+              "kind": "class",
+              "start_line": 11,
+              "end_line": 15
+            },
+            {
+              "name": "_top_level",
+              "kind": "function",
+              "start_line": 25,
+              "end_line": 36
+            },
+            {
+              "name": "extract_view",
+              "kind": "function",
+              "start_line": 39,
+              "end_line": 130
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/taxonomy/catalog.py",
+          "sha256": "3a89ca00632b430bda4d15a409423b25cb031eb74000099176f1d27360f4b717",
+          "bytes": 1644,
+          "symbols": [
+            {
+              "name": "ChangeFamily",
+              "kind": "class",
+              "start_line": 10,
+              "end_line": 17
+            },
+            {
+              "name": "change_catalog",
+              "kind": "function",
+              "start_line": 21,
+              "end_line": 39
+            },
+            {
+              "name": "supported_types",
+              "kind": "function",
+              "start_line": 43,
+              "end_line": 47
+            }
+          ]
+        },
+        {
+          "path": "src/db_change_analyzer/taxonomy/change-catalog.json",
+          "sha256": "23f2c5077853516a3847d51affa951d8345da08e1d29564522e08a75db4d6a0e",
+          "bytes": 108785
+        },
+        {
+          "path": "src/db_change_analyzer/taxonomy/object-catalog.json",
+          "sha256": "8e7926082fc1e189ebde2d8c6118119ee0bc6fcac0922f548a1a1a32884dbbd8",
+          "bytes": 4282
+        },
+        {
+          "path": "src/db_change_analyzer/templates/innova_v1/report_email.html.j2",
+          "sha256": "df4e116eb042c3a529fe87d4b52452df3b9e9779a90c8c923705544951332c20",
+          "bytes": 17738
+        },
+        {
+          "path": "src/db_change_analyzer/templates/innova_v1/report_email.txt.j2",
+          "sha256": "e18ced7ee8497e45b7e72173d02801c398121bf001c8287c530a893222204e79",
+          "bytes": 1813
+        },
+        {
+          "path": "src/db_change_analyzer/workflow.py",
+          "sha256": "3225c264371c10d413bdc24e17ab364f63719ff4abe12d2ac7f6bf87f8c7dfd8",
+          "bytes": 119028,
+          "symbols": [
+            {
+              "name": "OccurrenceRef",
+              "kind": "class",
+              "start_line": 49,
+              "end_line": 54
+            },
+            {
+              "name": "_now",
+              "kind": "function",
+              "start_line": 57,
+              "end_line": 58
+            },
+            {
+              "name": "_phase_log",
+              "kind": "function",
+              "start_line": 61,
+              "end_line": 67
+            },
+            {
+              "name": "_extend_unique_evidence",
+              "kind": "function",
+              "start_line": 70,
+              "end_line": 78
+            },
+            {
+              "name": "_canonical_report_evidence",
+              "kind": "function",
+              "start_line": 93,
+              "end_line": 112
+            },
+            {
+              "name": "_aggregate_object_summaries",
+              "kind": "function",
+              "start_line": 122,
+              "end_line": 138
+            },
+            {
+              "name": "_response_schema_digest",
+              "kind": "function",
+              "start_line": 141,
+              "end_line": 148
+            },
+            {
+              "name": "_build_analysis_fingerprint",
+              "kind": "function",
+              "start_line": 151,
+              "end_line": 158
+            },
+            {
+              "name": "compute_analysis_fingerprint",
+              "kind": "function",
+              "start_line": 161,
+              "end_line": 168
+            },
+            {
+              "name": "_index",
+              "kind": "function",
+              "start_line": 171,
+              "end_line": 179
+            },
+            {
+              "name": "_signature",
+              "kind": "function",
+              "start_line": 182,
+              "end_line": 183
+            },
+            {
+              "name": "_reordered_keys",
+              "kind": "function",
+              "start_line": 186,
+              "end_line": 200
+            },
+            {
+              "name": "_table_parts",
+              "kind": "function",
+              "start_line": 203,
+              "end_line": 208
+            },
+            {
+              "name": "_context_evidence",
+              "kind": "function",
+              "start_line": 211,
+              "end_line": 227
+            },
+            {
+              "name": "_attach_table_contexts",
+              "kind": "function",
+              "start_line": 230,
+              "end_line": 307
+            },
+            {
+              "name": "_verify_changed_refs",
+              "kind": "function",
+              "start_line": 310,
+              "end_line": 323
+            },
+            {
+              "name": "_conflicting_definitions",
+              "kind": "function",
+              "start_line": 326,
+              "end_line": 353
+            },
+            {
+              "name": "_bounded_view_text_fallback",
+              "kind": "function",
+              "start_line": 356,
+              "end_line": 374
+            },
+            {
+              "name": "_incomplete_changed_paths",
+              "kind": "function",
+              "start_line": 377,
+              "end_line": 394
+            },
+            {
+              "name": "_identity_incomplete_paths",
+              "kind": "function",
+              "start_line": 397,
+              "end_line": 399
+            },
+            {
+              "name": "_evidence",
+              "kind": "function",
+              "start_line": 402,
+              "end_line": 414
+            },
+            {
+              "name": "_research_receipts",
+              "kind": "function",
+              "start_line": 417,
+              "end_line": 471
+            },
+            {
+              "name": "_model_tool_handlers",
+              "kind": "function",
+              "start_line": 474,
+              "end_line": 498
+            },
+            {
+              "name": "_dependency_snapshot",
+              "kind": "function",
+              "start_line": 501,
+              "end_line": 523
+            },
+            {
+              "name": "_dependency_records_by_object",
+              "kind": "function",
+              "start_line": 526,
+              "end_line": 542
+            },
+            {
+              "name": "_risk_assessment",
+              "kind": "function",
+              "start_line": 545,
+              "end_line": 654
+            },
+            {
+              "name": "_oracle_identifier",
+              "kind": "function",
+              "start_line": 657,
+              "end_line": 660
+            },
+            {
+              "name": "_deployment_preparation",
+              "kind": "function",
+              "start_line": 663,
+              "end_line": 712
+            },
+            {
+              "name": "_canonical_projection_facts",
+              "kind": "function",
+              "start_line": 715,
+              "end_line": 750
+            },
+            {
+              "name": "_with_source_text_change",
+              "kind": "function",
+              "start_line": 753,
+              "end_line": 781
+            },
+            {
+              "name": "_with_format_override",
+              "kind": "function",
+              "start_line": 784,
+              "end_line": 795
+            },
+            {
+              "name": "_with_occurrence_order_change",
+              "kind": "function",
+              "start_line": 798,
+              "end_line": 822
+            },
+            {
+              "name": "_with_source_path_change",
+              "kind": "function",
+              "start_line": 825,
+              "end_line": 842
+            },
+            {
+              "name": "_operation",
+              "kind": "function",
+              "start_line": 845,
+              "end_line": 846
+            },
+            {
+              "name": "_commit_rows",
+              "kind": "function",
+              "start_line": 849,
+              "end_line": 878
+            },
+            {
+              "name": "_history_events",
+              "kind": "function",
+              "start_line": 881,
+              "end_line": 897
+            },
+            {
+              "name": "_stage_file",
+              "kind": "function",
+              "start_line": 900,
+              "end_line": 908
+            },
+            {
+              "name": "execute_analysis",
+              "kind": "function",
+              "start_line": 911,
+              "end_line": 1932
+            }
+          ]
+        },
+        {
+          "path": "tests/test_index_extraction.py",
+          "sha256": "03e9233d07a140ee9c5835d1667b2fb4eb1699050bd5058e320cb881f162d75a",
+          "bytes": 3230,
+          "symbols": [
+            {
+              "name": "test_index_target_key_order_expression_direction_and_physical_options",
+              "kind": "function",
+              "start_line": 4,
+              "end_line": 15
+            },
+            {
+              "name": "test_index_unbalanced_expression_is_not_claimed",
+              "kind": "function",
+              "start_line": 18,
+              "end_line": 21
+            },
+            {
+              "name": "test_related_alter_index_updates_visibility_without_touching_other_indexes",
+              "kind": "function",
+              "start_line": 24,
+              "end_line": 31
+            },
+            {
+              "name": "test_index_storage_clause_is_bounded_and_recorded",
+              "kind": "function",
+              "start_line": 34,
+              "end_line": 37
+            },
+            {
+              "name": "test_local_partition_clause_retains_partition_detail_without_claiming_global_tablespace",
+              "kind": "function",
+              "start_line": 40,
+              "end_line": 45
+            },
+            {
+              "name": "test_global_partition_clause_stops_before_independent_tablespace",
+              "kind": "function",
+              "start_line": 48,
+              "end_line": 54
+            },
+            {
+              "name": "test_index_parallel_degree_and_compression_prefix_are_preserved",
+              "kind": "function",
+              "start_line": 57,
+              "end_line": 73
+            }
+          ]
+        },
+        {
+          "path": "tests/test_innova_rendering.py",
+          "sha256": "5ea67a245e2a1fae0bd6e5dcf962f9aaa8811e7259f6436e3231da02f3d81bbb",
+          "bytes": 25557,
+          "symbols": [
+            {
+              "name": "test_innova_renderer_separates_standalone_html_from_cid_email",
+              "kind": "function",
+              "start_line": 23,
+              "end_line": 43
+            },
+            {
+              "name": "test_innova_renderer_links_logo_to_official_corporate_identity_page",
+              "kind": "function",
+              "start_line": 46,
+              "end_line": 62
+            },
+            {
+              "name": "test_innova_renderer_formats_analysis_duration",
+              "kind": "function",
+              "start_line": 80,
+              "end_line": 97
+            },
+            {
+              "name": "test_innova_renderer_displays_full_model_name",
+              "kind": "function",
+              "start_line": 100,
+              "end_line": 117
+            },
+            {
+              "name": "test_innova_renderer_orders_summary_metrics_by_importance",
+              "kind": "function",
+              "start_line": 120,
+              "end_line": 138
+            },
+            {
+              "name": "test_innova_renderer_explains_source_change_and_object_counts_separately",
+              "kind": "function",
+              "start_line": 141,
+              "end_line": 159
+            },
+            {
+              "name": "test_innova_renderer_builds_a_professional_executive_summary",
+              "kind": "function",
+              "start_line": 162,
+              "end_line": 186
+            },
+            {
+              "name": "test_innova_renderer_adds_context_to_impact_and_assessment",
+              "kind": "function",
+              "start_line": 189,
+              "end_line": 226
+            },
+            {
+              "name": "test_innova_renderer_describes_dependencies_for_impact_review",
+              "kind": "function",
+              "start_line": 229,
+              "end_line": 261
+            },
+            {
+              "name": "test_innova_renderer_omits_sequence_note_when_no_sequences_exist",
+              "kind": "function",
+              "start_line": 264,
+              "end_line": 277
+            },
+            {
+              "name": "test_innova_renderer_explains_limited_details_and_sequence_coverage",
+              "kind": "function",
+              "start_line": 280,
+              "end_line": 301
+            },
+            {
+              "name": "test_innova_renderer_adds_space_after_red_section_rule",
+              "kind": "function",
+              "start_line": 304,
+              "end_line": 319
+            },
+            {
+              "name": "test_innova_renderer_groups_sequence_start_changes_by_direction",
+              "kind": "function",
+              "start_line": 322,
+              "end_line": 343
+            },
+            {
+              "name": "test_innova_renderer_keeps_non_start_sequence_changes_in_aggregate_row",
+              "kind": "function",
+              "start_line": 346,
+              "end_line": 362
+            },
+            {
+              "name": "test_innova_renderer_keeps_non_sequence_objects_visible_with_aggregated_sequences",
+              "kind": "function",
+              "start_line": 365,
+              "end_line": 398
+            },
+            {
+              "name": "test_innova_renderer_orders_detail_rows_by_object_priority",
+              "kind": "function",
+              "start_line": 401,
+              "end_line": 412
+            },
+            {
+              "name": "test_innova_renderer_orders_sequence_subtypes_with_backward_first",
+              "kind": "function",
+              "start_line": 415,
+              "end_line": 435
+            },
+            {
+              "name": "test_innova_renderer_fails_closed_when_approved_logo_is_missing",
+              "kind": "function",
+              "start_line": 438,
+              "end_line": 451
+            },
+            {
+              "name": "test_innova_renderer_fails_closed_when_approved_template_is_missing",
+              "kind": "function",
+              "start_line": 454,
+              "end_line": 467
+            },
+            {
+              "name": "test_innova_renderer_escapes_source_text_and_keeps_profiles_semantically_equal",
+              "kind": "function",
+              "start_line": 470,
+              "end_line": 491
+            },
+            {
+              "name": "test_innova_renderer_keeps_accepted_execution_attribution_in_both_profiles",
+              "kind": "function",
+              "start_line": 494,
+              "end_line": 517
+            },
+            {
+              "name": "test_innova_renderer_separates_source_risk_from_operation_colors",
+              "kind": "function",
+              "start_line": 520,
+              "end_line": 550
+            },
+            {
+              "name": "test_innova_renderer_keeps_approved_section_order_and_object_risk_badges",
+              "kind": "function",
+              "start_line": 553,
+              "end_line": 571
+            },
+            {
+              "name": "test_innova_renderer_has_distinct_risk_palette",
+              "kind": "function",
+              "start_line": 579,
+              "end_line": 601
+            }
+          ]
+        },
+        {
+          "path": "tests/test_table_extraction.py",
+          "sha256": "ddb58857ad066d0706d13c3c150b02ef1b7008a0e74ec1affd634cfcf17d6be6",
+          "bytes": 9920,
+          "symbols": [
+            {
+              "name": "test_table_columns_keep_types_semantics_defaults_and_constraints",
+              "kind": "function",
+              "start_line": 4,
+              "end_line": 24
+            },
+            {
+              "name": "test_table_duplicate_and_unbalanced_source_remain_limited",
+              "kind": "function",
+              "start_line": 27,
+              "end_line": 32
+            },
+            {
+              "name": "test_virtual_column_expression_is_distinct_from_data_type_and_identity",
+              "kind": "function",
+              "start_line": 35,
+              "end_line": 48
+            },
+            {
+              "name": "test_related_alter_and_comment_context_updates_parent_table",
+              "kind": "function",
+              "start_line": 51,
+              "end_line": 64
+            },
+            {
+              "name": "test_empty_comment_literal_removes_table_and_column_comments",
+              "kind": "function",
+              "start_line": 67,
+              "end_line": 76
+            },
+            {
+              "name": "test_partial_alter_updates_only_explicit_column_properties",
+              "kind": "function",
+              "start_line": 79,
+              "end_line": 89
+            },
+            {
+              "name": "test_partial_alter_keeps_unsupported_modifier_diagnostic",
+              "kind": "function",
+              "start_line": 92,
+              "end_line": 96
+            },
+            {
+              "name": "test_named_constraint_properties_are_structured_without_checking_literals",
+              "kind": "function",
+              "start_line": 99,
+              "end_line": 111
+            },
+            {
+              "name": "test_partitioned_table_keeps_parent_name_for_following_alter",
+              "kind": "function",
+              "start_line": 114,
+              "end_line": 121
+            },
+            {
+              "name": "test_partition_storage_does_not_become_table_storage_or_parallel_clause",
+              "kind": "function",
+              "start_line": 124,
+              "end_line": 133
+            },
+            {
+              "name": "test_table_compression_clause_retains_explicit_mode",
+              "kind": "function",
+              "start_line": 136,
+              "end_line": 141
+            },
+            {
+              "name": "test_alter_table_parallel_and_logging_context_update_physical_properties",
+              "kind": "function",
+              "start_line": 144,
+              "end_line": 159
+            },
+            {
+              "name": "test_alter_drop_column_list_is_atomic_and_removes_column_comments",
+              "kind": "function",
+              "start_line": 162,
+              "end_line": 190
+            },
+            {
+              "name": "test_temporary_table_on_commit_and_storage_properties",
+              "kind": "function",
+              "start_line": 193,
+              "end_line": 201
+            },
+            {
+              "name": "test_context_only_file_targets_parent_table_without_guessing_other_sql",
+              "kind": "function",
+              "start_line": 204,
+              "end_line": 210
+            },
+            {
+              "name": "test_named_partitions_keep_individual_source_definitions",
+              "kind": "function",
+              "start_line": 213,
+              "end_line": 221
+            }
+          ]
+        },
+        {
+          "path": "vendor/antlr-plsql/LICENSE-and-NOTICE.txt",
+          "sha256": "870a81879c979cf2f393e0d271cf8444823deb1f103260cce3eab14e58fb573b",
+          "bytes": 11732
+        },
+        {
+          "path": "vendor/antlr-plsql/manifest.json",
+          "sha256": "4500ddc25000ef7d995c0a0af575e5a02f9e2bfa29962a74dc495c19ed416b12",
+          "bytes": 1259
+        }
+      ]
+    }
+  ],
+  "github_references": [
+    {
+      "repository": "mehmet-karacan/schema-compare-platform",
+      "commit_sha": "fdfd1c804a12764d2d6b7aad6ada9d172f9011bc",
+      "path": "schema-provider-oracle/src/main/java/com/schemacompare/provider/oracle/compare/TableMetadataComparator.java",
+      "git_blob_sha1": "2dd18f621216e5296338dcd2de4fe791da70c5fe",
+      "inspected_line_range": [
+        25,
+        135
+      ],
+      "url": "https://github.com/mehmet-karacan/schema-compare-platform/blob/fdfd1c804a12764d2d6b7aad6ada9d172f9011bc/schema-provider-oracle/src/main/java/com/schemacompare/provider/oracle/compare/TableMetadataComparator.java"
+    },
+    {
+      "repository": "mehmet-karacan/schema-compare-platform",
+      "commit_sha": "fdfd1c804a12764d2d6b7aad6ada9d172f9011bc",
+      "path": "schema-provider-oracle/src/main/java/com/schemacompare/provider/oracle/ddl/OracleDdlGenerator.java",
+      "git_blob_sha1": "6750e38dd1de058b173d31fdbced409f8d0ce2ae",
+      "inspected_line_range": [
+        65,
+        195
+      ],
+      "url": "https://github.com/mehmet-karacan/schema-compare-platform/blob/fdfd1c804a12764d2d6b7aad6ada9d172f9011bc/schema-provider-oracle/src/main/java/com/schemacompare/provider/oracle/ddl/OracleDdlGenerator.java"
+    },
+    {
+      "repository": "mehmet-karacan/schema-compare-platform",
+      "commit_sha": "fdfd1c804a12764d2d6b7aad6ada9d172f9011bc",
+      "path": "schema-provider-oracle/src/main/java/com/schemacompare/provider/oracle/compare/OracleSnapshotComparators.java",
+      "git_blob_sha1": "1c7dc3a8ad1a0c20c088db4b4b9fae8f608fac18",
+      "inspected_line_range": [
+        44,
+        110
+      ],
+      "url": "https://github.com/mehmet-karacan/schema-compare-platform/blob/fdfd1c804a12764d2d6b7aad6ada9d172f9011bc/schema-provider-oracle/src/main/java/com/schemacompare/provider/oracle/compare/OracleSnapshotComparators.java"
+    }
+  ],
+  "selected_reference_test_run": {
+    "test_files": [
+      "tests/test_table_extraction.py",
+      "tests/test_index_extraction.py",
+      "tests/test_innova_rendering.py"
+    ],
+    "passed": 60,
+    "scope": "Analyzer selected tests only",
+    "antlr_runtime": "4.13.2",
+    "generator_tests": "NOT_RUN",
+    "live_oracle": "NOT_RUN",
+    "jenkins": "NOT_RUN"
+  },
+  "historical_reference_only": []
+}

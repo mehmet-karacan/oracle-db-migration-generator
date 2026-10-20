@@ -1,0 +1,111 @@
+{
+  "schema_version": "snapshot/1.0",
+  "synthetic": true,
+  "side": "TARGET",
+  "profile_id": "demo-source",
+  "source_commit": null,
+  "target_id": "DEMO-TEST",
+  "schemas": [
+    "APP"
+  ],
+  "objects": [
+    {
+      "object_key": "eef19272272747482c69b14d3c090d987b416cc39e9e238c0438cac3086e132d",
+      "identity": {
+        "profile_id": "demo-source",
+        "owner": "APP",
+        "object_type": "TABLE",
+        "name": "DEMO_NOTE",
+        "quoted": true,
+        "parent_key": null
+      },
+      "properties": {
+        "TITLE.data_type": {
+          "state": "KNOWN",
+          "value": "VARCHAR2",
+          "evidence_ids": [
+            "ev-target-title"
+          ]
+        },
+        "TITLE.length": {
+          "state": "KNOWN",
+          "value": 40,
+          "evidence_ids": [
+            "ev-target-title"
+          ]
+        },
+        "TITLE.length_semantics": {
+          "state": "KNOWN",
+          "value": "CHAR",
+          "evidence_ids": [
+            "ev-target-title"
+          ]
+        },
+        "TITLE.partition_key": {
+          "state": "KNOWN",
+          "value": false,
+          "evidence_ids": [
+            "ev-target-title"
+          ]
+        },
+        "TITLE.domain_index_dependency": {
+          "state": "KNOWN",
+          "value": false,
+          "evidence_ids": [
+            "ev-target-title"
+          ]
+        }
+      },
+      "ddl_path": "synthetic/target/DEMO_NOTE.sql",
+      "ddl_sha256": "2e027ab0ed1990ed76cd577f731de2c137dffeac0e081bb3bb168cc64359137c",
+      "coverage": {
+        "inventory": "COMPLETE",
+        "ddl": "COMPLETE",
+        "dictionary": "COMPLETE",
+        "diagnostics": []
+      },
+      "evidence_ids": [
+        "ev-target-title"
+      ]
+    }
+  ],
+  "coverage": {
+    "inventory": "COMPLETE",
+    "ddl": "COMPLETE",
+    "dictionary": "COMPLETE",
+    "diagnostics": []
+  },
+  "capabilities": {
+    "oracle_version": {
+      "state": "KNOWN",
+      "value": "19c (synthetic fixture)",
+      "evidence_ids": [
+        "ev-target-title"
+      ]
+    },
+    "max_varchar2_bytes": {
+      "state": "KNOWN",
+      "value": 4000,
+      "evidence_ids": [
+        "ev-target-title"
+      ]
+    }
+  },
+  "evidence": [
+    {
+      "id": "ev-target-title",
+      "kind": "TARGET_METADATA",
+      "side": "TARGET",
+      "path": "synthetic/target/DEMO_NOTE.sql",
+      "sha256": "2e027ab0ed1990ed76cd577f731de2c137dffeac0e081bb3bb168cc64359137c",
+      "start_line": 4,
+      "end_line": 5,
+      "query_id": "FIXTURE_ALL_TAB_COLUMNS",
+      "detail_tr": "Sentetik hedef metadata: TITLE VARCHAR2(40 CHAR); canlı sorgu değildir.",
+      "start_byte": null,
+      "end_byte": null
+    }
+  ],
+  "observed_consistency": "NOT_VERIFIED",
+  "semantic_digest": "b91c2d051bf6a3dde5d6bae88eacb0f4bc43c3e3bb5faee7e924715d5fa3905a"
+}

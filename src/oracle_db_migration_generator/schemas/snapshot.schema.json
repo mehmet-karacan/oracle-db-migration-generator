@@ -1,0 +1,531 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.invalid/oracle-db-migration-generator/1.0/snapshot.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "snapshot/1.0"
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "side": {
+      "enum": [
+        "SOURCE",
+        "TARGET"
+      ]
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "source_commit": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schemas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "object_key": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "identity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "object_type": {
+                "enum": [
+                  "TABLE",
+                  "INDEX",
+                  "SEQUENCE",
+                  "VIEW",
+                  "PACKAGE_SPEC",
+                  "PACKAGE_BODY",
+                  "PROCEDURE",
+                  "FUNCTION",
+                  "TRIGGER",
+                  "TYPE_SPEC",
+                  "TYPE_BODY",
+                  "SYNONYM",
+                  "COMMENT",
+                  "GRANT",
+                  "MATERIALIZED_VIEW",
+                  "MATERIALIZED_VIEW_LOG"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "quoted": {
+                "type": "boolean"
+              },
+              "parent_key": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "profile_id",
+              "owner",
+              "object_type",
+              "name",
+              "quoted",
+              "parent_key"
+            ]
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "KNOWN",
+                    "ABSENT",
+                    "UNKNOWN",
+                    "NOT_APPLICABLE"
+                  ]
+                },
+                "value": {},
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 0
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "evidence_ids"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "ABSENT",
+                          "UNKNOWN",
+                          "NOT_APPLICABLE"
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "ddl_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ddl_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "inventory": {
+                "enum": [
+                  "COMPLETE",
+                  "PARTIAL",
+                  "UNAVAILABLE"
+                ]
+              },
+              "ddl": {
+                "enum": [
+                  "COMPLETE",
+                  "PARTIAL",
+                  "UNAVAILABLE"
+                ]
+              },
+              "dictionary": {
+                "enum": [
+                  "COMPLETE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "diagnostics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "inventory",
+              "ddl",
+              "dictionary",
+              "diagnostics"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "object_key",
+          "identity",
+          "properties",
+          "ddl_path",
+          "ddl_sha256",
+          "coverage",
+          "evidence_ids"
+        ]
+      },
+      "minItems": 0
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inventory": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNAVAILABLE"
+          ]
+        },
+        "ddl": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNAVAILABLE"
+          ]
+        },
+        "dictionary": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNAVAILABLE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "inventory",
+        "ddl",
+        "dictionary",
+        "diagnostics"
+      ]
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "enum": [
+              "KNOWN",
+              "ABSENT",
+              "UNKNOWN",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "value": {},
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "state",
+          "value",
+          "evidence_ids"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "ABSENT",
+                    "UNKNOWN",
+                    "NOT_APPLICABLE"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "SOURCE_SPAN",
+              "TARGET_METADATA",
+              "ABSENCE_SCOPE",
+              "DEPENDENCY",
+              "POLICY"
+            ]
+          },
+          "side": {
+            "enum": [
+              "SOURCE",
+              "TARGET",
+              "POLICY"
+            ]
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end_line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "query_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail_tr": {
+            "type": "string"
+          },
+          "start_byte": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end_byte": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "side",
+          "path",
+          "sha256",
+          "start_line",
+          "end_line",
+          "query_id",
+          "detail_tr",
+          "start_byte",
+          "end_byte"
+        ]
+      },
+      "minItems": 0
+    },
+    "semantic_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "observed_consistency": {
+      "enum": [
+        "NOT_APPLICABLE",
+        "OBSERVED_STABLE",
+        "CHANGED_DURING_CAPTURE",
+        "NOT_VERIFIED"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "synthetic",
+    "side",
+    "profile_id",
+    "source_commit",
+    "target_id",
+    "schemas",
+    "objects",
+    "coverage",
+    "capabilities",
+    "evidence",
+    "semantic_digest",
+    "observed_consistency"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "side": {
+            "const": "SOURCE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_commit": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "target_id": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "source_commit": {
+            "type": "null"
+          },
+          "target_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          }
+        }
+      }
+    }
+  ]
+}

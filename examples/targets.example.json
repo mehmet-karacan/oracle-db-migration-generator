@@ -1,0 +1,59 @@
+{
+  "schema_version": "targets/1.0",
+  "targets": [
+    {
+      "id": "DEMO-TEST",
+      "name": "Örnek Test",
+      "enabled": true,
+      "endpoint": {
+        "host": "test-db.example.invalid",
+        "port": 1521,
+        "service_name": "DEMO_TEST"
+      },
+      "driver_mode": "thin",
+      "schema_mappings": [
+        {
+          "source_schema": "APP",
+          "target_schema": "APP",
+          "credential_id": "demo-test-oracle-ro"
+        }
+      ]
+    },
+    {
+      "id": "DEMO-UAT",
+      "name": "Örnek UAT",
+      "enabled": true,
+      "endpoint": {
+        "host": "uat-db.example.invalid",
+        "port": 1521,
+        "service_name": "DEMO_UAT"
+      },
+      "driver_mode": "thin",
+      "schema_mappings": [
+        {
+          "source_schema": "APP",
+          "target_schema": "APP",
+          "credential_id": "demo-uat-oracle-ro"
+        }
+      ]
+    },
+    {
+      "id": "DEMO-PROD",
+      "name": "Örnek Prod",
+      "enabled": true,
+      "endpoint": {
+        "host": "prod-db.example.invalid",
+        "port": 1521,
+        "service_name": "DEMO_PROD"
+      },
+      "driver_mode": "thin",
+      "schema_mappings": [
+        {
+          "source_schema": "APP",
+          "target_schema": "APP",
+          "credential_id": "demo-prod-oracle-ro"
+        }
+      ]
+    }
+  ]
+}

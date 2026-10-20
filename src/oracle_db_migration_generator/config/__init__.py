@@ -1,0 +1,1 @@
+"""Configuration without embedded credentials."""
