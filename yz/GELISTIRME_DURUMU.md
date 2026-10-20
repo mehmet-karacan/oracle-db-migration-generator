@@ -1,3 +1,21 @@
+# SKY, süre, ilk 5 ve iki şema — 20 Ekim 2026
+
+Offline uygulama: 414 passed / 40,89 sn; bağımsız çapraz inceleme temiz.
+SKY konu, %60 Nesne/Fark sütunu, 156×30 logo, süre ve öncelikli5nesne hazır.
+Sync teknik nesne filtreleri + GRANT dışlama opt-in policy ile uygulanır;
+ham envanter ve UNKNOWN/bağımlılık güvenliği korunur. INNOVA_ODI+TTBP için
+ayrı credential/sessionowner doğrulamalı runner ve owner bazlı source kanıtı var.
+scope-exclusions.json filtre kanıtını taşır. Dosyalar ve komutlar yz/DEVIR.md başında.
+
+GitHub code ilk push doğrulandı (d8e88e1c1d4616533a4b142d9cba0f97c0a98808);
+son değişimler normal takip commit'iyle gönderilecek. Jenkins günlük08:40
+Europe/Istanbul doğrulandı. #12 v6 release ile canlı salt okunur iki şema koşusu
+sürüyor; henüz tamamlandı iddiası yok. Gerçek Oracle DDL/DML/COMPILE NOT_RUN.
+Jenkins agent GitHub HTTPS ConnectionResetError; proxy kullanıcı yanıtı bekleniyor.
+Bu yalnız otomatik artifact push'u etkiler; yerel GitHub erişimi ve karşılaştırma sürer.
+
+---
+
 # Rapor gerekçeleri ve işlem hücresi — tamamlandı, 20 Ekim 2026
 
 Genel mailde nesne başına `işlem / hedef` satırı kaldırıldı. planning/graph.py

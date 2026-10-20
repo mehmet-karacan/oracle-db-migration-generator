@@ -48,7 +48,9 @@ Onaylı ZIP referanslarının özgün byte/hash kayıtları output/report-update
 Web CSS referansın token ve yerleşimini kullanır; harici CSS/logo paketlenir. Mailde MSO 820 px
 wrapper, inline hücre stilleri ve cid:innova-logo vardır. Bağımsız preview aynı onaylı PNG'yi gömer.
 Web 50 target / target ayrıntısı 100 işlem sayfalar; HTML bütçesi 200 KiB.
-Mail 5 kritik hedef / 10 benzersiz nesneyle sınırlı; KPI bütün hedefler üzerinden hesaplanır.
+Mail 5 kritik hedef / öncelik sırasındaki ilk 5 benzersiz nesneyle sınırlı;
+KPI bütün hedefler üzerinden hesaplanır. Başlangıç/bitiş zamanı farkı çalışma
+süresi olarak gösterilir; eksik, hatalı veya negatif zaman farkı Bilinmiyor kalır.
 Bilinmeyen fark null kalır, toplam bilinen alt toplam + ? olarak görünür. SQL mailde yer almaz.
 Sayılar sunumda Türkçe binlik ayraçlıdır; JSON sayıları ve SQL byte'ları değişmez.
 Genel mailde nesne satırının İşlem hücresi yalnız işlem türlerini gösterir;

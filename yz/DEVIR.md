@@ -1,3 +1,55 @@
+# SKY raporu, filtreler ve TTBP — 20 Ekim 2026
+
+Kullanıcı kapsamı güncelledi: konu SKY; geniş Nesne / Fark sütunu (%60/12/12/16),
+logo açık 156×30 (orijinal PNG byte'ları değişmez), öncelikli ilk 5 nesne,
+gerçek started_at/finished_at farkından çalışma süresi. Günlük Europe/Istanbul
+08:40 takvimi UI'dan doğrulandı; sonraki tetikleme 21 Ekim 08:40.
+
+Kod private GitHub Generator deposuna normal push ile yayımlandı:
+d8e88e1c1d4616533a4b142d9cba0f97c0a98808. Son SKY/TTBP/filtre düzeltmeleri bu
+ilk commit'ten sonra tamamlandı; ayrı normal commit ile yayımlanacak.
+Artifact deposu da private/yazılabilir doğrulandı; iki depo ayrıdır.
+
+Jenkins #9 aynı #8 planını, yeni Oracle bağlantısı açmadan yeniden sundu.
+Logo düzeltmesi var; artifact push doğrulanamadı. #10/#11 salt ortam tanıları
+0 Oracle bağlantısıyla tamamlandı: agent'ta Git var, GitHub API HTTPS bağlantısı
+ConnectionResetError ile kesiliyor, proxy tanımlı değil; sistem CA dosyasıyla
+deneme de aynı. Credential doğrulamasına ulaşılamadı; TLS bypass yapılmadı.
+Mevcut kurumsal proxy bilgisi kullanıcıya soruldu, yanıt bekleniyor. Yerel GitHub
+erişimi çalışıyor; son rapor yerelden yetkili private artifact deposuna gönderilebilir.
+Bu ağ durumu Oracle karşılaştırmasını engellemez; hatalı Git URL sunulmaz.
+
+Scope: DDL Sync'in 14 teknik ad öneki iki taraf için aynı; meşru APP$TABLE ve
+gerçek MATERIALIZED_VIEW_LOG korunur. GRANT politika ile kapsam dışı; S_hash bir
+gerçek tablo adı değil teknik grant kimliğiydi. Verified parent ilişkisiyle
+teknik nesnenin index/COMMENT/GRANT ekleri de dışlanır. Raw snapshot/UNKNOWN ve
+business nesnelerin bağımlılık güvenliği korunur. scope-exclusions.json run kanıtıdır.
+
+INNOVA_ODI + TTBP runner uygulanıp test edildi: tek source SHA, iki ayrı
+source owner metadata kanıtı, iki ayrı target/credential; her oturum owner kontrolü,
+salt okunur transaction, iki envanter ve rollback. Metadata yetersizliği UNKNOWN
+kalır; bir target hatası diğerinin raporunu durdurmaz. Source Git DDL değişmez.
+
+Entegre offline: 414 passed / 40,89 sn, skip 0; output/mail-layout/pytest-integrated.xml.
+Bağımsız çapraz incelemede önemli açık bulgu yok. Wheel SHA
+2f8b387328b54baa959e9f74035515bfb0cc94263be91a8fe62a0ef466f41ed6;
+release v6 SHA 4c979ca1bc112b35e4e2a4b8f0cab76657486578c55557e4bea92044d0cfafc4.
+Jenkins #12 bu release ile gerçek iki-owner salt okunur karşılaştırmasını yapıyor.
+Oracle DDL/DML/COMPILE NOT_RUN. Mail yalnız mkaracan@innova.com.tr.
+
+Değişenler: reporting/view ve email/run şablonları; aggregate build_url;
+config Policy/loader + iki profile schema; compare/scope.py ve snapshots.py;
+tools/jenkins_run.py, source_semantics.py, notification.py, publication.py;
+Jenkins şablonu; ilgili unit testleri. Ayrıntılı Git diff mevcut. Sır, bağlantı
+config'i, SQL artifact/ZIP ve .local/.env/output code Git'e girmez.
+
+Sıradaki somut adım: #12 bitişini ve iki capture receipt'ini doğrula; filtre
+sayıları/ilk5/logo/süre/SKY maili kontrol et. Son raporu private artifact deposuna
+yerelden normal push ile koy; Jenkins otomatik push ağ koşulu ayrıca açık kalır.
+Son code/handoff değişikliklerini private Generator repo'ya normal push et.
+
+---
+
 # Rapor gerekçeleri ve işlem hücresi — tamamlandı, 20 Ekim 2026
 
 Kullanıcı düzeltmesi: genel mailin nesne satırlarındaki `işlem / hedef` sayısı

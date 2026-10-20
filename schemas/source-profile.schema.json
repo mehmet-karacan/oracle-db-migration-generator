@@ -99,6 +99,33 @@
         },
         "require_complete_metadata": {
           "const": true
+        },
+        "exclude_system_generated": {
+          "type": "boolean"
+        },
+        "excluded_object_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "TABLE",
+              "INDEX",
+              "SEQUENCE",
+              "VIEW",
+              "PACKAGE_SPEC",
+              "PACKAGE_BODY",
+              "PROCEDURE",
+              "FUNCTION",
+              "TRIGGER",
+              "TYPE_SPEC",
+              "TYPE_BODY",
+              "SYNONYM",
+              "COMMENT",
+              "GRANT",
+              "MATERIALIZED_VIEW",
+              "MATERIALIZED_VIEW_LOG"
+            ]
+          },
+          "uniqueItems": true
         }
       },
       "required": [

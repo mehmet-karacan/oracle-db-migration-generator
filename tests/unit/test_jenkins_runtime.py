@@ -127,7 +127,7 @@ def test_python_archive_reads_regular_member_once_for_multiple_links(tmp_path,mo
 def test_jenkins_notification_is_visible_html_body_with_consistent_subject():
     text=Path('templates/jenkins-generator.groovy').read_text(encoding='utf-8')
     assert "mimeType: 'text/html'" in text
-    assert 'GPU | Oracle DB Migration Generator | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}' in text
+    assert 'SKY | Oracle DB Migration Generator | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}' in text
     assert 'body: fileExists(report) ? readFile(report)' in text
     assert "attachmentsPattern: ''" in text
 

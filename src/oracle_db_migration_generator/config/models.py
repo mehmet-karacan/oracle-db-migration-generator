@@ -15,6 +15,8 @@ class Policy:
     grant_allowlist: tuple[str, ...]
     existing_sequence_state: str
     require_complete_metadata: bool
+    exclude_system_generated: bool = False
+    excluded_object_types: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

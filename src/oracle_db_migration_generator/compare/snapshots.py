@@ -3,6 +3,7 @@ from ..model.serialization import digest, thaw
 from ..model.snapshot import Coverage, KnownValue
 from ..model.validity import report_only_invalid_ddl
 from .projection_adapter import canonical_fields, structured_changes, align_anonymous_constraints
+from .scope import scoped_objects
 
 
 def _absence(snapshot,obj=None):
@@ -16,8 +17,8 @@ def compare_snapshots(desired,actual,policy):
         raise ValueError('SNAPSHOT_DIRECTION_MISMATCH')
     if desired.profile_id!=actual.profile_id or not set(actual.schemas).issubset(desired.schemas):
         raise ValueError('SNAPSHOT_PROFILE_OR_SCHEMA_MISMATCH')
-    source = {obj.object_key:obj for obj in desired.objects if obj.identity.owner.effective_name in actual.schemas}
-    target = {obj.object_key:obj for obj in actual.objects}
+    source = {obj.object_key:obj for obj in scoped_objects(desired,policy) if obj.identity.owner.effective_name in actual.schemas}
+    target = {obj.object_key:obj for obj in scoped_objects(actual,policy)}
     differences, diagnostics = [], []
     def add(key,path,before,after,kind):
         ids = tuple(sorted(set(before.evidence_ids+after.evidence_ids)))

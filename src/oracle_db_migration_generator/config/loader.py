@@ -65,6 +65,7 @@ def load_source_profile(path: Path) -> SourceProfile:
         raise ConfigError("DUPLICATE_OBJECT_TYPE")
     policy = dict(data['policy'])
     policy['grant_allowlist'] = tuple(policy['grant_allowlist'])
+    policy['excluded_object_types'] = tuple(policy.get('excluded_object_types', ()))
     return SourceProfile(data['schema_version'], data['id'], data['layout'], data['layout_version'], roots,
                          tuple(data['object_types']), data['source_length_semantics'], Policy(**policy))
 

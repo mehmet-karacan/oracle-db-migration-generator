@@ -1,5 +1,6 @@
 """Bounded presentation derived from canonical plans; no comparison decisions here."""
 import re
+from datetime import datetime
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
@@ -13,6 +14,19 @@ DISPLAY={'READY':'AUTO_GENERATED','INFORMATIONAL':'NO_ACTION'}
 def short(value,limit=500):
     text=str(value)
     return text if len(text)<=limit else text[:limit]+'…'
+
+
+def _duration_label(run):
+    try:
+        started=datetime.fromisoformat(run.get('started_at','').replace('Z','+00:00'))
+        finished=datetime.fromisoformat(run.get('finished_at','').replace('Z','+00:00'))
+        elapsed=(finished-started).total_seconds()
+        if elapsed<0:return 'Bilinmiyor'
+    except (AttributeError,TypeError,ValueError):
+        return 'Bilinmiyor'
+    hours,remainder=divmod(int(elapsed),3600)
+    minutes,seconds=divmod(remainder,60)
+    return (f'{hours} sa ' if hours else '')+f'{minutes} dk {seconds} sn'
 
 
 def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,allowed_link_hosts=()):
@@ -34,7 +48,7 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
                 row['targets'].add(target['id']);row['kinds'].add(op['kind']);row['operation_count']+=1
                 if OP_RANK[op['decision']]<OP_RANK[row['decision']]: row.update(decision=op['decision'],reason=short(op['reason_tr']))
         targets.append(item)
-    important=sorted(unique.values(),key=lambda r:(OP_RANK[r['decision']],r['object']['owner'],r['object']['object_type'],r['object']['name']))[:10]
+    important=sorted(unique.values(),key=lambda r:(OP_RANK[r['decision']],r['object']['owner'],r['object']['object_type'],r['object']['name']))[:5]
     for row in important:
         row['targets']=sorted(row['targets']);row['kinds']=sorted(row['kinds']);row['display_status']=DISPLAY.get(row['decision'],row['decision'])
         row['target_label']=', '.join(row['targets'][:5])+ (f" + {format_count(len(row['targets'])-5)} hedef" if len(row['targets'])>5 else '')
@@ -59,6 +73,6 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
         from .links import verified_archive
         checked=verified_archive(fallback.url,allowed_link_hosts,url_check,build_url=run['build_url'])
         if checked: link=checked.url;note=checked.note
-    return {'run':run,'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
+    return {'run':run,'duration_label':_duration_label(run),'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
             'metrics':metrics,'important_objects':important,'unique_objects':len(unique),'unknown_targets':unknown,
             'counts':counts,'link':link,'link_note':note}

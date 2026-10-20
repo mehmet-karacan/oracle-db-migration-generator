@@ -1,5 +1,6 @@
 from copy import deepcopy
 import re
+import pytest
 
 from tests.unit.test_bundle import make_plan
 
@@ -45,11 +46,52 @@ def test_email_zero_and_thousand_objects_escape_and_rank():
         p['operations'].append(op)
     p['operations'][-1]['object']['name']='<script>'+('X'*200)
     view=build_run_view(run,plans)
-    assert len(view['important_objects'])==10 and view['unique_objects']==1001
+    assert len(view['important_objects'])==5 and view['unique_objects']==1001
     assert view['important_objects'][0]['decision']=='BLOCKED'
     html=render_email(view,preview=True).decode()
     assert '&lt;script&gt;' in html and '<script>' not in html
     assert 'data:image/png;base64,' in html
+
+
+def test_first_five_objects_keep_blocked_and_review_before_ready_and_information():
+    from oracle_db_migration_generator.reporting.view import build_run_view
+    from oracle_db_migration_generator.reporting.render import render_email,render_run_reports
+    run,plans=inputs();plan=plans['TARGET-000'];base=plan['operations'][0]
+    plan['operations']=[]
+    for name,decision in [('A_INFO','INFORMATIONAL'),('Z_READY','READY'),('B_READY','READY'),
+                          ('A_READY','READY'),('Z_REVIEW','REVIEW_REQUIRED'),('Z_BLOCK','BLOCKED'),('B_BLOCK','BLOCKED')]:
+        op=deepcopy(base);op['id']='op-'+name;op['object']['name']=name;op['decision']=decision
+        plan['operations'].append(op)
+    view=build_run_view(run,plans)
+    assert [row['object']['name'] for row in view['important_objects']]==['B_BLOCK','Z_BLOCK','Z_REVIEW','A_READY','B_READY']
+    assert view['unique_objects']==7
+    for html in [render_email(view).decode(),render_run_reports(view)['index.html'].decode()]:
+        assert 'B_BLOCK' in html and 'Z_REVIEW' in html and 'B_READY' in html
+        assert 'A_INFO' not in html and 'Z_READY' not in html
+    assert 'en fazla 5 benzersiz nesne' in render_email(view).decode()
+
+
+@pytest.mark.parametrize('started,finished,expected',[
+    ('2026-10-20T09:00:00Z','2026-10-20T09:12:34Z','12 dk 34 sn'),
+    ('2026-10-20T12:00:00+03:00','2026-10-20T09:12:34+00:00','12 dk 34 sn'),
+    ('2026-10-20T09:00:00Z','2026-10-20T10:02:03Z','1 sa 2 dk 3 sn'),
+    ('2026-10-20T09:00:00Z','2026-10-20T09:00:00Z','0 dk 0 sn'),
+    (None,'2026-10-20T09:12:34Z','Bilinmiyor'),
+    ('2026-10-20T09:00:00Z',None,'Bilinmiyor'),
+    ('invalid','2026-10-20T09:12:34Z','Bilinmiyor'),
+    ('2026-10-20T09:00:00Z','invalid','Bilinmiyor'),
+    ('2026-10-20T09:12:34Z','2026-10-20T09:00:00Z','Bilinmiyor'),
+    ('2026-10-20T09:00:00','2026-10-20T09:12:34Z','Bilinmiyor'),
+])
+def test_duration_is_visible_in_email_and_web_without_guessing(started,finished,expected):
+    from oracle_db_migration_generator.reporting.view import build_run_view
+    from oracle_db_migration_generator.reporting.render import render_email,render_run_reports
+    run,plans=inputs();run.update(started_at=started,finished_at=finished)
+    if started is None:run.pop('started_at')
+    view=build_run_view(run,plans)
+    assert view['duration_label']==expected
+    for html in [render_email(view).decode(),render_run_reports(view)['index.html'].decode()]:
+        assert 'Çalışma süresi' in html and expected in html
 
 
 def test_email_link_must_match_the_current_run_commit_and_retention_check():

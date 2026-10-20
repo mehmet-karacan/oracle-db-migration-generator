@@ -14,6 +14,7 @@ pipeline {
   environment {
     PYTHONUTF8 = '1'
     PYTHONDONTWRITEBYTECODE = '1'
+    GENERATOR_BUILD_STARTED_AT_MS = "${currentBuild.startTimeInMillis}"
     GENERATOR_RELEASE_SHA = '@@RELEASE_SHA@@'
     GENERATOR_RELEASE_DIR = '.runtime/releases/@@RELEASE_SHA@@'
     GENERATOR_RUNTIME_DIR = '.runtime/python/@@RELEASE_SHA@@-r3'
@@ -61,7 +62,7 @@ set +x
 "$GENERATOR_RUNTIME_DIR/venv/bin/python" "$GENERATOR_RELEASE_DIR/jenkins_run.py" --release "$GENERATOR_RELEASE_DIR" --mode ENVIRONMENT_CHECK --output "output/runs/build-$BUILD_NUMBER"
 ''')
           } else {
-            withCredentials([usernamePassword(credentialsId: '@@TARGET_CREDENTIAL@@', usernameVariable: 'GENERATOR_INNOVA_ODI_USER', passwordVariable: 'GENERATOR_INNOVA_ODI_PASSWORD'), usernamePassword(credentialsId: '@@SOURCE_METADATA_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_ODI_USER', passwordVariable: 'GENERATOR_SOURCE_ODI_PASSWORD')]) {
+            withCredentials([usernamePassword(credentialsId: '@@TARGET_CREDENTIAL@@', usernameVariable: 'GENERATOR_INNOVA_ODI_USER', passwordVariable: 'GENERATOR_INNOVA_ODI_PASSWORD'), usernamePassword(credentialsId: '@@SOURCE_METADATA_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_ODI_USER', passwordVariable: 'GENERATOR_SOURCE_ODI_PASSWORD'), usernamePassword(credentialsId: '@@TTBP_CREDENTIAL@@', usernameVariable: 'GENERATOR_TTBP_USER', passwordVariable: 'GENERATOR_TTBP_PASSWORD'), usernamePassword(credentialsId: '@@TTBP_CREDENTIAL@@', usernameVariable: 'GENERATOR_SOURCE_TTBP_USER', passwordVariable: 'GENERATOR_SOURCE_TTBP_PASSWORD')]) {
               code = sh(returnStatus: true, script: '''#!/bin/sh
 set -eu
 set +x
@@ -104,15 +105,15 @@ set +x
       archiveArtifacts(artifacts: "output/runs/build-${env.BUILD_NUMBER}/**", excludes: "output/runs/build-${env.BUILD_NUMBER}/observations/**", allowEmptyArchive: true, fingerprint: true)
       script {
         if (fileExists("output/runs/build-${env.BUILD_NUMBER}/index.html")) {
-          currentBuild.description = 'INNOVA_ODI · Source/target READ ONLY · SQL uygulanmadı'
+          currentBuild.description = 'INNOVA_ODI + TTBP · Source/target READ ONLY · SQL uygulanmadı'
         }
         if (params.RUN_MODE == 'COMPARE') {
           def report = "output/runs/build-${env.BUILD_NUMBER}/report-email.jenkins.html"
           emailext(to: '@@NOTIFY_TO@@',
-            subject: "GPU | Oracle DB Migration Generator | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}",
+            subject: "SKY | Oracle DB Migration Generator | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}",
             mimeType: 'text/html', attachLog: false,
             attachmentsPattern: '',
-            body: fileExists(report) ? readFile(report) : "<html><body><h2>INNOVA_ODI karşılaştırması: ${currentBuild.currentResult}</h2><p>Genel rapor üretilemedi. Source ve target salt okunur; SQL uygulanmadı.</p><p><a href='${env.BUILD_URL}'>Jenkins çalışma kaydı</a></p></body></html>")
+            body: fileExists(report) ? readFile(report) : "<html><body><h2>INNOVA_ODI + TTBP karşılaştırması: ${currentBuild.currentResult}</h2><p>Genel rapor üretilemedi. Source ve target salt okunur; SQL uygulanmadı.</p><p><a href='${env.BUILD_URL}'>Jenkins çalışma kaydı</a></p></body></html>")
         }
       }
     }
