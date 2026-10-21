@@ -1,3 +1,76 @@
+## Rapor süresi ve doğrulanan fark sayısı — tamamlandı, 21 Ekim 2026
+
+Mailin ana başlığında gerçek karşılaştırma süresi dakika/saniye olarak görünür.
+Son özgün #29 karşılaştırması 08:00:00–09:15:09 TSİ, 75 dk 9 sn sürdü.
+Rapor yenileme süresi ayrı adla yazılır. comparison-timing.json özgün clock'u
+ve source SHA'sını korur; run.json'un gerçek yenileme zamanları değişmez.
+Tekrarlanan yenilemeler de eski receipt zincirinden aynı karşılaştırmayı bulur.
+
+Fark kartındaki Bilinmiyor kaldırıldı. Güncel PROD /TTBP: 6936 doğrulanmış
+bulunan fark; 4645 kayıt eksik bilgi nedeniyle karşılaştırılamadı.
+Kanonik observed_differences=11581 bu iki grubun toplamıdır;
+UNKNOWN kayıtlar kesin fark sayısına eklenmez. Kapsam eksikliği ve ek fark
+bulunabileceği görünür. Kanonik difference_count=null değeri değiştirilmedi.
+1266 hazır DDL /633 inceleme /251 üretilemeyen DDL kararları ve SQL aynıdır.
+
+Jenkins #31 UNSTABLE /run PARTIAL tamamlandı; #29 kaydının sunumu yenilendi.
+5278 değişmez dosya, 1268 SQL dosyası ve plan JSON byte-eşit doğrulandı.
+Plan ID: 3c9d1c8a19dfa6f6b9fcf5b08e93fd658c7188fddfa70394fc26c569e2e60804.
+Yeni Oracle bağlantısı0, yeni karşılaştırma0, SQL NOT_EXECUTED.
+Güncel genel mail yalnız yetkili tek alıcıya gönderildi. Normal v17 günlük
+pipeline geri yüklendi; TTBP varsayılanı /INNOVA_ODI manuel /her gün08:00
+Europe/Istanbul /Jenkins-only artifact /Git artifact push yok, readback doğrulandı.
+
+Offline: 742 passed /85.193 sn /skip0; tek tam koşu yeşil.
+Kanıt: output/plain-report-tests-final.xml. 7 schema /8 example VERIFIED.
+Süre ayrımı, kısmi hedefte kesin/UNKNOWN sayımı, sonuç alınamayan hedefte sıfır
+uydurulmaması, aynı clock'un zincirde korunması ve değişmez SQL test edildi.
+Değişen ek dosyalar: reporting/formatting.py, view.py, üç HTML şablonu,
+runtime/aggregate.py, tools/jenkins_notification.py, jenkins_report_presentation.py;
+test_report_counts_timing.py ve ilgili eski sunum beklentileri güncellendi.
+
+Release v17 SHA: 27e7571c802aad89c04f7c2b117c5e2d7327a47c4083a728170fac0dc831ac71.
+Wheel SHA: 0b0a78c976930d72ee109d7a12ecbdf9889a3fcf37904777fe57dd156717a02c; 125 paket dosyası byte-eşit doğrulandı.
+Kanıtlar: output/jenkins-setup/plain-report-build-31-proof.json,
+v17-normal-job-proof.json ve plain-report-build-31.png. Kurumsal çıktılar Git dışıdır.
+Yeni canlı Oracle kabulü NOT_RUN; mevcut #29 salt okunur karşılaştırma verisi kullanıldı.
+Açık sunum engeli yok. Sonraki somut adım: günlük08:00 TTBP koşusu yeni raporu üretir;
+uygulama kodu yalnız yetkili private depoya yayımlanır, SQL/JSON/HTML Jenkins'te kalır.
+
+## Anlaşılır rapor durumları — 21 Ekim 2026
+
+Genel mail/web özetindeki BLOCKED, [TABLE], COMMENT ve ham işlem kodları Türkçe
+sunum etiketlerine çevrildi. Hazır ve üretilemeyen işlemler birlikteyse hedef
+"DDL kısmen hazır", ilgili kayıt "DDL üretilemedi" gösterir. Kısa, kanıtlı
+nedenler her kaydın altında küçük yazıyla yer alır; mailde dört sütun genişliğini
+kullanır. Tekrarlanan bağlı nesne gerekçeleri birleştirilir. UNKNOWN yokluk diye
+sunulmaz; ham teknik gerekçe açılır bölümde ve kanonik JSON'da kalır.
+
+Değişen ürün: reporting/labels.py, view.py, render.py ve üç HTML şablonu.
+Yeni tools/jenkins_report_presentation.py doğrulanmış eski arşivden HTML yeniler;
+plan JSON/SQL byte'ları aynen korunur, manifest ve paket yeniden doğrulanır.
+Yeni paket yalnız doğrulama bitince atomik olarak görünür olur.
+
+Offline: `.venv/Scripts/python.exe -m pytest -q --tb=short
+--junitxml=output/plain-report-tests.xml`: 736 passed /88,49 sn /skip0.
+`tools/check_contracts.py`: 7 schema /8 example VERIFIED. Kayıtlı 251 üretim
+engelinin özeti ve 59 HTML sayfası doğrulandı; teknik durum tokenı0, en uzun
+özet240 karakter. Bundle kopyasında plan/SQL değişmezliği ve hatalı doğrulamada
+yarım paket yayımlanmaması test edildi.
+
+Jenkins v16 SHA: 7dd7ebbbc56535120e472ac0a43be4c2a8f30b7695f0a7415b9edc94205114fc.
+Wheel SHA: 462eebe35c380ab4bd51e9298f4898ccc2697890fdf05c75fea757adae5acb99.
+125 paket dosyası çalışma alanıyla byte-eşit; release manifest doğrulandı.
+Normal v16 pipeline geri yüklendi, script birebir okunarak doğrulandı;
+TTBP varsayılanı, INNOVA_ODI manuel seçimi ve Europe/Istanbul her gün08:00 korunur.
+Tek mail alıcısı ve Jenkins-only DDL/JSON/HTML arşivi değişmez.
+
+Jenkins #30 sunum yenilemesi: tamamlandı; 1.266 READY /633 REVIEW /251 BLOCKED, Oracle bağlantısı0.
+Kaynak alınan çalışma #29; yeni karşılaştırma veya Oracle bağlantısı yapılmaz.
+Canlı Oracle yeni kabulü: NOT_RUN. SQL/DML/COMPILE: NOT_EXECUTED.
+#30 receipt, arşiv, sayılar, mail ve görsel kanıtı doğrulandı. Sonraki ek kullanıcı
+düzeltmesinin süre/fark sonucu bu dosyanın başındaki #31 kaydındadır.
+
 ## TTBP 2.355 engel incelemesi — tamamlandı, 20 Ekim 2026
 
 Eski #25 planının 2.355 BLOCKED operation ID'si kanıtıyla tam bir kez incelendi;

@@ -53,7 +53,9 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
             lines.append(f"- [{markdown(target['id'])}]({folder}/README.md) · {target['status']}")
         else: lines.append(f"- {markdown(target['id'])} · ERROR / UNKNOWN")
     (root/'README.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
-    view=build_run_view(document,plans)
+    timing=read_json(root/'comparison-timing.json') if (root/'comparison-timing.json').is_file() else None
+    if timing and timing.get('source_commit')!=document['source_commit']:raise ValueError('COMPARISON_TIMING_SOURCE_MISMATCH')
+    view=build_run_view(document,plans,comparison_timing=timing)
     for path,raw in render_run_reports(view).items():
         destination=root/path;destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(raw)
     return document

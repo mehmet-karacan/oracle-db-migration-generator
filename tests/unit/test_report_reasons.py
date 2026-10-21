@@ -9,7 +9,7 @@ def test_general_mail_keeps_object_details_readable_without_redundant_counts():
     run,plans=inputs(2)
     html=render_email(build_run_view(run,plans)).decode()
     assert 'işlem /' not in html
-    assert 'CREATE' in html and 'TARGET-000' in html and 'TARGET-001' in html
+    assert 'Oluşturma' in html and 'TARGET-000' in html and 'TARGET-001' in html
     header=next(row for row in re.findall(r'<thead>(.*?)</thead>',html,re.S) if 'Nesne / Fark' in row)
     widths=[int(value) for value in re.findall(r'<th\b[^>]*\bwidth="(\d+)%"',header)]
     assert len(widths)==4 and sum(widths)==100

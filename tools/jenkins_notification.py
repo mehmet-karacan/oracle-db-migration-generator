@@ -14,7 +14,9 @@ def write_notification(output,run,build_url,job_url,*,context_note=None,publicat
         raise ValueError('JENKINS_BUILD_LINK_MISMATCH')
     plans={target['id']:json.loads((output/target['plan_path']).read_bytes())
            for target in run['targets'] if target.get('plan_path')}
-    view=build_run_view(run,plans,publication=publication,url_check=url_check,allowed_link_hosts=('github.com',))
+    timing=json.loads((output/'comparison-timing.json').read_bytes()) if (output/'comparison-timing.json').is_file() else None
+    if timing and timing.get('source_commit')!=run['source_commit']:raise ValueError('COMPARISON_TIMING_SOURCE_MISMATCH')
+    view=build_run_view(run,plans,publication=publication,url_check=url_check,allowed_link_hosts=('github.com',),comparison_timing=timing)
     if view['link'] is None:
         view['link']=build_url+'artifact/output/runs/build-'+str(number)+'/index.html'
         view['link_note']=context_note or ('Git yayını doğrulanamadı. Ayrıntılı raporlar ve DDL dosyaları Jenkins çalışma arşivindedir.'

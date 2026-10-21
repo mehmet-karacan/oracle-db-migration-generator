@@ -24,10 +24,10 @@ def test_email_limits_unique_objects_and_preserves_unknown_counts():
     view=build_run_view(run,plans)
     assert len(view['critical_targets'])==5 and view['critical_targets'][0]['id']=='TARGET-100'
     assert len(view['important_objects'])==1 and len(view['important_objects'][0]['targets'])==100
-    assert view['metrics'][0]['value']=='101' and view['metrics'][1]['value']=='235.300 + ?'
+    assert view['metrics'][0]['value']=='101' and view['metrics'][1]['value']=='235.300'
     html=render_email(view).decode()
     assert 'cid:innova-logo' in html and '<script' not in html and 'CREATE TABLE' not in html
-    assert 'ERROR / UNKNOWN' in html and '2.353' in html
+    assert 'Karşılaştırma yapılamadı' in html and '1 hedeften sonuç alınamadı' in html and '2.353' in html
     assert 'artifact-browser.preview' not in html and 'href=' not in html
     assert len(html.encode())<200*1024
 
@@ -91,7 +91,8 @@ def test_duration_is_visible_in_email_and_web_without_guessing(started,finished,
     view=build_run_view(run,plans)
     assert view['duration_label']==expected
     for html in [render_email(view).decode(),render_run_reports(view)['index.html'].decode()]:
-        assert 'Çalışma süresi' in html and expected in html
+        displayed={'Bilinmiyor':'Ölçülemedi','1 sa 2 dk 3 sn':'62 dk 3 sn'}.get(expected,expected)
+        assert 'Karşılaştırma süresi' in html and displayed in html
 
 
 def test_email_link_must_match_the_current_run_commit_and_retention_check():

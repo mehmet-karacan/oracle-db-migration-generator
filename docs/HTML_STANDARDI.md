@@ -70,7 +70,8 @@ Jenkins fallback ayrıca mevcut run.build_url altındaki sayısal build artifact
 
 Görünen hedef adı registry'deki `name` alanıdır (`PROD`); şema ayrıca gösterilir
 (`TTBP`). Teknik target ID gruplama ve göreli arşiv yollarında kalır. Planı
-üretilemeyen hedefte ad/şema uydurulmaz; UNKNOWN ve bilinen hata kodu görünür.
+üretilemeyen hedefte ad/şema uydurulmaz; fark sayısı bilinmiyor diye gösterilir.
+Hata kodları makine kaydında ve teknik kanıt bölümünde korunur.
 
 COMMENT/GRANT kayıtlarının iç `S_<hash>` kimliği nesne adı olarak gösterilmez.
 Bilinen bağlı nesne ve varsa kolon, optional `object.display_name` ile etiketlenir;
@@ -79,3 +80,29 @@ korunur. Ek display alanı plan ID'sini ve SQL plan başlık hash'lerini değiş
 Gerçek 64 hexadecimal veya `S_` + 64 hexadecimal adlı teknik nesneler
 `exclude_system_generated` politikasıyla karşılaştırmadan dışlanır; bağlı
 index/yorum/grant da aynı politikayı izler. Ham envanter ve dışlama kanıtı korunur.
+
+## 21 Ekim 2026 anlaşılır durum ve nedenler
+
+Genel mail ve web özetinde BLOCKED, REVIEW_REQUIRED, COMMENT veya [TABLE]
+gibi iç etiketler gösterilmez. Kullanıcı karşılıkları DDL üretilemedi, İnceleme
+gerekli, Açıklama ve Tablo'dur. Üretilemeyen DDL sayısı gizlenmez veya sıfırlanmaz.
+Durumun altında küçük yazıyla kısa, nesneye özgü neden gösterilir. Mailde neden
+satırı dört sütunun tamamını kaplar; dar Sonuç hücresinde kelimelere bölünmez.
+Aynı bağlı
+nesneye ait tekrarlar tek açıklamada birleştirilir; asıl eksik bilgi mevcutsa
+genel hazır değil ifadesi yerine o bilgi yazılır. Belirsizlik yokluk diye sunulmaz.
+Operasyonun tam teknik gerekçesi hedef raporunda açılır teknik ayrıntılarda kalır.
+Kanıtlı plan kararları, sayılar, SQL ve karşılaştırma kapsamı sunumla değiştirilmez.
+Salt sunum yenilemesi doğrulanmış arşivden yapılabilir; JSON/SQL byte'ları korunur,
+yenilenen HTML dosyalarının manifest hash'leri tekrar doğrulanır. Yeni Oracle
+bağlantısı veya yeni karşılaştırma yapılmadığı ve kullanılan eski build açıkça yazılır.
+
+21 Ekim ek kullanıcı düzeltmesi: ana başlık altında Karşılaştırma süresi dakika
+ve saniye olarak yer alır. Sunum yenilendiyse Rapor yenileme süresi ayrı adla
+gösterilir. comparison-timing.json, özgün koşunun zamanlarını ve kaynak SHA'sını
+taşır; yeni run.json'un gerçek yenileme zamanları değiştirilmez. Tarihler TSİ
+(UTC+3) gösterilir. 75 dakika 8,869 saniye kullanıcıya 75 dk 9 sn yuvarlanır.
+Bulunan fark, tamamlanmış hedefte doğrulanmış toplam; kısmi hedefte planın
+UNKNOWN dışındaki fark kayıtlarıdır. UNKNOWN kayıtlar bu sayıya eklenmez ve
+ayrı sayılır. Eksik kapsamda sayı alt sınırdır; ek fark bulunabileceği yazılır.
+Hiçbir hedefin sonucu alınamadıysa Sonuç alınamadı gösterilir, sıfır uydurulmaz.

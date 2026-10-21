@@ -1,8 +1,7 @@
 from importlib.resources import files
 from jinja2 import Environment, StrictUndefined
-from .formatting import format_count,warning_text
-from .view import DISPLAY
-from .labels import object_label
+from .formatting import format_count,warning_text,difference_counts
+from .labels import object_label, status_label, type_label, kind_label, operation_reason, target_reason, target_status
 
 
 def _template(name):
@@ -43,7 +42,9 @@ def render_reports(document,sql_files):
     environment=Environment(autoescape=True,undefined=StrictUndefined)
     environment.filters['count_tr']=format_count
     template=environment.from_string(files(__package__).joinpath('templates/report.html.j2').read_text(encoding='utf-8'))
-    ops=[{**op,'object_label':object_label(op['object']),'display_status':DISPLAY.get(op['decision'],op['decision'])} for op in document['operations']]
+    ops=[{**op,'object_label':object_label(op['object']),'display_status':status_label(op['decision']),
+          'type_label':type_label(op['object']['object_type']),'kind_label':kind_label(op['kind']),
+          'summary_reason':operation_reason(op)} for op in document['operations']]
     rank={'BLOCKED':0,'REVIEW_REQUIRED':1,'READY':2,'INFORMATIONAL':3}
     important=sorted(ops,key=lambda op:(rank[op['decision']],op['id']))[:5]
     previews=[{'operation':op,'text':preview(sql_files.get(op['sql']['path'],b'').decode('utf-8')) if op['sql'] else ''} for op in important]
@@ -67,7 +68,7 @@ def render_reports(document,sql_files):
         links=list(range(1,pages+1)) if pages<=9 else sorted({1,pages,*range(max(1,current-2),min(pages,current+2)+1)})
         warning_rows=[{'text':text[:256] if compact else text,
                        'characters':max(0,len(text)-256) if compact else 0} for text in warnings[:20]]
-        return template.render(plan=document,title=title,rows=[operation_view(op,compact) for op in rows],
+        return template.render(plan=document,difference_summary=difference_counts(document),display_status=target_status(document),status_reason=target_reason(document),title=title,rows=[operation_view(op,compact) for op in rows],
                                prefix=prefix,pages=pages,page_links=links,
                                previews=previews if show_previews else [],warning_rows=warning_rows,
                                remaining_warnings=max(0,len(warnings)-20)).encode('utf-8')

@@ -1,5 +1,20 @@
 # Jenkins Çalışma Sözleşmesi
 
+21 Ekim rapor sunumu yenilemesi: `tools/jenkins_report_presentation.py`, önceki
+doğrulanmış tek TTBP arşivinden yeni build için HTML üretir. Karşılaştırma,
+Oracle bağlantısı veya SQL üretimi yapmaz. Plan JSON ve bütün SQL byte'ları
+korunur; yalnız HTML/assets manifest kayıtları yenilenir ve paket tekrar
+doğrulanır. Mailde eski build/tarih, yeni yakalama yapılmadığı ve yenileme
+süresinin karşılaştırma süresi olmadığı yazılır. Tek seferlik yenileme sonrası
+normal günlük pipeline geri yüklenir; zamanlama ve alıcı değişmez.
+
+Sunum yenilemesi comparison-timing.json ile özgün karşılaştırma başlangıç,
+bitiş ve build numarasını korur; tekrarlanan yenilemelerde eski receipt zinciri
+en fazla20 koşu izlenir. Aynı source commit doğrulanır. Genel mail ve katalog,
+karşılaştırma süresini yenileme süresinden ayrı gösterir. Kanonik run.json
+zamanları ve difference_count null değeri değiştirilmez; doğrulanan fark ve
+karşılaştırılamayan kayıt sayısı yalnız sunumda ayrı türetilir.
+
 **Güncel kapsam (20 Ekim son kullanıcı kararı):** Günlük 08:00
 Europe/Istanbul çalışması yalnız TTBP karşılaştırır. `SCHEMA_SCOPE` varsayılanı
 `TTBP`; `INNOVA_ODI` yalnız manuel seçimdir. Görünen hedef adı `PROD`, şema

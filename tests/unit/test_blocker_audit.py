@@ -121,6 +121,7 @@ def test_report_formats_counts_without_changing_json_numbers():
     from oracle_db_migration_generator.reporting.render import render_reports
     document=plan('CREATE TABLE APP.T(ID NUMBER);').to_dict()
     document['counts']['observed_differences']=2353
+    document['differences']=document['differences'][:1]*2353
     html=render_reports(document,{})['index.html'].decode()
     assert '<strong>2.353</strong>' in html and document['counts']['observed_differences']==2353
 

@@ -1,0 +1,61 @@
+import json
+
+import pytest
+
+from oracle_db_migration_generator.artifacts.bundle import write_bundle, verify_bundle
+from tests.unit.test_bundle import make_plan
+
+
+def test_presentation_refresh_preserves_every_non_presentation_byte(tmp_path):
+    from tools.jenkins_report_presentation import refresh_bundle
+    previous = tmp_path/'previous'; output = tmp_path/'new'
+    write_bundle(make_plan('CREATE TABLE APP.T(ID NUMBER);'), previous)
+    before = {p.relative_to(previous).as_posix():p.read_bytes() for p in previous.rglob('*') if p.is_file()}
+    result = refresh_bundle(previous, output)
+    assert result['sql_files_verified'] >= 2
+    assert verify_bundle(output)['status'] == 'VERIFIED'
+    for name, raw in before.items():
+        if name != 'bundle-manifest.json' and not name.endswith('.html') and not name.startswith('assets/'):
+            assert (output/name).read_bytes() == raw
+        assert (previous/name).read_bytes() == raw
+    assert 'DDL hazır' in (output/'index.html').read_text(encoding='utf-8')
+    assert json.loads((output/'plan.json').read_bytes()) == json.loads(before['plan.json'])
+    with pytest.raises(ValueError, match='OUTPUT_ALREADY_EXISTS'):
+        refresh_bundle(previous, output)
+
+
+def test_presentation_refresh_rejects_tampered_input_before_creating_output(tmp_path):
+    from tools.jenkins_report_presentation import refresh_bundle
+    previous = tmp_path/'previous'; output = tmp_path/'new'
+    write_bundle(make_plan('CREATE TABLE APP.T(ID NUMBER);'), previous)
+    (previous/'migration.sql').write_bytes(b'-- tampered')
+    with pytest.raises(ValueError): refresh_bundle(previous, output)
+    assert not output.exists()
+
+
+def test_presentation_refresh_does_not_publish_a_half_verified_bundle(tmp_path, monkeypatch):
+    from tools import jenkins_report_presentation as refresh
+    previous = tmp_path/'previous'; output = tmp_path/'new'
+    write_bundle(make_plan('CREATE TABLE APP.T(ID NUMBER);'), previous)
+    verify = refresh.verify_bundle
+    def reject_new(path):
+        if path.resolve() != previous.resolve(): raise ValueError('RENDERED_BUNDLE_REJECTED')
+        return verify(path)
+    monkeypatch.setattr(refresh, 'verify_bundle', reject_new)
+    with pytest.raises(ValueError, match='RENDERED_BUNDLE_REJECTED'):
+        refresh.refresh_bundle(previous, output)
+    assert not output.exists() and not list(tmp_path.glob('.presentation-staging-*'))
+
+
+def test_repeated_report_refresh_keeps_the_original_comparison_clock(tmp_path):
+    from tools.jenkins_report_presentation import comparison_origin
+    source='a'*40
+    original=tmp_path/'build-29';original.mkdir()
+    original.joinpath('run.json').write_text(json.dumps({'build_number':29,'source_commit':source,
+        'started_at':'2026-10-21T05:00:00Z','finished_at':'2026-10-21T06:15:09Z'}))
+    refresh=tmp_path/'build-30';refresh.mkdir()
+    refresh.joinpath('run.json').write_text(json.dumps({'build_number':30,'source_commit':source,
+        'started_at':'2026-10-21T07:00:00Z','finished_at':'2026-10-21T07:01:05Z'}))
+    refresh.joinpath('presentation-refresh-receipt.json').write_text(json.dumps({'base_build':29}))
+    timing=comparison_origin(refresh)
+    assert timing['build_number']==29 and timing['finished_at']=='2026-10-21T06:15:09Z'

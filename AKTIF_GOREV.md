@@ -97,3 +97,18 @@ mail alıcısı korunur. Source/target daima READ ONLY; DDL/DML/COMPILE yok.
 726 test geçti. Güncel plan 1.265 READY SQL /632 REVIEW /251 BLOCKED. #28 rapor,
 DDL ve inceleme CSV/JSON yalnız Jenkins arşivinde; yeni Oracle bağlantısı0,
 SQL NOT_EXECUTED. Normal v13 PROD/TTBP ve 08:00 geri yüklendi. Ayrıntı yz/DEVIR.md.
+
+21 Ekim kullanıcı sunum düzeltmesi: genel mail ve raporlardaki BLOCKED,
+[TABLE], COMMENT gibi teknik etiketleri anlaşılır Türkçe karşılıklarıyla göster.
+Üretilemeyen DDL varsa sayısını koru ve durumun altında kısa, somut neden yaz.
+Tekrarlanan bağlı nesne gerekçelerini birleştir. Kanıtlı engelleri gizleme;
+karşılaştırma kararını, UNKNOWN bilgisini veya SQL'i sunum için değiştirme.
+Mevcut TTBP arşivi yeni görünümle Oracle bağlantısız yenilenebilir. Önceki
+Jenkins, yalnız tek alıcı mail, 08:00 ve Jenkins-only arşiv yetkileri korunur.
+
+21 Ekim ek kullanıcı düzeltmesi: karşılaştırma süresini ana özette dakika/saniye
+olarak göster; görünüm yenileme süresiyle karıştırma. Karşılaştırmanın özgün
+başlangıç/bitiş zamanını yenilenen raporlarda da koru. Fark kartı doğrulanmış
+bulunan farkların sayısını göstersin; UNKNOWN karşılaştırma kayıtlarını ayrıca
+say ve eksik kapsamın ek farklar doğurabileceğini açıkla. Kanonik null toplamı
+değiştirme; UNKNOWN'u kesin fark veya eşitlik diye gösterme.

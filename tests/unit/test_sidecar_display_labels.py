@@ -66,7 +66,7 @@ def test_legacy_unresolved_comment_has_clear_label_and_evidence_link():
     document['operations']=[op for op in document['operations'] if op['object']['object_type']=='COMMENT'][:1]
     document['operations'][0]['object'].pop('display_name',None)
     html=render_reports(document,{})['index.html'].decode()
-    assert 'COMMENT (bağlı nesne doğrulanamadı)' in html
+    assert 'Açıklama (bağlı nesne doğrulanamadı)' in html
     assert 'href="plan.json"' in html
     assert ('APP.'+document['operations'][0]['object']['name']) not in html
 
@@ -107,7 +107,7 @@ def test_unknown_parent_fact_does_not_create_a_display_name():
     plan=plan_target(compare_snapshots(desired,target,selected.policy),PlanningContext(desired,target,selected,'PROD'))
     comment_op=next(op for op in plan.operations if op.identity.object_type=='COMMENT')
     assert 'display_name' not in comment_op.to_dict()['object']
-    assert 'COMMENT (bağlı nesne doğrulanamadı)' in render_reports(plan.to_dict(),{})['index.html'].decode()
+    assert 'Açıklama (bağlı nesne doğrulanamadı)' in render_reports(plan.to_dict(),{})['index.html'].decode()
 
 
 def test_error_target_without_plan_does_not_expose_id_as_a_business_name():
@@ -125,4 +125,5 @@ def test_error_target_without_plan_does_not_expose_id_as_a_business_name():
         text=VisibleText();text.feed(raw.decode());visible=' '.join(text.parts)
         assert 'Hedef adı doğrulanamadı' in visible
         assert 'LOCAL-' not in visible and 'TTBP' not in visible and 'PROD' not in visible
-        assert 'ORA-01031' in visible and 'UNKNOWN' in visible
+        assert 'Karşılaştırma yapılamadı' in visible and 'fark sonucu üretilemedi' in visible
+        assert 'ORA-01031' not in visible and 'UNKNOWN' not in visible
