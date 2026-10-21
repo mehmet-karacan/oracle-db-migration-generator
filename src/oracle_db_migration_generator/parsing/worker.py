@@ -8,7 +8,7 @@ from antlr4 import CommonTokenStream, InputStream
 from antlr4.atn.PredictionMode import PredictionMode
 
 from .._vendor.analyzer_core.oracle.generated.PlSqlLexer import PlSqlLexer
-from .._vendor.analyzer_core.oracle.generated.PlSqlParser import PlSqlParser
+from .grammar_compat import CompatiblePlSqlParser as PlSqlParser
 from .._vendor.analyzer_core.oracle.parser_worker import CollectingErrorListener
 from .._vendor.analyzer_core.oracle.scanner import scan
 from .._vendor.analyzer_core.oracle.projections import project
@@ -18,6 +18,7 @@ from .grammar_compat import grammar_text,scanner_text,storage_scope_valid,gramma
 from .inline_keys import inline_backing_keys
 
 SIDECAR_RULES = {'Grant_statementContext': 'GRANT', 'Comment_on_tableContext': 'COMMENT',
+                 'Comment_on_materializedContext': 'COMMENT',
                  'Comment_on_columnContext': 'COMMENT', 'Alter_tableContext': 'ALTER_TABLE',
                  'Alter_triggerContext': 'ALTER_TRIGGER', 'Alter_indexContext':'ALTER_INDEX'}
 
@@ -88,7 +89,19 @@ def parse_payload(payload):
         leading_bom = len(original_fragment) - len(original_fragment.lstrip('\ufeff'))
         start += leading_bom
         fragment = text[start:end]
-        ok, units = checked_units(fragment,occurrence.object_type if occurrence else None,metadata=bool(payload.get('metadata')))
+        effective_type=None
+        if occurrence is not None and occurrence.object_type=='TYPE':
+            from .type_evolution import effective_type_definition
+            try:
+                effective_type=effective_type_definition(fragment,lambda source:checked_units(source,'TYPE')[0],include_create=True)
+            except ValueError:
+                effective_type=False
+        if effective_type:
+            ok,units=True,[]
+        elif effective_type is False:
+            ok,units=False,[]
+        else:
+            ok, units = checked_units(fragment,occurrence.object_type if occurrence else None,metadata=bool(payload.get('metadata')))
         diagnostics = []
         if not ok:
             diagnostics.append('PARSER_SYNTAX_ERROR')
@@ -113,7 +126,15 @@ def parse_payload(payload):
             if ok and occurrence.object_type=='TABLE':
                 from .table_logging import table_projection_input
                 parse_statement,supplemental=table_projection_input(parse_statement)
-            projection = project(occurrence, parse_statement, parse_ok=ok,parsed_root=parsed_root)
+            if ok and occurrence.object_type in {'PACKAGE_SPEC','PACKAGE_BODY'} and parsed_root is not None:
+                from .packages import package_projection
+                projection=package_projection(occurrence,parse_statement,parsed_root)
+            else:
+                projection = project(occurrence, parse_statement, parse_ok=ok,parsed_root=parsed_root)
+            if effective_type:
+                props=dict(projection.properties);props['_generator_effective_definition']=effective_type[0]
+                props['_generator_effective_create']=effective_type[1]
+                projection=replace(projection,properties=props)
             if supplemental:
                 from .projections import effective_key
                 columns={effective_key(key) for key in projection.properties.get('columns',{})}

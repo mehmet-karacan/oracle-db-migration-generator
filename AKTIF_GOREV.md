@@ -123,3 +123,12 @@ gider. Karşılaştırma deterministik/statiktir; LLM/AI servisi eklenmez. Süre
 alanları mevcut HTML ailesine uygun profesyonel düzende yerleştirilsin.
 Source/target daima READ ONLY; Oracle DDL/DML/COMPILE yok. TTBP varsayılanı,
 08:00 takvimi, tek mail alıcısı ve yalnız Jenkins artifact arşivi korunur.
+
+
+21 Ekim son kullanıcı görevi: #38 planındaki kalan493 UNKNOWN kaydı ID bazında
+incele; kod hatalarını gider ve karşılaşılan desteklenmeyen SQL yapılarını
+mevcut statik parser/model içinde destekle. Gerçek bozuk/eksik kaynak bilgisi
+başarılı veya eşit diye gösterilmez. Source/target daima READ ONLY kalır.
+Ek sunum düzeltmesi: mailde nesne açıklaması dört sütuna yayılan ayrı satır
+olmaz; Nesne / Fark hücresinde kısa neden gösterilir, tam neden ayrıntılı
+raporda korunur. Önceki Jenkins-only DDL,08:00,TTBP ve tek alıcı sınırı sürer.

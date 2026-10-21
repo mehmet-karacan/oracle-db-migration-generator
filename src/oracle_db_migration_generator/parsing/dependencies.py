@@ -104,19 +104,37 @@ def has_dynamic_sql(obj):
     return False
 
 
+def _callee_parts(raw):
+    """Only the qualified callee is an identifier; arguments are expressions."""
+    tokens=code_tokens(raw or '') or ()
+    if tokens and tokens[0].upper=='CALL':tokens=tokens[1:]
+    result=[];at=0
+    while at<len(tokens):
+        if tokens[at].text in {'(',')',';',','}:break
+        result.append(identifier(tokens[at])[0]);at+=1
+        if at>=len(tokens) or tokens[at].text!='.':break
+        at+=1
+    return tuple(result)
+
+
 def references(obj):
     refs=[];default=obj.identity.owner.effective_name
     declared=obj.properties.get('dependencies')
     declared_refs=declared.value if declared and declared.state=='KNOWN' else ()
+    from ..compare.projection_adapter import restore_projection
+    projection=restore_projection(obj)
     if obj.identity.object_type=='TABLE':
-        from ..compare.projection_adapter import restore_projection
-        projection=restore_projection(obj)
         for column in (projection.properties.get('columns',{}) if projection else {}).values():
             ref=type_reference(column.get('data_type'),default)
             if ref: refs.append(ref)
     if obj.identity.object_type=='TYPE_SPEC' and obj.raw_ddl:
         from .._vendor.analyzer_core.oracle.ddl_tokens import enclosed,top_level_items,source_span
-        typed=code_tokens(obj.raw_ddl.decode()) or ()
+        type_sql=obj.raw_ddl.decode()
+        if projection and projection.properties.get('_generator_effective_create'):
+            from .projections import normalize_projection
+            if not normalize_projection(projection,type_sql).diagnostics:
+                type_sql=projection.properties['_generator_effective_create']
+        typed=code_tokens(type_sql) or ()
         words=[token.upper for token in typed]
         if 'OBJECT' in words:
             at=words.index('OBJECT')+1
@@ -124,38 +142,36 @@ def references(obj):
                 body=enclosed(typed,at)
                 for item in top_level_items(body[0]) if body else ():
                     if len(item)>1:
-                        ref=type_reference(source_span(obj.raw_ddl.decode(),item[1:]),default)
+                        ref=type_reference(source_span(type_sql,item[1:]),default)
                         if ref: refs.append(ref)
         elif 'OF' in words:
             at=words.index('OF')+1
-            ref=type_reference(source_span(obj.raw_ddl.decode(),typed[at:]),default)
+            ref=type_reference(source_span(type_sql,typed[at:]),default)
             if ref: refs.append(ref)
-    from ..compare.projection_adapter import restore_projection
-    projection=restore_projection(obj)
     if projection:
         analyses=projection.properties.get('_generator_routine_analysis',())
         if obj.identity.object_type in {'PACKAGE_SPEC','PACKAGE_BODY'}:
             analyses=[{'name':routine.name,'types':[p.data_type for p in routine.parameters]+([routine.return_type] if routine.return_type else []),
                        'calls':routine.call_references} for routine in projection.properties.get('routines',())]
-        locals_=set()
+        package=obj.identity.object_type in {'PACKAGE_SPEC','PACKAGE_BODY'}
+        paths=[_callee_parts(item['name']) if package else _callee_parts(item['name'])[-1:] for item in analyses]
         for item in analyses:
-            try:
-                locals_.add(identifier((code_tokens(item['name']) or ())[-1])[0])
-            except (ValueError, IndexError):
-                pass
-        for item in analyses:
+            path=_callee_parts(item['name']) if package else _callee_parts(item['name'])[-1:]
+            prefixes={path[:i] for i in range(len(path)+1)}
+            locals_={candidate[-1] for candidate in paths if candidate and candidate[:-1] in prefixes}
             for datatype in item['types']:
                 ref=type_reference(datatype,default,declared_refs)
                 if ref: refs.append(ref)
             for call in item['calls']:
-                parts=[identifier(t)[0] for t in code_tokens(call) or () if t.text!='.']
+                parts=_callee_parts(call)
                 if len(parts)==1 and parts[0] in locals_: continue
                 if len(parts)==1:
                     refs.append(DependencyReference(default,'CALLABLE',parts[0],'ROUTINE_CALL'))
                 elif len(parts)==2:
-                    package=any(ref['owner']==default and ref['name']==parts[0]
-                                and ref['type'] in {'PACKAGE','PACKAGE_SPEC'} for ref in declared_refs)
-                    refs.append(DependencyReference(default,'PACKAGE_SPEC',parts[0],'ROUTINE_CALL') if package else
+                    packages=[ref for ref in declared_refs if ref['name']==parts[0] and ref['type'] in {'PACKAGE','PACKAGE_SPEC'}]
+                    local=next((ref for ref in packages if ref['owner']==default),None)
+                    bound=local or (packages[0] if len(packages)==1 else None)
+                    refs.append(DependencyReference(bound['owner'],'PACKAGE_SPEC',parts[0],'ROUTINE_CALL') if bound else
                                 DependencyReference(parts[0],'CALLABLE',parts[1],'ROUTINE_CALL'))
                 elif len(parts)==3:
                     refs.append(DependencyReference(parts[0],'PACKAGE_SPEC',parts[1],'ROUTINE_CALL'))

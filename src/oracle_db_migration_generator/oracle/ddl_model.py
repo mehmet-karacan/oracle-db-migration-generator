@@ -25,7 +25,7 @@ def project_target_object(obj):
     props=dict(obj.properties)
     known=candidate is not None and not reasons
     props['projection']=KnownValue('KNOWN' if known else 'UNKNOWN',thaw(candidate.projection.properties) if known else None,obj.evidence_ids)
-    props['definition']=KnownValue('KNOWN' if known else 'UNKNOWN',canonical_sql(candidate.raw_ddl.decode()) if known else None,obj.evidence_ids)
+    props['definition']=KnownValue('KNOWN' if known else 'UNKNOWN',candidate.projection.properties.get('_generator_effective_definition',canonical_sql(candidate.raw_ddl.decode())) if known else None,obj.evidence_ids)
     updated=replace(obj,properties=props,projection=candidate.projection if candidate else None,
                     coverage=replace(obj.coverage,ddl='COMPLETE' if known else 'PARTIAL',diagnostics=tuple(sorted(reasons))))
     evidence=[]

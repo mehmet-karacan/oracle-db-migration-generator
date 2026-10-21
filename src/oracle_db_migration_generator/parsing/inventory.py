@@ -12,13 +12,15 @@ from ..model.serialization import digest, thaw
 from ..model.snapshot import KnownValue
 from .canonicalize import canonical_sql
 
-INVENTORY_VERSION='source-header-inventory/1.2'
+INVENTORY_VERSION='source-header-inventory/1.4'
 
 
 def inspect_artifact(artifact, profile, result):
     record = {'path':artifact.path, 'kind':artifact.kind, 'owner':artifact.source_schema,
               'sha256':artifact.sha256, 'headers':[], 'errors':[], 'tainted_types':[],
-              'context_tainted_types':[], 'create_count':0,'package_unit_closed':None}
+              'context_tainted_types':[], 'create_count':0,'package_unit_closed':None,
+              'comment_headers':[], 'comment_inventory_closed':False,
+              'identity_neutral_context_types':[]}
     if hashlib.sha256(artifact.raw).hexdigest()!=artifact.sha256:
         record['errors'].append('INVENTORY_BLOB_HASH_MISMATCH')
         return record
@@ -40,6 +42,8 @@ def inspect_artifact(artifact, profile, result):
     if tokens is None or any(code!='UNRESOLVED_PREFIX_OR_ARTIFACT' for code in scanned.diagnostics):
         record['errors'].append('INVENTORY_LEXER_UNVERIFIED')
         return record
+    record['comment_headers'],record['comment_inventory_closed']=_comment_headers(
+        tokens,text,artifact.source_schema,require_full=artifact.kind=='COMMENT')
     creates = {token.start for token in tokens if token.upper=='CREATE'}
     record['create_count']=len(creates)
     occurrences = [item for item in scanned.occurrences if item.start_char in creates]
@@ -69,6 +73,14 @@ def inspect_artifact(artifact, profile, result):
     if 'UNSUPPORTED_STATEMENT' in result.diagnostics:
         record['tainted_types'] = sorted({item['kind'] for item in record['headers']} or
                                         ({artifact.kind} if artifact.kind in {'COMMENT','GRANT'} else set(profile.object_types)))
+        if artifact.kind=='COMMENT' and record['comment_inventory_closed']:
+            record['tainted_types']=[kind for kind in record['tainted_types'] if kind!='COMMENT']
+        if _neutral_insert_suffix(artifact,result,record):
+            record['tainted_types']=[]
+    if ('PARSER_SYNTAX_ERROR' in result.diagnostics and any(t.upper=='INSERT' for t in tokens)
+            and len(record['headers'])==1 and record['headers'][0]['kind']=='FUNCTION'
+            and not _neutral_insert_suffix(artifact,result,record)):
+        record['tainted_types']=sorted(set((*record['tainted_types'],'FUNCTION')))
     if result.coverage!='COMPLETE':
         contexts=set()
         package_headers=[header for header in record['headers'] if header['kind'] in {'PACKAGE_SPEC','PACKAGE_BODY'}]
@@ -93,7 +105,7 @@ def inspect_artifact(artifact, profile, result):
                 contexts.update(profile.object_types)
             if token.upper in {'RENAME','FLASHBACK','PURGE','AUDIT','NOAUDIT','ASSOCIATE','DISASSOCIATE'}:
                 contexts.update(profile.object_types)
-            if token.upper=='COMMENT':contexts.add('COMMENT')
+            if token.upper=='COMMENT' and not record['comment_inventory_closed']:contexts.add('COMMENT')
             if token.upper in {'GRANT','REVOKE'}:contexts.add('GRANT')
             if token.upper in {'ALTER','DROP','TRUNCATE'}:
                 kind=tokens[i+1].upper if i+1<len(tokens) else ''
@@ -103,7 +115,97 @@ def inspect_artifact(artifact, profile, result):
                     'SEQUENCE':{'SEQUENCE'},'SYNONYM':{'SYNONYM'}}.get(kind,set(profile.object_types))
                 contexts.update(affected)
         record['context_tainted_types']=sorted(contexts)
+        if contexts=={'TRIGGER'} and _only_trigger_state_suffix(tokens,text,record):
+            record['identity_neutral_context_types']=['TRIGGER']
     return record
+
+
+def _comment_headers(tokens,text,default_schema,*,require_full=False):
+    """Closed literal COMMENT statements, with their original byte spans."""
+    from .statements import qualified_parts,literal_value
+    headers=[];covered=set()
+    try:
+        for index,token in enumerate(tokens):
+            if token.upper!='COMMENT':continue
+            end=next(i for i in range(index+1,len(tokens)) if tokens[i].text==';')
+            statement=tokens[index:end]
+            words=[item.upper for item in statement]
+            if words[:3] in (['COMMENT','ON','TABLE'],['COMMENT','ON','COLUMN']):
+                first=3
+            elif words[:4]==['COMMENT','ON','MATERIALIZED','VIEW']:
+                first=4
+            else:return headers,False
+            boundary=words.index('IS',first)
+            if len(statement)!=boundary+2:return headers,False
+            literal_value(statement[-1].text)
+            parts=qualified_parts(statement[first:boundary])
+            column=None
+            if words[2]=='COLUMN':
+                if len(parts)==2:owner,target,column=default_schema,*parts
+                elif len(parts)==3:owner,target,column=parts
+                else:return headers,False
+            elif len(parts)==1:owner,target=default_schema,parts[0]
+            elif len(parts)==2:owner,target=parts
+            else:return headers,False
+            if owner!=Identifier.parse(default_schema).effective_name:return headers,False
+            name='S_'+digest(['COMMENT',owner,target,column,None,None])
+            headers.append({'owner':owner,'target':target,'column':column,'name':name,
+                'start_byte':len(text[:token.start].encode()),'end_byte':len(text[:tokens[end].end].encode())})
+            covered.update(range(index,end+1))
+        if require_full:
+            # COMMENT artifacts are executable scripts. A literal header does
+            # not close an unrelated anonymous block or command in that file.
+            for index,token in enumerate(tokens):
+                if index in covered:continue
+                if token.text!='/':return headers,False
+                line_start=text.rfind('\n',0,token.start)+1
+                line_end=text.find('\n',token.end)
+                if line_end<0:line_end=len(text)
+                if text[line_start:token.start].strip() or text[token.end:line_end].strip():
+                    return headers,False
+        return headers,True
+    except (ValueError,StopIteration,IndexError):
+        return headers,False
+
+
+def _neutral_insert_suffix(artifact,result,record):
+    """A grammar-closed data INSERT cannot define another schema object."""
+    if len(artifact.raw)>64*1024 or len(record['headers'])!=1 or record['headers'][0]['kind']!='FUNCTION':
+        return False
+    start=record['headers'][0]['start_byte']
+    source=artifact.raw[start:].decode('utf-8').strip()
+    if source.endswith('/'):source=source[:-1].rstrip()
+    from antlr4 import CommonTokenStream,InputStream,Token
+    from .._vendor.analyzer_core.oracle.ddl_tokens import _Errors
+    from .._vendor.analyzer_core.oracle.generated.PlSqlLexer import PlSqlLexer
+    from .._vendor.analyzer_core.oracle.generated.PlSqlParser import PlSqlParser
+    lexer=PlSqlLexer(InputStream(source));errors=_Errors()
+    lexer.removeErrorListeners();lexer.addErrorListener(errors)
+    stream=CommonTokenStream(lexer);parser=PlSqlParser(stream)
+    parser.removeErrorListeners();parser.addErrorListener(errors)
+    parser.create_function_body()
+    if errors.count:return False
+    if stream.LA(1)==PlSqlParser.SEMICOLON:stream.consume()
+    if stream.LT(1).text.upper()!='INSERT':return False
+    parser.insert_statement()
+    if stream.LA(1)==PlSqlParser.SEMICOLON:stream.consume()
+    return errors.count==0 and stream.LA(1)==Token.EOF
+
+
+def _only_trigger_state_suffix(tokens,text,record):
+    from .statements import qualified_parts
+    alters=[i for i,t in enumerate(tokens) if t.upper=='ALTER']
+    if len(alters)!=1 or len(record['headers'])!=1 or record['headers'][0]['kind']!='TRIGGER':return False
+    i=alters[0]
+    if i==0 or tokens[i-1].text!='/':return False
+    suffix=tokens[i:]
+    if len(suffix) not in {5,7} or [t.upper for t in suffix[:2]]!=['ALTER','TRIGGER']:
+        return False
+    if suffix[-1].text!=';' or suffix[-2].upper not in {'ENABLE','DISABLE'}:return False
+    try:
+        parts=qualified_parts(suffix[2:-2]);header=record['headers'][0]
+        return parts in {(header['name'],),(header['owner'],header['name'])}
+    except ValueError:return False
 
 
 def _closed_package_unit(tokens,name,text):
@@ -159,14 +261,19 @@ def attach_inventory_proof(snapshot, inputs, profile, records):
                 raw=blobs[record['path']][header['start_byte']:header.get('definition_end_byte',header['end_byte'])]
                 header['definition_fingerprint']=hashlib.sha256(canonical_sql(raw.decode('utf-8')).encode()).hexdigest()
     errors = any(record['errors'] for record in records) or not _equivalent_duplicates(records,snapshot)
-    complete = set(profile.object_types)-{'COMMENT','GRANT'}
+    complete = set(profile.object_types)-{'GRANT'}
     contexts=set(complete)
     if errors:
         complete.clear()
         contexts.clear()
     for record in records:
-        complete.difference_update((*record['tainted_types'],*record['context_tainted_types']))
+        complete.difference_update((*record['tainted_types'],
+            *(set(record['context_tainted_types'])-set(record['identity_neutral_context_types']))))
         contexts.difference_update((*record['tainted_types'],*record['context_tainted_types']))
+        if not record['comment_inventory_closed']:
+            complete.discard('COMMENT');contexts.discard('COMMENT')
+    if not _verified_comments(records,snapshot):
+        complete.discard('COMMENT');contexts.discard('COMMENT')
     if 'SOURCE_SIDECAR_UNRESOLVED' in snapshot.completeness.diagnostics:
         contexts.clear()
     proof = {'version':INVENTORY_VERSION, 'source_commit':snapshot.source_commit,
@@ -178,7 +285,7 @@ def attach_inventory_proof(snapshot, inputs, profile, records):
         'parser_diagnostics':list(snapshot.completeness.diagnostics), 'artifacts':records}
     proof_hash = digest(proof)
     evidence = Evidence('ev-'+proof_hash, 'ABSENCE_SCOPE', 'SOURCE', None, proof_hash, None, None, None,
-        'Sabit kaynak dosyalarının lexer ve CREATE başlık envanteri; DDL semantiğini doğrulamaz.')
+        'Sabit kaynak dosyalarının lexer, CREATE başlık ve COMMENT kimlik envanteri; DDL semantiğini doğrulamaz.')
     return replace(snapshot, capabilities={**snapshot.capabilities,
         'source_inventory_proof':KnownValue('KNOWN', proof, (evidence.id,))}, evidence=(*snapshot.evidence,evidence))
 
@@ -228,7 +335,7 @@ def _verified_inventory_types(snapshot, *, context=False):
         return frozenset()
     if digest({'commit':proof['source_commit'],'profile':profile,'files':manifest})!=proof['source_input_digest']:
         return frozenset()
-    allowed = set(profile['object_types'])-{'COMMENT','GRANT'}
+    allowed = set(profile['object_types'])-{'GRANT'}
     if not all(isinstance(kind,str) for kind in allowed):
         return frozenset()
     paths = {}
@@ -250,6 +357,10 @@ def _verified_inventory_types(snapshot, *, context=False):
                 or not isinstance(record['headers'],list) or not isinstance(record['errors'],list)
                 or not isinstance(record['tainted_types'],list)
                 or not isinstance(record['context_tainted_types'],list)
+                or not isinstance(record['comment_headers'],list)
+                or not isinstance(record['comment_inventory_closed'],bool)
+                or not isinstance(record['identity_neutral_context_types'],list)
+                or not set(record['identity_neutral_context_types']).issubset({'TRIGGER'} & set(record['context_tainted_types']))
                 or record['package_unit_closed'] is not None and not isinstance(record['package_unit_closed'],bool)
                 or any(not isinstance(code,str) for code in record['errors'])
                 or not set((*record['tainted_types'],*record['context_tainted_types'])).issubset(set(profile['object_types']))
@@ -263,8 +374,11 @@ def _verified_inventory_types(snapshot, *, context=False):
         if record['errors']:
             derived.clear()
             context_derived.clear()
-        derived.difference_update((*record['tainted_types'],*record['context_tainted_types']))
+        derived.difference_update((*record['tainted_types'],
+            *(set(record['context_tainted_types'])-set(record['identity_neutral_context_types']))))
         context_derived.difference_update((*record['tainted_types'],*record['context_tainted_types']))
+        if not record['comment_inventory_closed']:
+            derived.discard('COMMENT');context_derived.discard('COMMENT')
         for header in record['headers']:
             if (not isinstance(header,dict) or header['kind'] not in profile['object_types']
                     or header['owner']!=Identifier.parse(record['owner']).effective_name
@@ -280,6 +394,8 @@ def _verified_inventory_types(snapshot, *, context=False):
     if not _equivalent_duplicates(records,snapshot):
         derived.clear()
         context_derived.clear()
+    if not _verified_comments(records,snapshot):
+        derived.discard('COMMENT');context_derived.discard('COMMENT')
     if 'SOURCE_SIDECAR_UNRESOLVED' in proof['parser_diagnostics']:
         context_derived.clear()
     if not isinstance(proof['complete_types'],list) or set(proof['complete_types'])!=derived:
@@ -303,6 +419,64 @@ def _verified_inventory_types(snapshot, *, context=False):
                     and registry[ev_id].sha256==record['sha256'] for ev_id in obj.evidence_ids):
                 return frozenset()
     return frozenset(context_derived if context else derived)
+
+
+def _verified_comments(records,snapshot):
+    """Every lexed comment identity must have an attributed canonical object."""
+    return _comment_identity_names(records,snapshot,require_parent=True) is not None
+
+
+def verified_comment_identity_names(snapshot):
+    """Closed COMMENT target names even when an unrelated parent is ambiguous.
+
+    A target comment can only be absent when its (owner, synthetic name) is
+    absent from this set. A declared name with an unresolved parent remains
+    unknown; this API never claims that particular parent identity is absent.
+    """
+    if not verified_inventory_types(snapshot):return None
+    try:
+        proof=thaw(snapshot.capabilities['source_inventory_proof'].value)
+        records=proof['artifacts']
+        if any(not r['comment_inventory_closed'] or 'COMMENT' in
+               (*r['tainted_types'],*r['context_tainted_types']) or r['errors'] for r in records):return None
+        return _comment_identity_names(records,snapshot,require_parent=False)
+    except (ValueError,TypeError,KeyError,AttributeError,IndexError):
+        return None
+
+
+def _comment_identity_names(records,snapshot,*,require_parent):
+    registry={ev.id:ev for ev in snapshot.evidence}
+    objects={}
+    for obj in snapshot.objects:
+        if obj.identity.object_type=='COMMENT':
+            objects.setdefault((obj.identity.owner.effective_name,obj.identity.name.effective_name),[]).append(obj)
+    parents={}
+    for obj in snapshot.objects:
+        if obj.identity.object_type in {'TABLE','VIEW','MATERIALIZED_VIEW'}:
+            parents.setdefault((obj.identity.owner.effective_name,obj.identity.name.effective_name),[]).append(obj)
+    seen=set();names=set()
+    for record in records:
+        for header in record['comment_headers']:
+            key=(header['owner'],header['name'])
+            if header['owner'] not in snapshot.schemas:continue
+            names.add(key)
+            if header['name']!='S_'+digest(['COMMENT',header['owner'],header['target'],header['column'],None,None]):return None
+            candidates=parents.get((header['owner'],header['target']),())
+            matches=[]
+            for obj in objects.get(key,()):
+                if obj.coverage.inventory!='COMPLETE':continue
+                if require_parent and (len(candidates)!=1 or obj.identity.parent_key!=candidates[0].object_key):continue
+                if any((value:=obj.properties.get(field)) is None or value.state!='KNOWN' or value.value!=header[field]
+                       for field in ('owner','target','column')):continue
+                if any(ev_id in registry and registry[ev_id].kind=='SOURCE_SPAN'
+                    and registry[ev_id].side=='SOURCE' and registry[ev_id].path==record['path']
+                    and registry[ev_id].sha256==record['sha256']
+                    and registry[ev_id].start_byte==header['start_byte']
+                    and registry[ev_id].end_byte in {header['end_byte'],header['end_byte']-1}
+                    for ev_id in obj.evidence_ids):matches.append(obj)
+            if not matches:return None
+            seen.update(obj.object_key for obj in matches)
+    return frozenset(names) if seen=={obj.object_key for group in objects.values() for obj in group} else None
 
 
 def _equivalent_duplicates(records,snapshot):

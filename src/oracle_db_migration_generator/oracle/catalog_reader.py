@@ -126,6 +126,27 @@ WHERE
     index_owner = :owner
 ORDER BY
     index_name, column_position''',
+    'index_partitioning': '''SELECT
+    index_name, partition_count, subpartitioning_type, interval
+FROM dba_part_indexes
+WHERE owner = :owner
+ORDER BY index_name''',
+    'index_partition_counts': '''SELECT
+    index_name, COUNT(*) AS partition_count
+FROM dba_ind_partitions
+WHERE index_owner = :owner
+GROUP BY index_name
+ORDER BY index_name''',
+    'index_partitions': '''SELECT
+    index_name, partition_name, composite, subpartition_count, status
+FROM dba_ind_partitions
+WHERE index_owner = :owner
+ORDER BY index_name, partition_position''',
+    'index_subpartitions': '''SELECT
+    index_name, partition_name, subpartition_name, status
+FROM dba_ind_subpartitions
+WHERE index_owner = :owner
+ORDER BY index_name, partition_position, subpartition_position''',
     'partition_keys': '''SELECT
     name, object_type, column_name, column_position
 FROM

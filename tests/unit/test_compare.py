@@ -117,7 +117,10 @@ def test_anonymous_source_constraint_matches_target_name_without_hiding_changes(
     assert not compare_snapshots(desired,actual,PROFILE.policy).differences
     disabled=snapshot('CREATE TABLE APP.DEMO(ID NUMBER, CONSTRAINT SYS_C00001 PRIMARY KEY(ID) DISABLE);','TARGET')
     changes=compare_snapshots(desired,disabled,PROFILE.policy).differences
-    assert len(changes)==1 and changes[0].property_path.endswith('/enabled')
+    # Disabling a primary key also changes its inferred NOT NULL semantics.
+    assert len(changes)==2 and sum(change.property_path.endswith('/enabled') for change in changes)==1
+    assert any(change.property_path=='/columns/ID/nullable' and change.before.value is True
+               and change.after.value is False for change in changes)
     named=snapshot('CREATE TABLE APP.DEMO(ID NUMBER, CONSTRAINT PK_DEMO PRIMARY KEY(ID));')
     assert compare_snapshots(named,actual,PROFILE.policy).differences
 

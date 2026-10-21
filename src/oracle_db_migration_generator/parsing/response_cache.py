@@ -1,5 +1,6 @@
 """Optional exact-byte parser responses; fresh metadata capture is never reused."""
 from contextlib import contextmanager
+import base64
 from dataclasses import fields
 from functools import lru_cache
 import hashlib
@@ -9,6 +10,7 @@ from pathlib import Path
 import re
 import stat
 import tempfile
+import zlib
 from types import UnionType
 from typing import Any, Union, get_args, get_origin, get_type_hints
 
@@ -16,6 +18,7 @@ from .codec import TYPES, decode
 from .fingerprint import PARSER_VERSION, parser_artifact_sha256
 
 MAX_ENTRY_BYTES = 1024 * 1024
+MAX_DECODED_BYTES = 32 * 1024 * 1024
 MAX_BUCKET_BYTES = 1024 * 1024
 MAX_BUCKET_ENTRIES = 128
 _ENTRY = re.compile(r'[0-9a-f]{64}\.json\Z')
@@ -222,6 +225,19 @@ class ParserResponseCache:
             if len(data) > MAX_ENTRY_BYTES:
                 return None
             document = json.loads(data, object_pairs_hook=_unique)
+            if not isinstance(document,dict):
+                return None
+            if document.get('schema_version')=='parser-response-cache/zlib-1.0':
+                if set(document)!={'schema_version','compressed'} or not isinstance(document['compressed'],str):
+                    return None
+                packed=base64.b64decode(document['compressed'],validate=True)
+                decoder=zlib.decompressobj()
+                decoded=decoder.decompress(packed,MAX_DECODED_BYTES+1)
+                if len(decoded)>MAX_DECODED_BYTES or not decoder.eof or decoder.unused_data or decoder.unconsumed_tail:
+                    return None
+                document=json.loads(decoded,object_pairs_hook=_unique)
+                if not isinstance(document,dict):
+                    return None
             if (set(document) != {'schema_version', 'input', 'payload_sha256', 'payload'}
                     or document['schema_version'] != 'parser-response-cache/1.0'
                     or not isinstance(document['input'], dict) or set(document['input']) != set(self.input)
@@ -231,7 +247,7 @@ class ParserResponseCache:
                     or not verified_payload(document['payload'], self.raw)):
                 return None
             return document['payload']
-        except (OSError, ValueError, TypeError, KeyError, RecursionError):
+        except (OSError, ValueError, TypeError, KeyError, RecursionError, zlib.error):
             return None
 
     def store(self, payload):
@@ -242,6 +258,11 @@ class ParserResponseCache:
             document = {'schema_version': 'parser-response-cache/1.0', 'input': self.input,
                         'payload_sha256': hashlib.sha256(json_bytes(payload)).hexdigest(), 'payload': payload}
             data = json_bytes(document)
+            if len(data)>MAX_DECODED_BYTES:
+                return
+            if len(data)>MAX_ENTRY_BYTES:
+                data=json_bytes({'schema_version':'parser-response-cache/zlib-1.0',
+                                 'compressed':base64.b64encode(zlib.compress(data)).decode('ascii')})
             if len(data) > min(MAX_ENTRY_BYTES, MAX_BUCKET_BYTES):
                 return
             _guard_parents(self.bucket)

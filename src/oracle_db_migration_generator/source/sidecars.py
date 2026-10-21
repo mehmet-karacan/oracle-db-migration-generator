@@ -92,6 +92,8 @@ def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
                     continue
                 for fact in facts:
                     parents = parent_candidates.get((fact['owner'],fact['target']),())
+                    if fact.get('target_type'):
+                        parents = tuple(item for item in parents if item.identity.object_type == fact['target_type'])
                     parent = parents[0] if len(parents) == 1 else None
                     reasons = [] if parent else ['SIDECAR_PARENT_UNRESOLVED']
                     if fact.get('column_grant'):
@@ -103,7 +105,7 @@ def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
                                               Identifier('S_' + digest(identity_parts), 'SIDECAR', False),
                                               parent.object_key if parent else None)
                     raw = fact.pop('raw_ddl')
-                    props = {key: KnownValue('KNOWN', value, (ev_id,)) for key, value in fact.items() if key != 'kind'}
+                    props = {key: KnownValue('KNOWN', value, (ev_id,)) for key, value in fact.items() if key not in {'kind','target_type'}}
                     props['definition'] = KnownValue('KNOWN',canonical_sql(raw.decode()),(ev_id,))
                     item = SnapshotObject(identity,props,artifact.path,hashlib.sha256(raw).hexdigest(),
                                           Coverage('COMPLETE','PARTIAL' if reasons else 'COMPLETE','NOT_APPLICABLE',tuple(reasons)),

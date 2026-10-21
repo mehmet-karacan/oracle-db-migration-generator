@@ -86,8 +86,10 @@ index/yorum/grant da aynı politikayı izler. Ham envanter ve dışlama kanıtı
 Genel mail ve web özetinde BLOCKED, REVIEW_REQUIRED, COMMENT veya [TABLE]
 gibi iç etiketler gösterilmez. Kullanıcı karşılıkları DDL üretilemedi, İnceleme
 gerekli, Açıklama ve Tablo'dur. Üretilemeyen DDL sayısı gizlenmez veya sıfırlanmaz.
-Durumun altında küçük yazıyla kısa, nesneye özgü neden gösterilir. Mailde neden
-satırı dört sütunun tamamını kaplar; dar Sonuç hücresinde kelimelere bölünmez.
+Nesne adının altında küçük yazıyla kısa, nesneye özgü neden gösterilir. Mailde
+neden yalnız Nesne / Fark hücresinde kalır; diğer sütunlara taşmaz. Metin en
+fazla 150 karakterdir; özel tablo yapısı gibi bilinen nedenler kısa cümleyle
+özetlenir. Tam gerekçe ayrıntılı raporda korunur.
 Aynı bağlı
 nesneye ait tekrarlar tek açıklamada birleştirilir; asıl eksik bilgi mevcutsa
 genel hazır değil ifadesi yerine o bilgi yazılır. Belirsizlik yokluk diye sunulmaz.

@@ -6,7 +6,8 @@ from .projection_adapter import canonical_fields, structured_changes, align_anon
 from .scope import scoped_objects
 
 
-def _absence(snapshot,obj=None,*,object_type=None,verified_types=(),verified_context_types=()):
+def _absence(snapshot,obj=None,*,object_type=None,object_identity=None,verified_types=(),verified_context_types=(),
+             verified_comment_names=None):
     ids = obj.evidence_ids if obj else tuple(ev.id for ev in snapshot.evidence if ev.kind=='ABSENCE_SCOPE')
     # Source scripts can ALTER an earlier CREATE: local absence also requires
     # closed context coverage when the global source inventory is incomplete.
@@ -18,6 +19,10 @@ def _absence(snapshot,obj=None,*,object_type=None,verified_types=(),verified_con
             ids=tuple(sorted(set((*ids,*snapshot.capabilities['source_inventory_proof'].evidence_ids))))
     if obj is None and snapshot.completeness.inventory!='COMPLETE' and object_type in verified_types:
         ids = snapshot.capabilities['source_inventory_proof'].evidence_ids
+    if (obj is None and snapshot.side=='SOURCE' and object_type=='COMMENT'
+            and object_identity is not None and verified_comment_names is not None):
+        complete=(object_identity.owner.effective_name,object_identity.name.effective_name) not in verified_comment_names
+        ids=snapshot.capabilities['source_inventory_proof'].evidence_ids
     return KnownValue('ABSENT' if complete and ids else 'UNKNOWN',None,ids)
 
 
@@ -28,9 +33,10 @@ def compare_snapshots(desired,actual,policy):
         raise ValueError('SNAPSHOT_PROFILE_OR_SCHEMA_MISMATCH')
     source = {obj.object_key:obj for obj in scoped_objects(desired,policy) if obj.identity.owner.effective_name in actual.schemas}
     target = {obj.object_key:obj for obj in scoped_objects(actual,policy)}
-    from ..parsing.inventory import verified_inventory_types
+    from ..parsing.inventory import verified_inventory_types,verified_comment_identity_names
     source_inventory_types = verified_inventory_types(desired)
     source_context_types = verified_inventory_types(desired,context=True)
+    source_comment_names = verified_comment_identity_names(desired)
     differences, diagnostics = [], []
     def add(key,path,before,after,kind):
         ids = tuple(sorted(set(before.evidence_ids+after.evidence_ids)))
@@ -41,7 +47,8 @@ def compare_snapshots(desired,actual,policy):
             present = new or old
             before = KnownValue('KNOWN',True,old.evidence_ids) if old else _absence(actual)
             after = KnownValue('KNOWN',True,new.evidence_ids) if new else _absence(desired,
-                object_type=present.identity.object_type,verified_types=source_inventory_types)
+                object_type=present.identity.object_type,object_identity=present.identity,
+                verified_types=source_inventory_types,verified_comment_names=source_comment_names)
             for snapshot,value in ((actual,before),(desired,after)):
                 if value.state=='ABSENT' and present.identity.object_type in {'COMMENT','GRANT'}:
                     cap = snapshot.capabilities.get('coverage.'+present.identity.object_type)

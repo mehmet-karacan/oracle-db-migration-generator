@@ -220,7 +220,13 @@ def object_change(context,obj,actual,changes):
         if kind.endswith('_BODY'):
             refs.append(DependencyReference(obj.identity.owner.effective_name,kind.replace('_BODY','_SPEC'),obj.identity.name.effective_name,'SPEC'))
         # FORCE is an installation behavior, never a substitute for dependencies.
-        statement = replace_header(obj.raw_ddl)
+        projection=source_projection(obj) if kind=='TYPE_SPEC' else None
+        effective_create=projection.properties.get('_generator_effective_create') if projection else None
+        if effective_create:
+            from ..parsing.projections import normalize_projection
+            if normalize_projection(projection,obj.raw_ddl.decode()).diagnostics:
+                return decide('BLOCKED','TYPE_EFFECTIVE_DEFINITION_UNVERIFIED','Nihai type tanımı kaynak CREATE ve ALTER aralıklarıyla doğrulanamadı.')
+        statement = replace_header(effective_create.encode('utf-8') if effective_create else obj.raw_ddl)
         if kind=='VIEW':
             statement = re.sub(rb'(?i)^(\s*CREATE\s+OR\s+REPLACE\s+(?:(?:NON)?EDITIONABLE\s+)?)FORCE\s+',rb'\1',statement,count=1)
         return decide('READY','CREATE_VERIFIED_OBJECT' if missing else 'REPLACE_VERIFIED_OBJECT',

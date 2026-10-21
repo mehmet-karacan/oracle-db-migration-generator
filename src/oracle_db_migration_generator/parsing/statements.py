@@ -32,9 +32,11 @@ def sidecar_facts(text: str, default_schema: str):
         raise ValueError('SIDECAR_TOKENS_UNRESOLVED')
     tokens = tuple(token for token in tokens if token.text != ';')
     words = tuple(token.upper for token in tokens)
-    if words[:3] in {('COMMENT', 'ON', 'TABLE'), ('COMMENT', 'ON', 'COLUMN')}:
-        end = words.index('IS', 3)
-        names = qualified_parts(tokens[3:end])
+    materialized = words[:4] == ('COMMENT', 'ON', 'MATERIALIZED', 'VIEW')
+    if materialized or words[:3] in {('COMMENT', 'ON', 'TABLE'), ('COMMENT', 'ON', 'COLUMN')}:
+        start = 4 if materialized else 3
+        end = words.index('IS', start)
+        names = qualified_parts(tokens[start:end])
         column = None
         if words[2] == 'COLUMN':
             if len(names) == 2:
@@ -50,8 +52,11 @@ def sidecar_facts(text: str, default_schema: str):
         else:
             raise ValueError('COMMENT_TARGET_UNRESOLVED')
         expression = source_span(text, tokens[end + 1:])
-        return ({'kind':'COMMENT', 'owner':owner, 'target':table, 'column':column,
-                 'text':literal_value(expression), 'raw_ddl':text.encode('utf-8')},)
+        fact = {'kind':'COMMENT', 'owner':owner, 'target':table, 'column':column,
+                'text':literal_value(expression), 'raw_ddl':text.encode('utf-8')}
+        if materialized:
+            fact['target_type'] = 'MATERIALIZED_VIEW'
+        return (fact,)
     if words[0] == 'GRANT':
         to=words.index('TO')
         on=max(index for index,word in enumerate(words[:to]) if word=='ON')

@@ -49,6 +49,54 @@ def test_exact_verified_response_avoids_worker_and_returns_independent_payload(w
     assert len(calls) == 1
 
 
+def test_large_verified_response_uses_bounded_compressed_entry(worker):
+    calls,responses,root=worker
+    raw=b'CREATE TABLE APP.T(ID NUMBER);'
+    large=payload(raw)
+    large['objects'][0]['projection']['fields']['properties']['large_fact']='x'*(2*1024*1024)
+    responses.append(large)
+    assert client.request_parse(raw,'APP')==large
+    assert client.request_parse(raw,'APP')==large
+    assert len(calls)==1
+    assert next(root.rglob('*.json')).stat().st_size < 1024*1024
+
+
+def test_compressed_entry_expansion_limit_is_a_cache_miss(worker,monkeypatch):
+    from oracle_db_migration_generator.parsing import response_cache
+    calls,responses,root=worker
+    raw=b'CREATE TABLE APP.T(ID NUMBER);'
+    large=payload(raw)
+    large['objects'][0]['projection']['fields']['properties']['large_fact']='x'*(2*1024*1024)
+    responses.append(large)
+    client.request_parse(raw,'APP')
+    assert list(root.rglob('*.json'))
+    monkeypatch.setattr(response_cache,'MAX_DECODED_BYTES',1024)
+    assert client.request_parse(raw,'APP')==payload(raw)
+    assert len(calls)==2
+
+
+@pytest.mark.parametrize('damage',['truncated','trailing','base64','nonobject'])
+def test_corrupt_compressed_entries_fall_back_to_fresh_parser(worker,damage):
+    import base64,zlib
+    from oracle_db_migration_generator.parsing.response_cache import json_bytes
+    calls,responses,root=worker
+    raw=b'CREATE TABLE APP.T(ID NUMBER);'
+    large=payload(raw)
+    large['objects'][0]['projection']['fields']['properties']['large_fact']='x'*(2*1024*1024)
+    responses.append(large)
+    client.request_parse(raw,'APP')
+    path=next(root.rglob('*.json'))
+    document=json.loads(path.read_bytes())
+    compressed=base64.b64decode(document['compressed'])
+    if damage=='truncated':document['compressed']=base64.b64encode(compressed[:-1]).decode()
+    elif damage=='trailing':document['compressed']=base64.b64encode(compressed+b'extra').decode()
+    elif damage=='base64':document['compressed']='???'
+    else:document['compressed']=base64.b64encode(zlib.compress(b'[]')).decode()
+    path.write_bytes(json_bytes(document))
+    assert client.request_parse(raw,'APP')==payload(raw)
+    assert len(calls)==2
+
+
 def test_raw_owner_metadata_and_parser_artifact_are_independent_cache_inputs(worker, monkeypatch):
     from oracle_db_migration_generator.parsing import response_cache
     calls, _, _ = worker

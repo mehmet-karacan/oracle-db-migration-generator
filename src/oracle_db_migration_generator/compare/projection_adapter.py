@@ -99,6 +99,28 @@ def _integer(value):
     return int(str(value)) if value is not None and re.fullmatch(r'[+-]?\d+',str(value)) else None
 
 
+def _enabled_not_null(item):
+    if item.get('nullable') != 'NOT NULL':
+        return False
+    tokens = code_tokens(item.get('definition') or '') or ()
+    depth = 0
+    words = []
+    for token in tokens:
+        if token.text == '(':
+            depth += 1
+        words.append(token.upper if depth == 0 else None)
+        if token.text == ')':
+            depth -= 1
+    positions = [i for i in range(len(words)-1) if words[i:i+2] == ['NOT','NULL']]
+    if not positions:
+        return True
+    start = positions[-1] + 2
+    end = next((i for i in range(start,len(words)) if words[i] in
+                {'CONSTRAINT','PRIMARY','UNIQUE','REFERENCES','CHECK','NULL'}
+                or words[i]=='NOT' and (i+1==len(words) or words[i+1]!='DEFERRABLE')),len(words))
+    return 'DISABLE' not in words[start:end]
+
+
 def table_columns(obj,snapshot):
     projection = restore_projection(obj)
     columns = dict(projection.properties.get('columns',{})) if projection else {}
@@ -111,7 +133,7 @@ def table_columns(obj,snapshot):
     if projection:
         for definition in projection.properties.get('constraints',{}).values():
             detail = constraint_properties(definition)
-            if detail.get('kind')=='PRIMARY KEY' and detail.get('columns'):
+            if detail.get('kind')=='PRIMARY KEY' and detail.get('columns') and detail.get('enabled')!='DISABLE':
                 tokens = code_tokens(detail['columns']) or ()
                 primary_columns.update(identifier(token)[0] for token in tokens if token.text!=',')
     for name in sorted(names):
@@ -128,7 +150,7 @@ def table_columns(obj,snapshot):
             'exists':True, 'data_type':base_type,
             'length':_integer(item.get('length')), 'length_semantics':item.get('length_semantics'),
             'precision':_integer(item.get('precision')), 'scale':_integer(item.get('scale')),
-            'nullable':item.get('nullable')!='NOT NULL' and name not in primary_columns and not bool(item.get('identity')),
+            'nullable':not _enabled_not_null(item) and name not in primary_columns and not bool(item.get('identity')),
             'default':_default(item.get('default')), 'default_on_null':bool(item.get('default_on_null')),
             'identity':canonical_sql(item['identity']) if item.get('identity') else None,
             'virtual_expression':canonical_sql(item['virtual_expression']) if item.get('virtual_expression') else None,
@@ -295,7 +317,10 @@ def canonical_fields(obj,snapshot,policy):
             rows=observed.value if observed.state=='KNOWN' else ()
             row=next((item for item in rows if item.get('index_name')==obj.identity.name.effective_name),None)
             availability=row.get('status') if row else None
-            if availability not in {'VALID','UNUSABLE'}:
+            if row and row.get('partitioned')=='YES':
+                from ..oracle.index_status import partition_index_availability
+                fields['/index/availability']=partition_index_availability(obj)
+            elif availability not in {'VALID','UNUSABLE'}:
                 fields['/index/availability']=KnownValue('UNKNOWN',None,observed.evidence_ids)
             else: known('/index/availability',availability,observed.evidence_ids)
         else: known('/index/availability',availability)

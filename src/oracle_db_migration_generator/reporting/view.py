@@ -5,7 +5,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 from .formatting import format_count, difference_counts
-from .labels import object_label, status_label, type_label, kind_label, operation_reason, target_reason, target_status
+from .labels import object_label, status_label, type_label, kind_label, operation_reason, mail_operation_reason, target_reason, target_status
 
 RANK={'ERROR':0,'INCONSISTENT':1,'INCOMPLETE':2,'BLOCKED':3,'REVIEW_REQUIRED':4,'READY':5,'NO_ACTION':6,'NO_CHANGE':7}
 OP_RANK={'BLOCKED':0,'REVIEW_REQUIRED':1,'READY':2,'INFORMATIONAL':3}
@@ -72,9 +72,9 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
             for op in plan['operations']:
                 obj=op['object'];key=tuple(obj[k] for k in ('owner','object_type','name','parent_key'))
                 row=unique.setdefault(key,{'object':obj,'object_label':object_label(obj),'type_label':type_label(obj['object_type']),'evidence_path':target['plan_path'],
-                                          'decision':op['decision'],'reason':operation_reason(op), 'targets':set(),'kinds':set(),'operation_count':0})
+                                          'decision':op['decision'],'reason':operation_reason(op),'mail_reason':mail_operation_reason(op), 'targets':set(),'kinds':set(),'operation_count':0})
                 row['targets'].add(target['id']);row['kinds'].add(op['kind']);row['operation_count']+=1
-                if OP_RANK[op['decision']]<OP_RANK[row['decision']]: row.update(decision=op['decision'],reason=operation_reason(op))
+                if OP_RANK[op['decision']]<OP_RANK[row['decision']]: row.update(decision=op['decision'],reason=operation_reason(op),mail_reason=mail_operation_reason(op))
         targets.append(item)
     important=sorted(unique.values(),key=lambda r:(OP_RANK[r['decision']],r['object']['owner'],r['object']['object_type'],r['object']['name']))[:5]
     target_labels={item['id']:item['name']+(' ('+', '.join(item['schemas'])+')' if item['schemas'] else '') for item in targets}

@@ -1,3 +1,63 @@
+## Kalan 493 kayıt ve mail sütun düzeltmesi — 21 Ekim 2026
+
+Bu bölüm önceki 493 açık kayıt durumunun yerine geçer. Source ve target her
+zaman salt okunur kaldı; DDL/DML/COMPILE çalıştırılmadı. Sabit kaynak commit'i
+ve #29 metadata'sı yeniden karşılaştırıldı. Yedi partition index için iki
+salt okunur hedef katalog bağlantısı yapıldı; kaynak bağlantısı0. Bu çalışma
+canlı tam metadata toplama koşusu veya Oracle üzerinde uygulama kabulü değildir.
+
+493/493 benzersiz ID incelendi:435 EXTRA,54 alan eşitliği,4 gerçek tanım farkı.
+Yeni planda UNKNOWN0; saptanan fark12.387, READY1.377, REVIEW655, BLOCKED138.
+EXTRA kayıtlar bilgi/uyarıdır; hedefe özgü nesneler için DROP üretilmedi.
+Global kaynak kapsamı PARTIAL kalır; UNKNOWN0 bütün kaynak SQL'inin veya canlı
+Oracle compile durumunun eksiksiz kabulü olarak sunulmaz.
+Plan:14f22578237ff9b1d367205000d828afd6fa6efd327e273d88775af8c07a5dae.
+
+Düzeltmeler: envanter proof1.4 ve COMMENT kimlik bazlı yokluk kanıtı;
+COMMENT ON MATERIALIZED VIEW; IN(WITH...) grammar girişi; nested routine
+lexical scope ve dış çağrı bağımlılıkları; doğrulanmış CREATE+ALTER TYPE son
+hali ve onun type bağımlılıkları; DISABLE/NOT DEFERRABLE nullability ve
+reconstructed kolon state koruması; gerçek partition/subpartition sayılarıyla
+index availability. Yedi indexin730 gerçek partition'ı USABLE bulundu;
+N/A üst durumundan UNKNOWN türetilmiyor. Ham SQL ve kaynak byte aralıkları korundu.
+
+Büyük PACKAGE_BODY için ölçülen ilk parse115,9–202,3sn; yalnız128KiB üstü bu
+familya240sn bütçe alır. Diğer30/120sn sınırları değişmedi. Parser cache'in
+1MiB disk sınırı korunup32MiB açılım sınırına sahip sıkıştırma eklendi;
+bozuk/truncated/trailing/şişen cache miss kalır. Dört gerçek büyük paket
+sonucunun warm transport okuması0,047–0,079sn; bu canlı toplam koşu süresi değildir.
+Kaydedilmiş metadata karşılaştırmasının rapor zamanı4dk36sn; tüm yerel
+inceleme/gramer kanıtı toplama süresini veya sonraki canlı koşuyu ifade etmez.
+
+Mail açıklaması Nesne / Fark hücresinde, en fazla150 karakter ve kısa bilinen
+nedenle gösterilir. colspan ile diğer sütunların altına taşmaz. Tam açıklama
+ayrıntılı raporda kalır. İlk5 nesne, kolon oranları ve mevcut logo korunur.
+
+Doğrulama: `.venv/Scripts/python.exe -m pytest -q
+--junitxml=output/remaining-493/tests-final.xml`:992passed,112,11sn; skip/fail0.
+`tools/check_contracts.py`:VERIFIED(7şema/8örnek). Wheel130 paket dosyasıyla
+çalışma ağacı byte eşitliği doğrulandı. Bundle5.336 dosya VERIFIED;493 kayıt
+JSON/CSV ve5 HTML sayfada. Bağımsız incelemenin4 bulgusu kırmızı testle düzeltildi.
+İlk yerel arşiv girişiminde target kanıt türü sözleşmeyle uyuşmadı; aktarım
+kaydı TARGET_METADATA olarak düzeltildi, sonra bundle doğrulandı. Ürün sözleşmesi
+gevşetilmedi. Referans kontrolü36 matched/7 drift; dış projeler değiştirilmedi,
+sabit vendor dosyaları değiştirilmedi. Bu drift ayrı devir notudur.
+
+Jenkins: v20 release2b163f5cff17d88bf52d18124d83c0b0a0c1e36c29cfd3c6435df8a74b3a8340.
+#39 ENVIRONMENT_CHECK SUCCESS. #40 rapor aktarımı UNSTABLE tamamlandı: aynı plan ID,5.336 bundle dosyası ve UNKNOWN0 Jenkins makbuzundan doğrulandı. Genel mail tek onaylı alıcıya gönderildi; bu statü138 üretilemeyen işlem/eksik kapsamı yansıtır.
+Normal pipeline hash f4dead35196b55e8cc5d444485dafa111d59bd0c0c82239ea1b0276695c849f5;
+08:00 Europe/Istanbul, TTBP/PROD, varsayılan COMPARE ve geçici rapor parametresi0
+UI'dan tekrar okundu. Son mailde5 açıklamanın tamamı ilk hücrede, dört sütun korunarak ve yatay taşma0 olarak ölçüldü; ekran kanıtı final-mail-layout.png. SQL/JSON/HTML yalnız Jenkins; artifact Git push kapalı.
+Mail yalnız onaylı tek alıcıya, genel HTML gövdesiyle ve SQL/log eki olmadan.
+
+Açık durumlar:138 üretilemeyen işlemin gerçek nedenleri raporda; bu sayı belirsiz
+karşılaştırma sayısı değildir. Üç baseline dışı eski büyük kaynak gövdesinin
+bireysel yeniden parse kanıtı NOT_RUN. Sonraki somut adım normal08:00 canlı
+metadata koşusunda toplam süreyi izlemek ve istenirse kalan DDL üretim nedenlerini
+ayrı kapsamda ele almak. Oracle üzerinde DDL kabulü NOT_RUN; salt okuma sınırı sürer.
+Yerel kanıtlar output/remaining-493 altında Git dışında; sırlar ve ham metadata
+kod yayınına dahil edilmez.
+
 ## 4.645 kayıt incelemesi ve statik performans — teslim, 21 Ekim 2026
 
 Önceki ara devirlerin yerine bu son durum esas alınır. Kaynak ve hedef salt

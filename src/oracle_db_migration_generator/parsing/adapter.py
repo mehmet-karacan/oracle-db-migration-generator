@@ -38,8 +38,13 @@ class ParseResult:
 
 def parse_ddl(raw: bytes, identity_hint: ObjectIdentity | None,*,metadata=False) -> ParseResult:
     owner = identity_hint.owner.effective_name if identity_hint else None
+    timeout=120 if len(raw)>24*1024 else 30
+    # Full-grammar frozen captures measured 157–202s for large package bodies.
+    # Keep that narrow case bounded; all other unit budgets stay unchanged.
+    if identity_hint and identity_hint.object_type=='PACKAGE_BODY' and len(raw)>128*1024:
+        timeout=240
     try:
-        payload = request_parse(raw, owner,timeout=120 if len(raw)>24*1024 else 30,metadata=metadata)
+        payload = request_parse(raw, owner,timeout=timeout,metadata=metadata)
     except TimeoutError:
         return ParseResult((), (), ('PARSER_TIMEOUT',), 'UNAVAILABLE')
     except (RuntimeError, BrokenPipeError):
@@ -106,7 +111,7 @@ def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
             properties = {'projection': KnownValue('KNOWN' if known else 'UNKNOWN',
                                                    thaw(parsed.projection.properties) if known else None, ids),
                           'definition': KnownValue('KNOWN' if parsed.parse_ok else 'UNKNOWN',
-                                                   canonical_sql(parsed.raw_ddl.decode()) if parsed.parse_ok else None, ids)}
+                                                   parsed.projection.properties.get('_generator_effective_definition',canonical_sql(parsed.raw_ddl.decode())) if parsed.parse_ok else None, ids)}
             obj = SnapshotObject(parsed.identity, properties, artifact.path, hashlib.sha256(parsed.raw_ddl).hexdigest(),
                                  Coverage('COMPLETE', 'COMPLETE' if known else 'PARTIAL', 'NOT_APPLICABLE', parsed.diagnostics),
                                  ids, parsed.raw_ddl, parsed.projection)

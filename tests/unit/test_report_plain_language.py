@@ -96,8 +96,34 @@ def test_dependency_status_at_sentence_end_is_translated_without_renaming_object
     assert reason == 'APP.BLOCKED: oluşturma işlemi için DDL üretilemedi.'
 
 
-def test_mail_reason_uses_a_full_width_line_below_the_result():
+def test_mail_reason_stays_in_the_object_cell():
     run, plans = blocked_inputs()
     html = render_email(build_run_view(run, plans)).decode()
-    assert '<tr class="reason-row"><td colspan="4"' in html
-    assert html.index('DDL üretilemedi</td>') < html.index('class="reason-row"')
+    class Rows(HTMLParser):
+        def __init__(self):
+            super().__init__(); self.rows=[]; self.row=None; self.cell=None
+        def handle_starttag(self,tag,attrs):
+            if tag=='tr': self.row=[]
+            elif tag=='td' and self.row is not None: self.cell=[]
+        def handle_data(self,data):
+            if self.cell is not None:self.cell.append(data)
+        def handle_endtag(self,tag):
+            if tag=='td' and self.cell is not None:
+                self.row.append(' '.join(self.cell));self.cell=None
+            elif tag=='tr' and self.row is not None:
+                self.rows.append(self.row);self.row=None
+    parser=Rows();parser.feed(html)
+    row=next(row for row in parser.rows if row and 'APP.ORDERS.PRICE' in row[0])
+    assert len(row)==4
+    assert 'hedefte bulunamadı' in row[0]
+    assert all('hedefte bulunamadı' not in cell for cell in row[1:])
+
+
+def test_mail_reason_summarizes_complex_table_dependency_without_repeating_the_object():
+    run,plans=blocked_inputs()
+    op=plans['TARGET-000']['operations'][0]
+    op['reason_tr']='APP.ORDERS (PRICE) [TABLE]: hedefte bulunamadı; bağlı nesne için DDL üretilemedi: Partition, LOB, IOT, external veya cluster özelliği sade tabloya dönüştürülemez.'
+    view=build_run_view(run,plans)
+    row=view['important_objects'][0]
+    assert row['mail_reason']=='Bağlı tablonun özel yapısı için DDL desteği gerekiyor.'
+    assert 'Partition, LOB' in row['reason']

@@ -8,6 +8,56 @@ https://docs.oracle.com/en/database/oracle/oracle-database/19/lnpls/CREATE-TRIGG
 """
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens,enclosed
 from antlr4 import CommonTokenStream
+from antlr4.atn.ATNDeserializer import ATNDeserializer
+from antlr4.atn.Transition import RuleTransition
+from antlr4.dfa.DFA import DFA
+from antlr4.PredictionContext import PredictionContextCache
+
+from .._vendor.analyzer_core.oracle.generated.PlSqlParser import PlSqlParser, serializedATN
+
+
+def _in_select_atn():
+    """Clone the pinned ATN and extend only IN's existing query alternative.
+
+    The generated in_elements calls subquery, whose rule excludes WITH. Its
+    enclosing adaptive predictions therefore reject CTEs before an overridden
+    method can run. select_only_statement already validates WITH + subquery;
+    point this one rule call at that production in an independent ATN. Neither
+    the generated ATN nor its shared prediction caches are modified.
+    """
+    atn = ATNDeserializer().deserialize(serializedATN())
+    matches = []
+    for state in atn.states:
+        if state is None or state.ruleIndex != PlSqlParser.RULE_in_elements:
+            continue
+        for index, transition in enumerate(state.transitions):
+            if isinstance(transition, RuleTransition) and transition.ruleIndex == PlSqlParser.RULE_subquery:
+                matches.append((state, index, transition))
+    if len(matches) != 1:
+        raise RuntimeError('PINNED_IN_SUBQUERY_RULE_DRIFT')
+    state, index, transition = matches[0]
+    state.transitions[index] = RuleTransition(
+        atn.ruleToStartState[PlSqlParser.RULE_select_only_statement],
+        PlSqlParser.RULE_select_only_statement, transition.precedence, transition.followState,
+    )
+    return atn
+
+
+class CompatiblePlSqlParser(PlSqlParser):
+    """Full pinned parser with Oracle CTE support in IN query expressions.
+
+    No token, SQL text, source position or EOF handling is changed. The
+    adapter uses the generated WITH and SELECT productions, including their
+    normal error reporting, rather than accepting an opaque query fragment.
+    """
+    atn = _in_select_atn()
+    decisionsToDFA = [DFA(state, index) for index, state in enumerate(atn.decisionToState)]
+    sharedContextCache = PredictionContextCache()
+
+    def subquery(self):
+        if isinstance(self._ctx, self.In_elementsContext):
+            return self.select_only_statement()
+        return super().subquery()
 
 
 def grammar_token_stream(lexer,object_type):

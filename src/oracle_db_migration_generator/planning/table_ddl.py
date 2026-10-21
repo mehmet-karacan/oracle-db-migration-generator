@@ -107,6 +107,20 @@ def column_definition(name,detail,*,reconstruct=False,fields=None,collation_enab
         sql += ' DEFAULT'+(' ON NULL' if detail.get('default_on_null') else '')+' '+detail['default']
     if detail.get('nullable')=='NOT NULL':
         sql += ' NOT NULL'
+        # Reconstructing an ALTERed column must preserve the original constraint
+        # state rather than silently enabling a disabled NOT NULL declaration.
+        original=code_tokens(detail.get('definition','')) or ()
+        depth=0
+        words=[]
+        for token in original:
+            if token.text=='(':depth+=1
+            words.append(token.upper if depth==0 else None)
+            if token.text==')':depth-=1
+        at=next((i+2 for i in range(len(words)-1) if words[i:i+2]==['NOT','NULL']),None)
+        if at is not None:
+            stop=next((i for i in range(at,len(words)) if words[i] not in
+                       {'ENABLE','DISABLE','VALIDATE','NOVALIDATE','RELY','NORELY','DEFERRABLE','NOT','INITIALLY','IMMEDIATE','DEFERRED'}),len(words))
+            if stop>at:sql += ' '+source_span(detail['definition'],original[at:stop])
     if detail.get('visibility')=='INVISIBLE':
         sql += ' INVISIBLE'
     return _explicit_collation(_explicit_length_semantics(sql,fields),fields,collation_enabled)

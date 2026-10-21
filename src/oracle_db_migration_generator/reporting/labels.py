@@ -87,6 +87,19 @@ def operation_reason(op):
     return text if len(text)<=240 else text[:239]+'…'
 
 
+def mail_operation_reason(op):
+    """Keep the mail cell brief; full evidence remains in the detailed report."""
+    text = operation_reason(op)
+    if 'Partition, LOB, IOT, external veya cluster' in op['reason_tr']:
+        return ('Bağlı tablonun özel yapısı için DDL desteği gerekiyor.'
+                if 'DEPENDENCY_UNVERIFIED' in op['reason_codes'] else
+                'Tablonun özel yapısı için DDL desteği gerekiyor.')
+    if len(text) <= 150:
+        return text
+    boundary = text.rfind(' ', 0, 149)
+    return text[:boundary if boundary > 0 else 149].rstrip(' ;,.') + '…'
+
+
 def target_reason(plan):
     if not plan: return 'Hedef bilgileri alınamadı; fark sonucu üretilemedi.'
     count = plan['counts']['blocked_operations']

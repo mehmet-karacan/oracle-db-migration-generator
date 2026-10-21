@@ -75,6 +75,31 @@ CAPTURE_QUERIES = {
         'SELECT index_name, table_name, column_name, column_position, descend FROM all_ind_columns WHERE index_owner = :owner ORDER BY index_name, column_position'),
     'index_expressions': (('index_name','column_expression','column_position'),
         'SELECT index_name, column_expression, column_position FROM all_ind_expressions WHERE index_owner = :owner ORDER BY index_name, column_position'),
+    'index_partitioning': (('index_name','partition_count','subpartitioning_type','interval'),
+        '''SELECT
+    index_name, partition_count, subpartitioning_type, interval
+FROM all_part_indexes
+WHERE owner = :owner
+ORDER BY index_name'''),
+    'index_partition_counts': (('index_name','partition_count'),
+        '''SELECT
+    index_name, COUNT(*) AS partition_count
+FROM all_ind_partitions
+WHERE index_owner = :owner
+GROUP BY index_name
+ORDER BY index_name'''),
+    'index_partitions': (('index_name','partition_name','composite','subpartition_count','status'),
+        '''SELECT
+    index_name, partition_name, composite, subpartition_count, status
+FROM all_ind_partitions
+WHERE index_owner = :owner
+ORDER BY index_name, partition_position'''),
+    'index_subpartitions': (('index_name','partition_name','subpartition_name','status'),
+        '''SELECT
+    index_name, partition_name, subpartition_name, status
+FROM all_ind_subpartitions
+WHERE index_owner = :owner
+ORDER BY index_name, partition_position, subpartition_position'''),
     'partition_keys': (('name','object_type','column_name','column_position'),
         'SELECT name, object_type, column_name, column_position FROM all_part_key_columns WHERE owner = :owner ORDER BY name, column_position'),
     'sequences': (('sequence_name','min_value','max_value','increment_by','cycle_flag','order_flag','cache_size','last_number'),

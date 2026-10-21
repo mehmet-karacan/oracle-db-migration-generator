@@ -38,7 +38,7 @@ def test_timeout_preserves_positive_header_identity_without_semantic_success(mon
     assert obj.properties['definition'].state == obj.properties['projection'].state == 'UNKNOWN'
     assert desired.completeness.inventory == desired.completeness.ddl == 'PARTIAL'
     assert 'TABLE' in proof_types(desired) and 'PACKAGE_BODY' in proof_types(desired)
-    assert not {'COMMENT', 'GRANT'} & proof_types(desired)
+    assert 'COMMENT' in proof_types(desired) and 'GRANT' not in proof_types(desired)
 
 
 def test_header_proof_confirms_only_other_create_types_and_never_makes_body_ready(monkeypatch):

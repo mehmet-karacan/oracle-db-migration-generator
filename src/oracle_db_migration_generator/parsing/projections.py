@@ -54,6 +54,16 @@ def anonymous_constraint_key(definition, existing):
 
 
 def normalize_projection(projection,source_text=None):
+    if projection.object_type in {'TYPE','TYPE_SPEC'} and source_text is not None and any(
+            key in projection.properties for key in ('_generator_effective_create','_generator_effective_definition')):
+        from .type_evolution import effective_type_definition
+        try:
+            expected=effective_type_definition(source_text,lambda _:True,include_create=True)
+            valid=bool(expected and expected[0]==projection.properties.get('_generator_effective_definition')
+                       and expected[1]==projection.properties.get('_generator_effective_create'))
+        except (ValueError,IndexError,TypeError):valid=False
+        if not valid:
+            return replace(projection,diagnostics=tuple(sorted(set(projection.diagnostics+('DERIVED_TYPE_DEFINITION_SOURCE_MISMATCH',)))))
     if projection.object_type=='INDEX' and source_text is not None:
         tokens=code_tokens(source_text) or ()
         on=next((i for i,token in enumerate(tokens) if token.upper=='ON'),None)
