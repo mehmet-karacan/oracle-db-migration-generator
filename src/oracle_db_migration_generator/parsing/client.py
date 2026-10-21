@@ -1,6 +1,7 @@
 import atexit
 import base64
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -46,10 +47,21 @@ class ParserClient:
 def request_parse(raw: bytes, default_schema: str | None, timeout: float = 30,*,metadata=False):
     global _client
     with _lock:
+        cache = None
+        if os.environ.get('GENERATOR_PARSER_CACHE_DIR'):
+            from .response_cache import configured_cache
+            cache = configured_cache(raw, default_schema, metadata)
+        if cache is not None:
+            cached = cache.load()
+            if cached is not None:
+                return cached
         if _client is None or _client.process.poll() is not None:
             _client = ParserClient()
         try:
-            return _client.request(raw, default_schema, timeout,metadata)
+            result = _client.request(raw, default_schema, timeout,metadata)
+            if cache is not None:
+                cache.store(result)
+            return result
         except (TimeoutError, BrokenPipeError, RuntimeError):
             _client.close()
             _client = None

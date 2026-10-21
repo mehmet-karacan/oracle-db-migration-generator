@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import datetime, timezone
 import hashlib
 
-from oracle_db_migration_generator.compare.projection_adapter import table_columns
+from oracle_db_migration_generator.compare.projection_adapter import table_columns,restore_projection
 from oracle_db_migration_generator.model.evidence import Evidence
 from oracle_db_migration_generator.model.serialization import canonical_bytes,digest,thaw
 from oracle_db_migration_generator.model.snapshot import KnownValue
@@ -67,7 +67,7 @@ def reconcile_source(source,capture,root):
                 if reason:break
         if reason:
             rejected.append({'object_key':obj.object_key,'reason_code':reason});objects.append(obj);continue
-        projection=thaw(obj.properties['projection'].value);resolved={}
+        projection=thaw(restore_projection(obj).properties);resolved={}
         for name,fields in original.items():
             detail=projection['columns'][name];changes={}
             if fields['length_semantics'].state=='UNKNOWN' and current[name]['length_semantics'].value in {'BYTE','CHAR'}:

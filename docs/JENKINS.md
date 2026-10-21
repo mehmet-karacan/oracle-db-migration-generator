@@ -96,3 +96,30 @@ Bir target birden fazla schema taşır; schema başına ayrı credential olabili
 SSH için doğrulanmış known_hosts; `StrictHostKeyChecking=no` yoktur. HTTPS Git kullanımında key URL'ye gömülmez; provider credential binding/askpass kullanılır. Credentials job trusted code dışında PR build'lerine açılmaz. Hedef profilinde yazma yetkili user kullanıldığını saptarsan otomatik hak düşürme/grant yapma; DBA kurulum koşulu olarak raporla.
 
 Private GitHub kullanımı kullanıcı tarafından belirtilmiştir; bu, kurumun dışa veri aktarım iznini kanıtlamaz. Varsayılan publication kapalı ve Jenkins arşivi açıktır. Artifact Git adresi daha sonra Bitbucket'a değiştirilebilir; kod hosta sabitlenmez. Key veya token hiçbir belge/sohbette istenmez.
+
+
+## Statik karşılaştırmanın süre ve önbellek ölçümü
+
+Karşılaştırma Python/ANTLR ile deterministiktir; LLM veya AI servisi çağrılmaz.
+Oracle metadata okuması, ayrıştırma, planlama ve DDL doğrulaması ayrı işlerdir.
+Collector receipt içindeki `phase_timings_seconds`, katalog sorgusu, DDL okuma,
+grammar, zenginleştirme ve yan metadata sürelerini taşır; canonical snapshot'a
+süre eklenmez. Geçmiş koşuda ayrılmamış aşamaların süreleri tahmin edilmez.
+
+Normal Pipeline `GENERATOR_PARSER_CACHE_DIR=.runtime/parser-cache` kullanır.
+Anahtar tam SQL byte SHA'sı, varsayılan şema, metadata bayrağı ve parser artifact
+SHA'sını içerir. Yalnız tam ve tipleri doğrulanmış başarılı parser cevabı saklanır;
+hata, timeout veya bozuk kayıt yeniden ayrıştırılır. Önbellek boyut sınırlıdır.
+Oracle katalog ve GET_DDL her canlı koşuda yeniden okunur; hedef snapshot'ı
+önbellekten alınmaz. İlk dolum soğuktur. `.runtime` Git'e ve rapor arşivine girmez.
+
+Kayıtlı metadata yeniden karşılaştırması canlı capture yerine gösterilmez:
+kaynak commit'i, özgün metadata zamanı, yeniden hesaplama zamanı ve sıfır yeni
+Oracle bağlantısı receipt'te tutulur. Yeniden hesaplama süresi eski canlı koşunun
+süresini değiştirmez. Doğrulanmış yerel paket Jenkins'e alındığında kurulu wheel
+ve parser fingerprint'i planla aynı olmak zorundadır; normal günlük akış daha
+sonra geri yüklenir. Üretilen SQL yalnız Jenkins arşivinde tutulur ve uygulanmaz.
+
+Parser/generator fingerprint dosyaları göreli POSIX adlarının sırasıyla hashlenir;
+Windows Path case-folding sırası kullanılmaz. Aynı adlar ve aynı byte'lar için
+Windows ile Linux kimliği aynıdır. Dosya kapsamı ve byte doğrulaması korunur.

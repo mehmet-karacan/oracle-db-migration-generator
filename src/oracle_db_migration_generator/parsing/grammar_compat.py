@@ -7,6 +7,53 @@ https://docs.oracle.com/en/database/oracle/oracle-database/19/lnpls/CREATE-PROCE
 https://docs.oracle.com/en/database/oracle/oracle-database/19/lnpls/CREATE-TRIGGER-statement.html
 """
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens,enclosed
+from antlr4 import CommonTokenStream
+
+
+def grammar_token_stream(lexer,object_type):
+    """Keep TRG's identifier semantics inside stored Oracle program units.
+
+    The pinned lexer treats TRG as a SQL*Plus filename extension everywhere.
+    It is not an Oracle reserved word. Change token type only in stored units;
+    preserve text, positions, literals and SQL*Plus tokenization outside them.
+    """
+    stream=CommonTokenStream(lexer)
+    if object_type in {'PACKAGE_SPEC','PACKAGE_BODY','PROCEDURE','FUNCTION','TRIGGER'}:
+        stream.fill()
+        for token in stream.tokens:
+            if token.type==lexer.FILE_EXT and token.text.upper()=='TRG':
+                token.type=lexer.REGULAR_ID
+    return stream
+
+
+def view_query_masks(tokens,at):
+    """Unwrap only the entire ordinary VIEW query, retaining source offsets.
+
+    Oracle permits parentheses around a compound subquery followed by its
+    ORDER BY. The pinned CREATE VIEW grammar/extractor mishandles that outer
+    pair. Inner subqueries and grouped set-operator branches remain untouched;
+    all query tokens must still pass the complete grammar.
+    https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/SELECT.html
+    """
+    while at<len(tokens) and tokens[at].upper in {'FORCE','NOFORCE','EDITIONABLE','NONEDITIONABLE'}:
+        at+=1
+    if at>=len(tokens) or tokens[at].upper!='VIEW':return []
+    depth=0;query_at=None
+    for index in range(at+1,len(tokens)):
+        token=tokens[index]
+        if token.text=='(':depth+=1
+        elif token.text==')':depth-=1
+        elif depth==0 and token.upper=='AS':
+            query_at=index+1;break
+    if query_at is None or query_at>=len(tokens) or tokens[query_at].text!='(':return []
+    group=enclosed(tokens,query_at)
+    if not group or not group[0] or group[0][0].upper!='SELECT':return []
+    suffix=list(tokens[group[1]:])
+    if suffix and suffix[-1].text=='/':suffix.pop()
+    if suffix and suffix[-1].text==';':suffix.pop()
+    if suffix and [token.upper for token in suffix[:2]]!=['ORDER','BY']:return []
+    opening,closing=tokens[query_at],tokens[group[1]-1]
+    return [(opening.start,opening.end),(closing.start,closing.end)]
 
 
 def storage_masks(text):
@@ -41,7 +88,7 @@ def grammar_text(text):
     if not tokens or tokens[0].upper!='CREATE':
         return text
     at=3 if len(tokens)>2 and [t.upper for t in tokens[1:3]]==['OR','REPLACE'] else 1
-    masks=[]
+    masks=view_query_masks(tokens,at)
     if (at+1<len(tokens) and tokens[at].upper in {'EDITIONABLE','NONEDITIONABLE'}
             and tokens[at+1].upper in {'PROCEDURE','TRIGGER'}):
         modifier=tokens[at]

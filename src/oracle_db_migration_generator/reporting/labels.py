@@ -39,7 +39,7 @@ def _plain_reason(text):
                                                        else ' işlemi inceleme bekliyor'), text)
     replacements = {'bağımlı nesnenin gerekli işlemi hazır değil:': 'bağlı nesnenin işlemi hazır değil:',
                     'hedefte bulunamadı ve oluşturulmasını sağlayan kaynak işlemi yok':
-                    'hedefte bulunamadı; oluşturma DDL’si hazır değil',
+                    'hedefte bulunamadı; kaynakta oluşturma tanımı bulunmuyor',
                     'kaynak kolon karşılaştırmasındaki eksik metadata bu yapısal önkoşul için doğrulanamadı':
                     'kaynak kolon bilgileri eksik',
                     'metadata': 'tanım bilgisi', 'dictionary': 'veritabanı kayıtları',
@@ -64,7 +64,10 @@ def operation_reason(op):
         'BLOCKED_UNSUPPORTED_FEATURE': 'Bu özel tablo yapısı için güvenli DDL üretimi desteklenmiyor.',
     }
     for code, message in reasons.items():
-        if code in op['reason_codes']: return message
+        if code in op['reason_codes']:
+            if code=='UNKNOWN_SOURCE_SEMANTICS' and op['reason_tr'].startswith('Kaynak kolon bilgisi doğrulanamadı:'):
+                return op['reason_tr'] if len(op['reason_tr'])<=240 else op['reason_tr'][:239]+'…'
+            return message
     text = op['reason_tr']
     # The graph records the same prerequisite once for its held operation and
     # once for its underlying missing/unknown fact. Prefer that specific fact.

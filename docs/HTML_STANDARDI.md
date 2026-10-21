@@ -106,3 +106,10 @@ Bulunan fark, tamamlanmış hedefte doğrulanmış toplam; kısmi hedefte planı
 UNKNOWN dışındaki fark kayıtlarıdır. UNKNOWN kayıtlar bu sayıya eklenmez ve
 ayrı sayılır. Eksik kapsamda sayı alt sınırdır; ek fark bulunabileceği yazılır.
 Hiçbir hedefin sonucu alınamadıysa Sonuç alınamadı gösterilir, sıfır uydurulmaz.
+
+
+21 Ekim süre yerleşimi: başlığın altında tek gri özet alanı kullanılır.
+Karşılaştırma süresi solda büyük, başlangıç ve bitiş TSİ bilgisi sağda küçük
+boyutta yer alır. Rapor yenileme süresi aynı alanda ikincil bilgi olarak görünür;
+alt izlenebilirlik bölümünde yinelenmez. Dar ekranda iki alan alt alta gelir.
+Logo oranı, mevcut HTML ailesi ve öncelikli ilk 5 nesne kuralı korunur.

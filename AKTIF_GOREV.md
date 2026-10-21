@@ -112,3 +112,14 @@ başlangıç/bitiş zamanını yenilenen raporlarda da koru. Fark kartı doğrul
 bulunan farkların sayısını göstersin; UNKNOWN karşılaştırma kayıtlarını ayrıca
 say ve eksik kapsamın ek farklar doğurabileceğini açıkla. Kanonik null toplamı
 değiştirme; UNKNOWN'u kesin fark veya eşitlik diye gösterme.
+
+21 Ekim yeni kullanıcı incelemesi: #29/#31 TTBP planındaki 4.645 UNKNOWN
+karşılaştırma kaydını difference ID ve kanıtıyla tek tek incele; koddan
+kaynaklananları düzelt, gerçek eksikliği açık ve somut nedenle raporla.
+BAREM_TANIM.OLUSTURMA_TARIHI gibi bağımlı DDL'lerde yalnız hazır değil demek
+yerine üretimi durduran kök neden ve gerekli nesne/kolon bilgisi gösterilsin.
+75 dk 9 sn çalışma süresinin aşama/kod maliyetini ölç ve gereksiz tekrarları
+gider. Karşılaştırma deterministik/statiktir; LLM/AI servisi eklenmez. Süre
+alanları mevcut HTML ailesine uygun profesyonel düzende yerleştirilsin.
+Source/target daima READ ONLY; Oracle DDL/DML/COMPILE yok. TTBP varsayılanı,
+08:00 takvimi, tek mail alıcısı ve yalnız Jenkins artifact arşivi korunur.

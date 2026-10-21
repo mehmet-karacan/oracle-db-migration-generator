@@ -12,7 +12,7 @@ def parser_artifact_sha256():
     paths += list((package/'_vendor/analyzer_core/oracle').rglob('*.py'))
     paths += list((package/'_vendor/analyzer_core/licenses').glob('*'))
     manifest = hashlib.sha256()
-    for path in sorted(paths):
+    for path in sorted(paths, key=lambda item: item.relative_to(package).as_posix()):
         manifest.update(path.relative_to(package).as_posix().encode());manifest.update(b'\0')
         manifest.update(hashlib.sha256(path.read_bytes()).digest())
     return manifest.hexdigest()
@@ -23,7 +23,7 @@ def generator_artifact_sha256():
     """Unreleased local builds still need distinct immutable payload identities."""
     package=Path(__file__).resolve().parents[1]
     manifest=hashlib.sha256()
-    for path in sorted(package.rglob('*')):
+    for path in sorted(package.rglob('*'), key=lambda item: item.relative_to(package).as_posix()):
         if path.is_file() and path.suffix in {'.py','.json','.j2','.css','.png','.txt'} and '__pycache__' not in path.parts:
             manifest.update(path.relative_to(package).as_posix().encode());manifest.update(b'\0')
             manifest.update(hashlib.sha256(path.read_bytes()).digest())

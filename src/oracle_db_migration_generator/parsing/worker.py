@@ -14,7 +14,7 @@ from .._vendor.analyzer_core.oracle.scanner import scan
 from .._vendor.analyzer_core.oracle.projections import project
 from .canonicalize import canonical_sql
 from .codec import encode
-from .grammar_compat import grammar_text,scanner_text,storage_scope_valid
+from .grammar_compat import grammar_text,scanner_text,storage_scope_valid,grammar_token_stream
 from .inline_keys import inline_backing_keys
 
 SIDECAR_RULES = {'Grant_statementContext': 'GRANT', 'Comment_on_tableContext': 'COMMENT',
@@ -30,7 +30,7 @@ def checked_units(text,object_type=None,*,metadata=False):
         lexer = PlSqlLexer(InputStream(text))
         lex_errors = CollectingErrorListener()
         lexer.removeErrorListeners(); lexer.addErrorListener(lex_errors)
-        parser = PlSqlParser(CommonTokenStream(lexer))
+        parser = PlSqlParser(grammar_token_stream(lexer,object_type))
         parse_errors = CollectingErrorListener()
         parser.removeErrorListeners(); parser.addErrorListener(parse_errors)
         parser._interp.predictionMode = mode

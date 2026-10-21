@@ -72,9 +72,11 @@ def parse_ddl(raw: bytes, identity_hint: ObjectIdentity | None,*,metadata=False)
 
 
 def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
+    from .inventory import inspect_artifact, fallback_objects, attach_inventory_proof
     objects, evidence, diagnostics = {}, [], []
     parsed_results = {}
     file_diagnostics = []
+    inventory_records = []
     for index, artifact in enumerate(inputs.artifacts):
         if progress:
             progress(index, len(inputs.artifacts))
@@ -83,6 +85,10 @@ def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
         hint = ObjectIdentity(profile.id, Identifier.parse(artifact.source_schema),
                               artifact.object_type_hint or 'TABLE', Identifier.parse('UNRESOLVED'))
         result = parse_ddl(artifact.raw, hint)
+        inventory = inspect_artifact(artifact, profile, result)
+        inventory_records.append(inventory)
+        original_missing = result.coverage != 'COMPLETE' and not result.objects
+        result = fallback_objects(artifact, profile, result, inventory, ParsedObject)
         parsed_results[artifact.path] = result
         if result.diagnostics:
             file_diagnostics.append({'path':artifact.path,'codes':list(result.diagnostics),'coverage':result.coverage})
@@ -110,7 +116,7 @@ def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
                 coverage = Coverage('COMPLETE', 'PARTIAL', 'NOT_APPLICABLE', ('DUPLICATE_DEFINITION_CONFLICT',)) if conflict else previous.coverage
                 obj = replace(previous, evidence_ids=previous.evidence_ids + ids, coverage=coverage)
             objects[obj.object_key] = obj
-        if result.coverage != 'COMPLETE' and not result.objects:
+        if original_missing:
             diagnostics.append('SOURCE_FILE_UNPARSED')
     if not objects:
         diagnostics.append('SOURCE_SCOPE_EMPTY')
@@ -133,4 +139,5 @@ def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
                                        'PARTIAL' if partial else 'COMPLETE', 'NOT_APPLICABLE', tuple(sorted(set(diagnostics)))),
                               capabilities, tuple(evidence), 'NOT_APPLICABLE')
     from ..source.sidecars import merge_sidecars
-    return merge_sidecars(snapshot, inputs.artifacts, parsed_results=parsed_results)
+    merged = merge_sidecars(snapshot, inputs.artifacts, parsed_results=parsed_results)
+    return attach_inventory_proof(merged, inputs, profile, inventory_records)

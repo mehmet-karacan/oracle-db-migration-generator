@@ -36,10 +36,14 @@ def test_known_dictionary_columns_survive_an_unavailable_table_projection():
                    for path in fields)
 
 
-def _partial_inventory_plan(desired_sql, target_sql):
+def _partial_inventory_plan(desired_sql, target_sql, *, partial_object=False):
     selected = profile()
     desired = source(desired_sql, selected)
     desired = replace(desired, completeness=replace(desired.completeness, inventory='PARTIAL'))
+    if partial_object:
+        desired = replace(desired, objects=tuple(replace(obj,
+            coverage=replace(obj.coverage, ddl='PARTIAL', diagnostics=('PARSER_NOT_VERIFIED',)))
+            for obj in desired.objects))
     target = actual(target_sql, selected)
     differences = compare_snapshots(desired, target, selected.policy)
     return plan_target(differences, PlanningContext(desired, target, selected, 'Audit'))
@@ -47,12 +51,12 @@ def _partial_inventory_plan(desired_sql, target_sql):
 
 def test_unverified_source_constraint_absence_is_preserved_without_erasing_unknown():
     result = _partial_inventory_plan('CREATE TABLE APP.T(ID NUMBER);',
-        'CREATE TABLE APP.T(ID NUMBER, CONSTRAINT CK_T CHECK(ID>0));')
+        'CREATE TABLE APP.T(ID NUMBER, CONSTRAINT CK_T CHECK(ID>0));', partial_object=True)
 
     assert len(result.operations) == 1
     preserved = result.operations[0]
-    assert preserved.decision == 'INFORMATIONAL' and preserved.intent is None
-    assert 'TARGET_CONSTRAINT_PRESERVED_SOURCE_UNKNOWN' in preserved.reason_codes
+    assert preserved.decision == 'BLOCKED' and preserved.intent is None
+    assert 'OBJECT_METADATA_INCOMPLETE' in preserved.reason_codes
     assert result.scope.inventory == 'PARTIAL'
     assert result.differences and all(diff.kind == 'UNKNOWN' for diff in result.differences)
     assert set(preserved.change_ids) == {diff.difference_id for diff in result.differences}

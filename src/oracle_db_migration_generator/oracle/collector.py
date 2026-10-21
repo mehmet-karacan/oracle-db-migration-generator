@@ -16,7 +16,7 @@ from ..source.models import SourceArtifact
 from ..source.sidecars import merge_sidecars
 from .capabilities import describe_capabilities, collation_capabilities
 from .connection import connect_read_only
-from .enrichment import enrich_object
+from .enrichment import enrich_object, index_metadata_groups
 from .ddl_model import project_target_object
 from .preflight import safe_error_code
 from .queries import CAPTURE_INVENTORY, CAPTURE_QUERIES, COLLATION_PARAMETERS, DDL_TYPES, DEPENDENT_DDL, IDENTITY, READ_ONLY_TRANSACTION, SAMPLE_DDL
@@ -107,6 +107,9 @@ def _sidecar_artifacts(groups, owner, *, excluded=None):
 def _capture_schema(target, mapping, credentials, profile, connect, deadline, progress, source=None):
     owner = Identifier.parse(mapping.target_schema).effective_name
     connection = cursor = None
+    capture_started = time.monotonic()
+    timings = {key:0.0 for key in ('dictionary_group_reads', 'reference_metadata', 'ddl_reads',
+                                  'grammar_projection', 'dictionary_enrichment', 'sidecar_merge', 'total')}
     try:
         connection = connect(target, credentials(mapping.credential_id))
         cursor = connection.cursor()
@@ -126,7 +129,12 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                 raise CaptureError('SESSION_OWNER_MISMATCH')
         cursor.execute(CAPTURE_INVENTORY, {'owner':owner})
         before = cursor.fetchall()
+        phase_started = time.monotonic()
         groups, failures = _read_groups(cursor,owner)
+        timings['dictionary_group_reads'] += time.monotonic()-phase_started
+        phase_started = time.monotonic()
+        row_index = index_metadata_groups(groups)
+        timings['dictionary_enrichment'] += time.monotonic()-phase_started
         objects, evidence = [], []
         scope_id = 'ev-'+digest([target.id,owner,'inventory',before])
         evidence.append(Evidence(scope_id,'ABSENCE_SCOPE','TARGET',None,digest(before),None,None,
@@ -156,6 +164,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                                  None,None,'v$parameter.collation','COLLATE desteği için salt okunur initialization parameter gözlemi.'))
         capabilities.update(collation_capabilities(parameter_rows,parameter_id))
         from .reference_metadata import read_reference_metadata
+        phase_started = time.monotonic()
         resolution,resolution_evidence=read_reference_metadata(cursor,source,owner,
             target_id=target.id,deadline=deadline)
         capabilities.update(resolution);evidence.append(resolution_evidence)
@@ -175,6 +184,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             ref_id='ev-'+digest([target.id,owner,'references',requested,external,external_failed])
             evidence.append(Evidence(ref_id,'TARGET_METADATA','TARGET',None,digest(external),None,None,'all_objects.references','İstenen harici bağımlılıkların görünürlük ve durum metadata kaydı.'))
             capabilities['reference_objects']=KnownValue('UNKNOWN' if external_failed else 'KNOWN',None if external_failed else external,(ref_id,))
+        timings['reference_metadata'] += time.monotonic()-phase_started
         capabilities['grantees'] = KnownValue('KNOWN' if groups['grantees'] is not None else 'UNKNOWN',
                                               [r['username'] for r in groups['grantees']]+['PUBLIC'] if groups['grantees'] is not None else None,
                                               (group_evidence['grantees'],))
@@ -198,6 +208,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             path = 'target-ddl/'+identity.key+'.sql'
             ev_id = 'ev-'+digest([target.id,owner,oracle_kind,name,stamp])
             reasons, raw, projection = [], None, None
+            phase_started = time.monotonic()
             try:
                 cursor.execute(SAMPLE_DDL,{'ddl_type':DDL_TYPES[oracle_kind],'name':name,'owner':owner})
                 row = cursor.fetchone()
@@ -208,6 +219,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                 raw = text.encode('utf-8')
             except Exception as error:
                 reasons.append(safe_error_code(error))
+            timings['ddl_reads'] += time.monotonic()-phase_started
             raw_hash = hashlib.sha256(raw).hexdigest() if raw else None
             evidence.append(Evidence(ev_id,'TARGET_METADATA','TARGET',path if raw else None,raw_hash,
                                      1 if raw else None,len(raw.decode().splitlines()) if raw else None,
@@ -219,9 +231,13 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                                   Coverage('COMPLETE','PARTIAL' if reasons else 'COMPLETE',
                                            'PARTIAL' if failures else 'COMPLETE',tuple(sorted(set(reasons)))),(ev_id,),raw,projection)
             if raw and not reasons:
+                phase_started = time.monotonic()
                 item,context_evidence=project_target_object(item)
                 evidence.extend(context_evidence)
-            objects.append(enrich_object(item,groups,group_evidence))
+                timings['grammar_projection'] += time.monotonic()-phase_started
+            phase_started = time.monotonic()
+            objects.append(enrich_object(item,groups,group_evidence,row_index=row_index))
+            timings['dictionary_enrichment'] += time.monotonic()-phase_started
         # A new transaction is essential: the final inventory must not reuse
         # the initial read-only transaction's older consistent read point.
         connection.rollback()
@@ -236,6 +252,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                                   Coverage('COMPLETE','PARTIAL' if partial else 'COMPLETE',
                                            'PARTIAL' if failures else 'COMPLETE',tuple('DICTIONARY_UNAVAILABLE:'+name for name in sorted(failures))),
                                   capabilities,tuple(evidence),'OBSERVED_STABLE')
+        phase_started = time.monotonic()
         excluded=[]
         artifacts=_sidecar_artifacts(groups,owner,excluded=excluded)
         if excluded:
@@ -248,8 +265,9 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                                                    if ev.kind=='SOURCE_SPAN' else ev for ev in snapshot.evidence),
                            objects=tuple(replace(obj,ddl_path='target-sidecars/'+obj.object_key+'.sql')
                                          if obj.identity.object_type in {'COMMENT','GRANT'} else obj for obj in snapshot.objects))
+        timings['sidecar_merge'] += time.monotonic()-phase_started
         return snapshot, {'schema':mapping.source_schema,'status':'CAPTURED','dictionary_errors':failures,'capability_errors':capability_errors,
-                          'object_count':len(snapshot.objects),'inventory_count':len(before)}
+                          'object_count':len(snapshot.objects),'inventory_count':len(before),'phase_timings_seconds':timings}
     finally:
         # Close all handles, including after permission errors or retry.
         cleanup_failed = False
@@ -260,6 +278,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                     action()
                 except Exception:
                     cleanup_failed = True
+        timings['total'] = time.monotonic()-capture_started
         if cleanup_failed:
             raise CaptureError('TARGET_CAPTURE_CLEANUP_FAILED')
 

@@ -157,8 +157,8 @@ def bind_and_order(operations,context):
             uncertain_columns=[other for other in candidates if structural_role
                                and 'COLUMN_COMPARISON_INCOMPLETE_PRESERVED' in other.reason_codes]
             if not verified_existing_parent and (uncertain_columns or any(other.decision in {'BLOCKED','REVIEW_REQUIRED'} for other in candidates)):
-                held=sorted({other.kind+' / '+other.decision for other in candidates if other.decision in {'BLOCKED','REVIEW_REQUIRED'}})
-                if held:issue(ref,'bağımlı nesnenin gerekli işlemi hazır değil: '+', '.join(held))
+                held=sorted({other.reason_tr.rstrip('.') for other in candidates if other.decision in {'BLOCKED','REVIEW_REQUIRED'}})
+                if held:issue(ref,('hedefte bulunamadı; ' if actual is None else '')+'bağlı nesne için DDL üretilemedi: '+ '; '.join(held))
                 if uncertain_columns:issue(ref,'kaynak kolon karşılaştırmasındaki eksik metadata bu yapısal önkoşul için doğrulanamadı')
                 blocked=True
             if ref.owner not in context.target.schemas:
@@ -200,7 +200,8 @@ def bind_and_order(operations,context):
                     else:prerequisites.update(other.operation_id for other in adds)
                 continue
             creates = [other for other in candidates if other.kind=='CREATE' or ref.role=='BACKING_INDEX' and other.kind=='CREATE_INDEX']
-            if not creates:
+            held_candidates=any(other.decision in {'BLOCKED','REVIEW_REQUIRED'} for other in candidates)
+            if not creates and not held_candidates:
                 issue(ref,'hedefte bulunamadı ve oluşturulmasını sağlayan kaynak işlemi yok' if actual is None else
                       'hedefte mevcut fakat DDL yapısı eksik; doğrulanmış oluşturma işlemi de yok')
                 blocked=True
@@ -234,7 +235,7 @@ def bind_and_order(operations,context):
             if op.intent and any(result[dep].decision!='READY' for dep in op.dependencies):
                 held=[result[dep] for dep in op.dependencies if result[dep].decision!='READY']
                 details=[f'{dep.identity.owner.effective_name}.{dep.identity.name.effective_name} [{dep.identity.object_type}]: '+
-                         f'gerekli {dep.kind} işlemi {dep.decision}' for dep in held]
+                         'bağlı nesne için DDL üretilemedi: '+dep.reason_tr.rstrip('.') for dep in held]
                 result[key]=_block(op,'PREREQUISITE_NOT_READY',details);changed=True
     return _topological_order(result)
 

@@ -78,8 +78,13 @@ def create_table(context,obj,changes):
     if unsupported_table_feature(obj,partition_verified=layout is not None):
         return [operation(context,obj,changes,'REVIEW','BLOCKED','BLOCKED_UNSUPPORTED_FEATURE',
                           'Partition, LOB, IOT, external veya cluster özelliği sade tabloya dönüştürülemez.')]
-    if any(value.state=='UNKNOWN' for fields in columns.values() for key,value in fields.items() if key in {'data_type','length','length_semantics'}):
-        return [operation(context,obj,changes,'REVIEW','BLOCKED','UNKNOWN_SOURCE_SEMANTICS','Kaynak kolon tipi veya uzunluk semantiği doğrulanamadı.')]
+    unknown=[name+' ('+', '.join({'data_type':'kolon tipi','length':'uzunluk','length_semantics':'uzunluk birimi'}[key]
+                                for key in ('data_type','length','length_semantics') if fields[key].state=='UNKNOWN')+')'
+             for name,fields in sorted(columns.items())
+             if any(fields[key].state=='UNKNOWN' for key in ('data_type','length','length_semantics'))]
+    if unknown:
+        return [operation(context,obj,changes,'REVIEW','BLOCKED','UNKNOWN_SOURCE_SEMANTICS',
+                          'Kaynak kolon bilgisi doğrulanamadı: '+', '.join(unknown)+'.')]
     collation_enabled,capability_ids=_collation_capability(context)
     try:
         statement = table_base(obj,columns_fields=columns,collation_enabled=collation_enabled)

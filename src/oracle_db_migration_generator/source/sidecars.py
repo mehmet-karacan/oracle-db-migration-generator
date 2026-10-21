@@ -19,6 +19,10 @@ def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
     from ..parsing.adapter import parse_ddl
     parsed_results = parsed_results or {}
     objects = {obj.object_key: obj for obj in snapshot.objects}
+    parent_candidates = {}
+    for obj in objects.values():
+        if obj.identity.object_type not in {'COMMENT','GRANT','INDEX','TRIGGER','PACKAGE_BODY','TYPE_BODY'}:
+            parent_candidates.setdefault((obj.identity.owner.effective_name,obj.identity.name.effective_name),[]).append(obj)
     evidence = list(snapshot.evidence)
     diagnostics = list(snapshot.completeness.diagnostics)
     initial_diagnostic_count = len(diagnostics)
@@ -73,9 +77,9 @@ def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
             hint = ObjectIdentity(snapshot.profile_id, Identifier.parse(artifact.source_schema),
                                   artifact.object_type_hint or 'TABLE', Identifier.parse('UNRESOLVED'))
             result = parse_ddl(artifact.raw, hint)
+        text = artifact.raw.decode('utf-8') if result.sidecars else ''
         for statement in result.sidecars:
             ev_id = 'ev-' + digest([artifact.path, artifact.sha256, statement['start_char'], statement['end_char'], statement['kind']])
-            text = artifact.raw.decode('utf-8')
             start, end = statement['start_char'], statement['end_char']
             start_byte, end_byte = len(text[:start].encode()), len(text[:end].encode())
             evidence.append(Evidence(ev_id, 'SOURCE_SPAN', snapshot.side, artifact.path, artifact.sha256,
@@ -87,9 +91,7 @@ def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
                     _merge_context(objects, statement, ev_id, artifact.source_schema)
                     continue
                 for fact in facts:
-                    parents = [obj for obj in objects.values() if obj.identity.owner.effective_name == fact['owner']
-                               and obj.identity.name.effective_name == fact['target']
-                               and obj.identity.object_type not in {'COMMENT','GRANT','INDEX','TRIGGER','PACKAGE_BODY','TYPE_BODY'}]
+                    parents = parent_candidates.get((fact['owner'],fact['target']),())
                     parent = parents[0] if len(parents) == 1 else None
                     reasons = [] if parent else ['SIDECAR_PARENT_UNRESOLVED']
                     if fact.get('column_grant'):

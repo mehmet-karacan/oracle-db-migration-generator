@@ -14,6 +14,7 @@ from ..model.identity import Identifier
 from ..model.snapshot import KnownValue
 from ..parsing.canonicalize import canonical_sql
 from ..parsing.statements import literal_value
+from ..parsing.projections import normalize_column_semantics
 
 
 def pointer(value):
@@ -67,15 +68,15 @@ def _routine(data):
 
 def restore_projection(obj):
     if obj.projection is not None:
-        return replace(obj.projection, object_key=obj.object_key)
+        return normalize_column_semantics(replace(obj.projection, object_key=obj.object_key))
     value = obj.properties.get('projection')
     if value is None or value.state!='KNOWN':
         return None
     properties = thaw(value.value)
     if 'routines' in properties:
         properties['routines'] = tuple(_routine(item) for item in properties['routines'])
-    return Projection(obj.object_key,obj.identity.object_type,properties,
-                      'structural' if obj.coverage.ddl=='COMPLETE' else 'text_fallback',obj.coverage.diagnostics)
+    return normalize_column_semantics(Projection(obj.object_key,obj.identity.object_type,properties,
+                      'structural' if obj.coverage.ddl=='COMPLETE' else 'text_fallback',obj.coverage.diagnostics))
 
 
 def structured_changes(actual, desired):
@@ -116,6 +117,8 @@ def table_columns(obj,snapshot):
     for name in sorted(names):
         item = dict(columns.get(name,{}))
         row = metadata.get(name)
+        identity_conflict=(snapshot.side=='TARGET' and row is not None and row.get('identity_column') in {'YES','NO'}
+                           and bool(item.get('identity'))!=(row['identity_column']=='YES'))
         tokenized = code_tokens(item.get('data_type') or '') or ()
         base_type = tokenized[0].upper if tokenized else None
         # Oracle 19c defines VARCHAR as a synonym for VARCHAR2. Keep the raw
@@ -125,7 +128,7 @@ def table_columns(obj,snapshot):
             'exists':True, 'data_type':base_type,
             'length':_integer(item.get('length')), 'length_semantics':item.get('length_semantics'),
             'precision':_integer(item.get('precision')), 'scale':_integer(item.get('scale')),
-            'nullable':item.get('nullable')!='NOT NULL' and name not in primary_columns,
+            'nullable':item.get('nullable')!='NOT NULL' and name not in primary_columns and not bool(item.get('identity')),
             'default':_default(item.get('default')), 'default_on_null':bool(item.get('default_on_null')),
             'identity':canonical_sql(item['identity']) if item.get('identity') else None,
             'virtual_expression':canonical_sql(item['virtual_expression']) if item.get('virtual_expression') else None,
@@ -146,13 +149,17 @@ def table_columns(obj,snapshot):
                            length=row['char_length'] if row.get('char_used')=='C' else row['data_length'] if row['data_type'] in {'CHAR','VARCHAR2','NCHAR','NVARCHAR2','RAW'} else None,
                            length_semantics='CHAR' if row.get('char_used')=='C' else 'BYTE' if row.get('char_used')=='B' or row['data_type']=='RAW' else None,
                            precision=row['data_precision'],scale=row['data_scale'],nullable=row['nullable']=='Y',
-                           default=_default(row['data_default']) if row.get('virtual_column')!='YES' else None,
-                           default_on_null=row.get('default_on_null')=='YES',
+                           default=_default(row['data_default']) if row.get('virtual_column')!='YES' and row.get('identity_column')!='YES' else None,
+                           default_on_null=row.get('default_on_null')=='YES' and row.get('identity_column')!='YES',
                            virtual_expression=_default(row['data_default']) if row.get('virtual_column')=='YES' else None,
                            visibility='INVISIBLE' if row.get('hidden_column')=='YES' else 'VISIBLE',
                            position=row['column_id'],collation=row.get('collation'))
             if row.get('identity_column')=='YES' and details['identity'] is None:
                 details['identity'] = 'IDENTITY_METADATA_PRESENT_DEFINITION_UNRESOLVED'
+            elif row.get('identity_column')=='NO' and snapshot.side=='SOURCE':
+                # Do not copy source identity presence over contradictory
+                # dictionary facts during source correspondence.
+                details['identity'] = None
         if base_type=='TIMESTAMP' or str(details['data_type']).startswith('TIMESTAMP'):
             type_text = str(row['data_type'] if row else item.get('data_type','TIMESTAMP')).upper()
             match = re.search(r'TIMESTAMP\s*\(\s*(\d+)\s*\)',type_text)
@@ -168,6 +175,8 @@ def table_columns(obj,snapshot):
             details['collation']='USING_NLS_COMP'
         ids = dictionary.evidence_ids if row and dictionary else obj.evidence_ids
         facts = {key:KnownValue('KNOWN',value,ids) for key,value in details.items()}
+        if identity_conflict:
+            facts['identity'] = KnownValue('UNKNOWN',None,ids)
         if details['data_type'] in {'VARCHAR2','CHAR'} and details['length_semantics'] is None:
             configured = snapshot.capabilities.get('source_length_semantics')
             if configured and configured.state=='KNOWN':

@@ -66,6 +66,13 @@ def _parents(obj):
 
 def _exclusions(snapshot, policy):
     objects = {obj.object_key: obj for obj in snapshot.objects}
+    parent_candidates = {}
+    for key, obj in objects.items():
+        identity = obj.identity
+        if identity.object_type in {'TABLE', 'VIEW', 'MATERIALIZED_VIEW', 'SEQUENCE',
+                                     'PACKAGE_SPEC', 'TYPE_SPEC', 'PROCEDURE', 'FUNCTION'}:
+            parent_candidates.setdefault((identity.owner.effective_name,
+                                          identity.name.effective_name), []).append(key)
     excluded = {}
     excluded_types = set(policy.excluded_object_types)
     for key, obj in objects.items():
@@ -87,11 +94,7 @@ def _exclusions(snapshot, policy):
             if parent not in excluded:
                 parent = None
                 for owner, name in _parents(obj):
-                    matches = [candidate.object_key for candidate in objects.values()
-                               if candidate.identity.owner.effective_name == owner
-                               and candidate.identity.name.effective_name == name
-                               and candidate.identity.object_type in {'TABLE', 'VIEW', 'MATERIALIZED_VIEW',
-                                   'SEQUENCE', 'PACKAGE_SPEC', 'TYPE_SPEC', 'PROCEDURE', 'FUNCTION'}]
+                    matches = parent_candidates.get((owner, name), ())
                     if len(matches) == 1 and matches[0] in excluded:
                         parent = matches[0]
                     elif policy.exclude_system_generated and _technical(name):

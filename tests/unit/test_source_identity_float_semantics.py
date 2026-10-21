@@ -1,0 +1,138 @@
+"""Source correspondence must distinguish identity implementation defaults."""
+from dataclasses import replace
+
+import pytest
+
+from oracle_db_migration_generator.compare.projection_adapter import table_columns
+from oracle_db_migration_generator.model.serialization import thaw
+from oracle_db_migration_generator.model.snapshot import KnownValue
+from tests.factories import source, profile
+from tests.unit.test_jenkins_source_semantics import observation
+from tools.jenkins_source_semantics import reconcile_source
+
+
+def column_row(name, position, **fields):
+    return {**observation()['columns'][0], 'column_name': name, 'column_id': position,
+            'data_type': 'NUMBER', 'char_used': None, 'char_length': 0,
+            'data_length': 22, 'collation': None, **fields}
+
+
+def captured(*rows):
+    return {**observation(), 'columns': list(rows)}
+
+
+@pytest.mark.parametrize('mode', ['ALWAYS', 'BY DEFAULT', 'BY DEFAULT ON NULL'])
+def test_identity_modes_are_not_ordinary_column_defaults(mode, tmp_path):
+    original = source(f'CREATE TABLE APP.T(ID NUMBER GENERATED {mode} AS IDENTITY, C VARCHAR2(20));',
+                      replace(profile(), source_length_semantics='UNKNOWN'))
+    identity = column_row('ID', 1, identity_column='YES', nullable='N',
+                          data_default='"APP"."ISEQ$$_42".nextval',
+                          default_on_null='YES' if mode.endswith('ON NULL') else 'NO')
+    character = {**observation()['columns'][0], 'column_id': 2}
+    updated, proof = reconcile_source(original, captured(identity, character), tmp_path)
+
+    assert proof['matched_tables'] == 1 and proof['rejected_tables'] == []
+    detail = thaw(updated.objects[0].properties['projection'].value)['columns']['ID']
+    assert detail['default'] is None and detail['default_on_null'] is None
+    assert detail['identity'].startswith('GENERATED ' + mode + ' AS IDENTITY')
+    facts = table_columns(updated.objects[0], updated)
+    assert facts['ID']['default'].value is None
+    assert facts['ID']['default_on_null'].value is False
+    assert facts['C']['length_semantics'].value == 'BYTE'
+    assert updated.objects[0].raw_ddl == original.objects[0].raw_ddl
+
+
+@pytest.mark.parametrize('source_identity,observed_identity', [(True, False), (False, True)])
+def test_identity_presence_drift_still_rejects_whole_table(source_identity, observed_identity, tmp_path):
+    identity = ' GENERATED ALWAYS AS IDENTITY' if source_identity else ''
+    original = source(f'CREATE TABLE APP.T(ID NUMBER{identity} NOT NULL, C VARCHAR2(20));',
+                      replace(profile(), source_length_semantics='UNKNOWN'))
+    row = column_row('ID', 1, identity_column='YES' if observed_identity else 'NO', nullable='N',
+                     data_default='"APP"."ISEQ$$_42".nextval' if observed_identity else None)
+    updated, proof = reconcile_source(original, captured(row, {**observation()['columns'][0], 'column_id': 2}), tmp_path)
+
+    assert proof['matched_tables'] == 0
+    assert proof['rejected_tables'][0]['reason_code'] == 'SOURCE_KNOWN_COLUMN_FACT_DRIFT'
+    assert updated.objects == original.objects
+
+
+@pytest.mark.parametrize('declaration,precision', [('FLOAT(126)', 126), ('FLOAT(53)', 53), ('FLOAT(24)', 24), ('FLOAT', 126)])
+def test_float_binary_precision_matches_dictionary_without_losing_character_proof(declaration, precision, tmp_path):
+    original = source(f'CREATE TABLE APP.T(F {declaration}, C VARCHAR2(20));',
+                      replace(profile(), source_length_semantics='UNKNOWN'))
+    row = column_row('F', 1, data_type='FLOAT', data_precision=precision)
+    updated, proof = reconcile_source(original, captured(row, {**observation()['columns'][0], 'column_id': 2}), tmp_path)
+
+    assert proof['matched_tables'] == 1 and proof['rejected_tables'] == []
+    facts = table_columns(updated.objects[0], updated)
+    assert facts['F']['precision'].value == precision
+    assert facts['F']['scale'].value is None
+    assert facts['C']['length_semantics'].value == 'BYTE'
+
+
+def test_different_float_precision_and_ordinary_default_still_reject(tmp_path):
+    for declaration, row in [
+        ('F FLOAT(126)', column_row('F', 1, data_type='FLOAT', data_precision=53)),
+        ('F NUMBER DEFAULT 1', column_row('F', 1, data_default='2')),
+        ('F NUMBER DEFAULT APP.SEQ.NEXTVAL', column_row('F', 1, data_default='"APP"."ISEQ$$_42".nextval')),
+    ]:
+        original = source(f'CREATE TABLE APP.T({declaration}, C VARCHAR2(20));',
+                          replace(profile(), source_length_semantics='UNKNOWN'))
+        updated, proof = reconcile_source(original, captured(row, {**observation()['columns'][0], 'column_id': 2}), tmp_path / str(len(declaration)))
+        assert proof['matched_tables'] == 0 and updated.objects == original.objects
+
+
+def test_frozen_legacy_identity_and_float_projections_are_normalized(tmp_path):
+    original = source('CREATE TABLE APP.T(ID NUMBER GENERATED BY DEFAULT AS IDENTITY NOT NULL, F FLOAT(126), C VARCHAR2(20));',
+                      replace(profile(), source_length_semantics='UNKNOWN'))
+    obj = original.objects[0]
+    stored = thaw(obj.properties['projection'].value)
+    stored['columns']['ID']['default'] = 'AS IDENTITY'
+    stored['columns']['F']['precision'] = None
+    obj = replace(obj, projection=None, properties={**obj.properties,
+                  'projection': KnownValue('KNOWN', stored, obj.evidence_ids)})
+    frozen = replace(original, objects=(obj,))
+    rows = [column_row('ID', 1, identity_column='YES', nullable='N', data_default='"APP"."ISEQ$$_42".nextval'),
+            column_row('F', 2, data_type='FLOAT', data_precision=126),
+            {**observation()['columns'][0], 'column_id': 3}]
+    updated, proof = reconcile_source(frozen, captured(*rows), tmp_path)
+    assert proof['matched_tables'] == 1 and proof['rejected_tables'] == []
+    assert table_columns(updated.objects[0], updated)['F']['precision'].value == 126
+
+
+def test_restoring_semantics_preserves_effective_quoted_component_names():
+    original = source('CREATE TABLE APP.T("U:ID" FLOAT(126));')
+    obj = original.objects[0]
+    frozen = replace(obj, projection=None)
+    for model in (obj, frozen):
+        columns = table_columns(model, original)
+        assert set(columns) == {'U:ID'}
+        assert columns['U:ID']['precision'].value == 126
+
+
+def test_verified_identity_table_and_date_comment_emit_real_sql(tmp_path):
+    from tests.factories import actual
+    from oracle_db_migration_generator.compare.snapshots import compare_snapshots
+    from oracle_db_migration_generator.planning.rules import plan_target, PlanningContext
+    selected = replace(profile(), source_length_semantics='UNKNOWN')
+    original = source('CREATE TABLE APP.T(ID NUMBER GENERATED BY DEFAULT AS IDENTITY NOT NULL, '
+                      'C VARCHAR2(20), D DATE DEFAULT SYSDATE); '
+                      "COMMENT ON COLUMN APP.T.D IS 'Created date';", selected)
+    rows = [column_row('ID', 1, identity_column='YES', nullable='N', data_default='"APP"."ISEQ$$_42".nextval'),
+            {**observation()['columns'][0], 'column_id': 2},
+            column_row('D', 3, data_type='DATE', data_length=7, data_default='SYSDATE')]
+    desired, proof = reconcile_source(original, captured(*rows), tmp_path)
+    target = actual('', selected)
+    target = replace(target, capabilities={**target.capabilities,
+        'data_bound_collation_enabled': KnownValue('KNOWN', False, ('ev-target-scope',))})
+    plan = plan_target(compare_snapshots(desired, target, selected.policy),
+                       PlanningContext(desired, target, selected, 'Test'))
+    create = next(op for op in plan.operations if op.kind == 'CREATE')
+    comment = next(op for op in plan.operations if op.kind == 'COMMENT')
+    assert proof['matched_tables'] == 1
+    assert create.decision == comment.decision == 'READY'
+    assert b'C VARCHAR2(20 BYTE)' in create.intent.statement
+    assert b'D DATE DEFAULT SYSDATE' in create.intent.statement
+    assert b'GENERATED BY DEFAULT AS IDENTITY' in create.intent.statement
+    assert comment.intent.statement == b'COMMENT ON COLUMN "APP"."T"."D" IS \'Created date\';'
+    assert create.operation_id in comment.dependencies

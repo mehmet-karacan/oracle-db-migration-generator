@@ -1,3 +1,114 @@
+## 4.645 kayıt incelemesi ve statik performans — teslim, 21 Ekim 2026
+
+Önceki ara devirlerin yerine bu son durum esas alınır. Kaynak ve hedef salt
+okunur kaldı; bu incelemede yeni Oracle bağlantısı0, SQL/DML/COMPILE0.
+Yeni canlı metadata capture ve Oracle üzerinde DDL kabulü NOT_RUN; doğrulanmış
+#29 metadata'sı ve sabit kaynak commit'i yeniden karşılaştırıldı.
+
+4.645/4.645 benzersiz kayıt ID'si JSON/CSV ve47 HTML sayfada incelendi.
+Eski kayıtların sonucu:4.021 kaynakta olmayan hedef nesne/alanı,489 belirsiz,
+53 bilgi,80 alan eşitliği,2 doğrulanmış fark. Yeni temsil edilen4 alanla
+son planda toplam493 UNKNOWN bulunuyor. Sonuçta11.066 doğrulanmış fark,
+1.382 READY,657 REVIEW,139 BLOCKED; kapsam PARTIAL kalır. UNKNOWN kayıtlar
+bulunan fark toplamına eklenmedi. Hedefe özgü nesneler için DROP üretilmedi.
+
+Düzeltmeler: kapalı kaynak header/context proof1.2, ayrı ALTER/DROP/SQLPlus
+birimi için fail-closed kontrol; identity BY DEFAULT/ISEQ ve FLOAT126,
+8 VIEW query wrapper'ı, stored unit içindeki TRG identifier lexer çakışması,
+hedef DDL/katalog identity çelişkisinin UNKNOWN kalması ve gerçek kök nedenin
+bağımlı açıklamaya taşınması.6 timeout body'nin yalnız kimliği doğrulandı;
+DDL/semantik bilgisi UNKNOWN kaldı. Kaynak global kapsamı COMPLETE yapılmadı.
+BAREM_TANIM CREATE ve OLUSTURMA_TARIHI açıklaması dahil11 SQL hazırdır;
+KULLANICI bağımlılığı olan2 foreign key ayrı gerekçeyle tutulur. İzole tablo
+kanıtındaki13 READY, bütün bağımlılık grafiğinin sonucu gibi sunulmaz.
+
+Eski489 belirsiz kaydın435'inde kaynak yokluğunu kapalı kapsamla kanıtlama
+sınırı,32'sinde kaynak kolon semantiği,7'sinde eksik partition index status,
+6'sında IN(WITH) grammar desteği,4'ünde nested routine analizi,3'ünde büyük
+package/timeout,2'sinde çok ifadeli TYPE evolution desteği bulunur. Bunlar
+tekil nedenleriyle raporlandı; başarılı veya eşit diye gizlenmedi.
+
+Karşılaştırma Python/ANTLR ile statiktir; LLM/AI servisi çağrılmaz.
+Scope parent index, metadata row index ve sidecar decode tekrarları azaltıldı.
+Başarılı parser cevabı tam byte/hash/şema/flag/artifact anahtarıyla sınırlı
+cache'e alınır; hata/timeout ve bozuk payload cache hit sayılmaz. Canlı Oracle
+metadata'sı her koşuda yeniden okunur. Collector aşama zamanları receipt'e
+ayrıldı. Mail/web süre alanı başlık altında tek kompakt kutuda gösterilir.
+Windows/Linux Path sıralamasından doğan artifact fingerprint farkı2 kırmızı
+testle kanıtlandı ve göreli POSIX ad sırasıyla düzeltildi; hash kontrolü atlanmadı.
+
+Son doğrulama:
+- `.venv/Scripts/python.exe -m pytest -q --junitxml=output/unknown-audit/tests-release-portable-final.xml`:886 PASS/159.92sn; skip/error/failure0.
+- `tools/check_contracts.py`:7 schema/8 örnek VERIFIED; `git diff --check`0.
+- Gerçek son replay toplam326.51sn; raporda clock farkı5dk23sn. Bu yalnız
+  frozen metadata yeniden hesaplama süresidir. Son plan e723ce96…669d31,
+ 5355file bundle VERIFIED;101 HTML/2507 yerel bağlantı/0 kırık link.
+- v19 wheel127 package dosyasıyla byte-eşit; Linux release SHA
+  f404a21f0d9b7fe3451ebecab6f5917eb770cd6890a9d5845473cd5acadff9f6.
+- Jenkins#36 bağlantısız runtime kurulumu SUCCESS. #37 frozen paket aktarımı,
+  Windows/Linux Path hash sırası farkıyla güvenli biçimde durdu; bu hata
+  giderilip #38 Linux üzerindeki aynı wheel+parser kimliğiyle VERIFIED oldu.
+- Jenkins#38 UNSTABLE:5355 bundle dosyası,47 inceleme sayfası,CSV/JSON,
+  hazır SQL ve gerekçeler arşivde. Genel HTML maili yalnız izinli alıcıya gitti.
+  Yeni Oracle bağlantısı0; özgün capture#29. Gerçek canlı performans NOT_MEASURED.
+- Normal v19 Pipeline hash14306490…d6019 tam geri okundu; günlük
+  Europe/Istanbul08:00, varsayılanTTBP/PROD, parser cache açık, geçici
+  VERIFIED_REPORT parametresi kaldırıldı. Artifact Git push kapalı.
+- Kanıtlar `output/unknown-audit/`, `output/jenkins-setup/release-proof-v19.json`.
+  `jenkins-38-archived-receipt.json` ve `jenkins-normal-v19-readback.json`
+  gerçek Jenkins UI'den tekrar okunmuştur. SQL/ham metadata/sırlar Git'e girmez.
+
+
+Değişen dosyalar: compare/projection_adapter,scope,snapshots; oracle/collector,
+enrichment; parsing/adapter,client,fingerprint,grammar_compat,inventory,
+projections,response_cache,worker; planning/graph,table_rules; reporting
+labels/CSS/mail/run şablonları; source/sidecars; source semantics aracı;
+Jenkins şablonu, ilgili regresyon testleri, HTML/Jenkins belgeleri ve devirler.
+
+Sonraki ölçüm: normal08:00 PROD/TTBP koşusunda yeni collector fazlarını ve
+ilk dolum/sıcak cache sürelerini değerlendir. Yerel frozen replay süresi75dk
+canlı sürenin yeni karşılığı değildir. Kalan parser/metadata destek sınırları
+kayıt bazında görünür; source/target yazma yetkisi yoktur.
+
+## 4.645 belirsiz kayıt, BAREM ve süre incelemesi — devam, 21 Ekim 2026
+
+Aktif kullanıcı isteği: #29 PROD/TTBP verisindeki her UNKNOWN kaydını incele,
+kod hatalarını düzelt, gerçek bilgi eksikliğini koru; source/target her zaman
+salt okunur. Ayrıca süre sunumu ve 75 dakikalık statik işlem iyileştiriliyor.
+Bu kayıt ara devirdir; bütün işin tamamlandığı anlamına gelmez.
+
+43 yeni payload ve 29.050 yeniden kullanılan DDL blobu SHA256 ile doğrulandı.
+4645/4645 benzersiz ID çizelgesi output/unknown-audit/coverage/ altında:
+3666 yerel alan yokluğuna sızan global envanter belirsizliği, 845 kaynak
+nesne yokluğu kanıtsız, 89 kolon semantiği, 45 parser/metadata alanı.
+Yerel _absence düzeltildi. Identity BY DEFAULT ve FLOAT126 kanonik okumaları
+düzeltildi; kaynak correspondence 1235→1266 tablo, 35→4 gerçek red.
+BAREM_TANIM CREATE+3constraint+9COMMENT çevrimdışı READY kanıtlandı.
+Bağımlılık gerekçesi artık gerçek kolon/kök nedeni taşıyor.
+
+İlk bütün frozen replay: UNKNOWN4645→922, READY1266→1381,
+BLOCKED251→142; gerçek metadata #29 olarak kaldı, Oracle bağlantısı0.
+Replay süresi239.02sn: validatedload35.48, correspondence5.66,
+compare10.25, plan46.61, bundle112.43. Bu canlı75dk yerine ölçülmüş
+bir süre değildir; eski metadata yeniden hesaplandı. Yeni view/header
+inventory/cache iyileştirmeleri henüz bu replay sonucuna dahil değil.
+İlk replay: output/unknown-audit/fixed-replay/ (5359file VERIFIED).
+
+Süre kökeni: kaynak hazırlık/setup2224.06sn; kaynak catalog6.80sn;
+correspondence/setup15.54sn; target capture+parse1913.26sn;
+son karşılaştırma/plan/arşiv349.21sn. LLM/AI çağrısı yok; statik Python/ANTLR.
+Scope indeks ve metadata satır indeksleri byte-eşit sonuçla iyileştirildi.
+Sidecar parent index/single decode:46scopedtest PASS.
+Süre alanı mevcut HTML ailesinde kompakt özet alanına taşındı.
+
+Jenkins #32 ve #33 yalnız frozen workspace dosyalarını aktardı; SQL/Git/SMTP
+ve Oracle bağlantısı0. Normal v17/08:00 pipeline her seferinde geri yüklendi.
+Eksik353SQLinput blobu için ek frozen export gerekebilir. Şu anda üç alt
+çalışma: guarded inventoryproof, geçerli VIEW/TRG parser uyumluluğu,
+exact-byte+parser-hash bounded parser cache. Final fullsuite, bağımsız
+inceleme, yeni wheel/release, Jenkins replay/arşiv/mail ve private code
+push HENÜZ YAPILMADI. Sonuçlar tamamlanınca bu ara durum güncellenecek.
+
 ## Rapor süresi ve doğrulanan fark sayısı — tamamlandı, 21 Ekim 2026
 
 Mailin ana başlığında gerçek karşılaştırma süresi dakika/saniye olarak görünür.
