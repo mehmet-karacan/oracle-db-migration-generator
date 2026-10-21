@@ -99,19 +99,14 @@ Salt sunum yenilemesi doğrulanmış arşivden yapılabilir; JSON/SQL byte'ları
 yenilenen HTML dosyalarının manifest hash'leri tekrar doğrulanır. Yeni Oracle
 bağlantısı veya yeni karşılaştırma yapılmadığı ve kullanılan eski build açıkça yazılır.
 
-21 Ekim ek kullanıcı düzeltmesi: ana başlık altında Karşılaştırma süresi dakika
-ve saniye olarak yer alır. Sunum yenilendiyse Rapor yenileme süresi ayrı adla
-gösterilir. comparison-timing.json, özgün koşunun zamanlarını ve kaynak SHA'sını
-taşır; yeni run.json'un gerçek yenileme zamanları değiştirilmez. Tarihler TSİ
-(UTC+3) gösterilir. 75 dakika 8,869 saniye kullanıcıya 75 dk 9 sn yuvarlanır.
+21 Ekim son süre yerleşimi: mail ve genel raporda yalnız Karşılaştırma süresi,
+Kaynak ve İzlenebilirlik bölümünde küçük (11px), gri bir not olarak yer alır.
+Üst bölümde süre kartı veya büyük süre değeri bulunmaz. Başlangıç, bitiş,
+TSİ etiketi ve rapor yenileme süresi kullanıcı görünümünde gösterilmez.
+comparison-timing.json özgün karşılaştırma zamanlarını ve kaynak SHA'sını;
+run.json gerçek yenileme zamanlarını korur. Süre yenileme süresinden türetilmez.
+75 dakika 8,869 saniye kullanıcıya75 dk9 sn yuvarlanır.
 Bulunan fark, tamamlanmış hedefte doğrulanmış toplam; kısmi hedefte planın
 UNKNOWN dışındaki fark kayıtlarıdır. UNKNOWN kayıtlar bu sayıya eklenmez ve
 ayrı sayılır. Eksik kapsamda sayı alt sınırdır; ek fark bulunabileceği yazılır.
 Hiçbir hedefin sonucu alınamadıysa Sonuç alınamadı gösterilir, sıfır uydurulmaz.
-
-
-21 Ekim süre yerleşimi: başlığın altında tek gri özet alanı kullanılır.
-Karşılaştırma süresi solda büyük, başlangıç ve bitiş TSİ bilgisi sağda küçük
-boyutta yer alır. Rapor yenileme süresi aynı alanda ikincil bilgi olarak görünür;
-alt izlenebilirlik bölümünde yinelenmez. Dar ekranda iki alan alt alta gelir.
-Logo oranı, mevcut HTML ailesi ve öncelikli ilk 5 nesne kuralı korunur.

@@ -40,8 +40,8 @@ def test_comparison_duration_remains_primary_after_a_short_presentation_refresh(
     for raw in (render_email(view), render_run_reports(view)['index.html']):
         html=raw.decode()
         assert 'Karşılaştırma süresi' in html and '75 dk 9 sn' in html
-        assert 'Rapor yenileme süresi' in html and '1 dk 5 sn' in html
-        assert html.index('75 dk 9 sn') < html.index('Genel Özet') if 'Genel Özet' in html else True
+        assert 'Rapor yenileme süresi' not in html and '1 dk 5 sn' not in html
+        assert html.index('75 dk 9 sn') > html.index('Kaynak ve İzlenebilirlik')
 
 
 def test_invalid_comparison_timing_is_not_replaced_with_the_refresh_duration():
@@ -62,4 +62,5 @@ def test_jenkins_mail_reads_original_comparison_timing_from_archive(tmp_path):
         'build_number':29,'source_commit':run['source_commit'],'started_at':'2026-10-21T05:00:00Z',
         'finished_at':'2026-10-21T06:15:09Z'}),encoding='utf-8')
     html=write_notification(tmp_path,run,url+'31/',url).read_text(encoding='utf-8')
-    assert '75 dk 9 sn' in html and 'Rapor yenileme süresi: 1 dk 5 sn' in html
+    assert 'Karşılaştırma süresi: 75 dk 9 sn' in html
+    assert 'Rapor yenileme süresi' not in html and '1 dk 5 sn' not in html

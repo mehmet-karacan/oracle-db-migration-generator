@@ -132,3 +132,9 @@ başarılı veya eşit diye gösterilmez. Source/target daima READ ONLY kalır.
 Ek sunum düzeltmesi: mailde nesne açıklaması dört sütuna yayılan ayrı satır
 olmaz; Nesne / Fark hücresinde kısa neden gösterilir, tam neden ayrıntılı
 raporda korunur. Önceki Jenkins-only DDL,08:00,TTBP ve tek alıcı sınırı sürer.
+
+21 Ekim son sunum talimatı: süre kutusu üstte yer almaz. Karşılaştırma süresi
+mail ve genel raporun alt izlenebilirlik bölümünde küçük, gri tek satırdır.
+Başlangıç/bitiş, TSİ etiketi ve rapor yenileme süresi kullanıcı görünümünden
+kaldırılır; özgün zamanlar teknik JSON kayıtlarında korunur. Yalnız sunum
+yenilenir, SQL ve karşılaştırma kararları değişmez; salt okuma sınırı sürer.

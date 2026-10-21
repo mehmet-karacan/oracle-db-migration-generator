@@ -1,3 +1,15 @@
+## Süre sunumunun sadeleştirilmesi — 21 Ekim 2026
+
+Mail ve genel rapordaki üst süre kutusu kaldırıldı. Yalnız özgün karşılaştırma
+süresi alt Kaynak ve İzlenebilirlik bölümünde11px gri nottur. Başlangıç/bitiş,
+TSİ ve rapor yenileme süresi görünmez; comparison-timing.json ve run.json
+zamanları korunur. DDL/plan kararları ve veri toplama kodu değiştirilmedi.
+990 test geçti (104,23sn), contracts VERIFIED. Yeni v21 wheel130 paket
+byte eşitliğiyle doğrulandı. Jenkins #41 yalnız #40 görünümünü yeniliyor;
+normal TTBP/PROD08:00 akışı v21 olarak geri kaydedildi. Oracle bağlantısı0,
+DDL/DML/COMPILE0; mail tek onaylı alıcı, SQL arşivi yalnız Jenkins.
+Jenkins #41 UNSTABLE tamamlandı;1.379 SQL ve5.284 immutable dosya byte olarak aynı. Plan ID ve kararlar #40 ile aynı, yeni karşılaştırma/SQL üretimi/Oracle bağlantısı0. Genel mail tek onaylı alıcıya gönderildi. Gönderilen HTML ve web raporunda eski saat etiketleri0, üst kutu0, alt not11px, yatay taşma0 doğrulandı. Normal v21 hash b9cbc40c923a2e0953b3af9b37ca692a93f301a27d129c88789a615bed7bf681 ve08:00/COMPARE ayarı geri okundu. Kanıt output/timing-refinement altında Git dışında.
+
 ## Kalan 493 kayıt ve mail sütun düzeltmesi — 21 Ekim 2026
 
 Bu bölüm önceki 493 açık kayıt durumunun yerine geçer. Source ve target her

@@ -99,8 +99,8 @@ def main():
     if run['targets']!=old['targets']: raise ValueError('PRESENTATION_TARGETS_CHANGED')
     settings=json.loads((args.release/'config/job-settings.json').read_bytes())
     note=(f"Bu rapor #{args.previous_build} karşılaştırmasının görünümü yenilenerek hazırlandı. "
-          f"Karşılaştırma tarihi: {old['finished_at']}. Yeni Oracle bağlantısı açılmadı; DDL dosyaları değişmedi. "
-          'Karşılaştırma ve rapor yenileme süreleri ayrı gösterilir. DDL dosyaları Jenkins arşivindedir.')
+          "Yeni Oracle bağlantısı açılmadı; DDL dosyaları değişmedi. "
+          'DDL dosyaları Jenkins arşivindedir.')
     write_notification(output,run,os.environ['BUILD_URL'],settings['job_url'],context_note=note)
     proof.update(base_build=args.previous_build,previous_finished_at=old['finished_at'],comparison_timing=timing,
                  fresh_capture=False,comparison_rerun=False,sql_regenerated=False,
