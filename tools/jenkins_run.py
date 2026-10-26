@@ -206,6 +206,9 @@ def main(argv=None):
             'snapshot_sha256':hashlib.sha256((prepared/'source-snapshot.json').read_bytes()).hexdigest(),
             'inventory':source.completeness.inventory,'ddl':source.completeness.ddl,
             'preparation_exit_code':rc,'read_only':True}
+        performance=prepared/'preparation-performance.json'
+        if performance.is_file():
+            (output/'source-preparation-performance.json').write_bytes(performance.read_bytes())
         (output/'source-preparation.json').write_bytes(canonical_bytes(proof)+b'\n')
         print(json.dumps({'phase':'source_preparation',**proof}),flush=True)
     try:

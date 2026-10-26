@@ -108,7 +108,7 @@ def bind_and_order(operations,context):
         refs = list(op.intent.references)
         # A source exporter dependency inventory is explicit evidence. A parser
         # must not invent successful external resolution from name spelling.
-        if obj:
+        if obj and op.intent.feature_scope!='COMPILED_STATIC':
             from ..parsing.dependencies import references
             refs.extend(ref for ref in references(obj) if not (op.intent.feature_scope=='TABLE_BASE' and ref.object_type=='TABLE'))
         prerequisites,blocked = set(),False
@@ -119,6 +119,14 @@ def bind_and_order(operations,context):
         if op.identity.object_type=='TABLE' and op.kind!='CREATE':
             prerequisites.update(other.operation_id for other in by_object.get(_key(op.identity),()) if other.kind=='CREATE')
         for ref in refs:
+            # The separate compiler certificate has already verified the exact
+            # external target signature, VALID status and direct/PUBLIC grants.
+            if op.intent.feature_scope=='COMPILED_STATIC' and ref.role=='COMPILED_EXTERNAL':
+                from .routine_proof import compiled_static_inventory
+                proof=compiled_static_inventory(context,obj)
+                if proof and proof.approved and ref in proof.references:
+                    extra_evidence.update(proof.evidence_ids);continue
+                issue(ref,'derleyici kanıtı yeniden doğrulanamadı');blocked=True;continue
             if ref.role=='ANCHORED_REFERENCE_UNRESOLVED':
                 issue(ref,'anchored %TYPE/%ROWTYPE başvurusunun tablo, kolon veya yerel değişken bağlamı doğrulanamadı')
                 blocked=True;continue
@@ -215,13 +223,12 @@ def bind_and_order(operations,context):
             if ref.role=='FK_PARENT':
                 prerequisites.update(other.operation_id for other in candidates if other.kind=='ADD_CONSTRAINT' and other.intent and other.intent.phase==40)
         # Shared Oracle namespace collisions cannot be solved by CREATE order.
-        if op.kind=='CREATE' and op.identity.object_type in {'TABLE','VIEW','SEQUENCE','PACKAGE_SPEC','PROCEDURE','FUNCTION','TYPE_SPEC','SYNONYM'}:
-            conflicts=sorted({item.identity.object_type for item in context.target.objects
-                   if _key(item.identity)[::2]==_key(op.identity)[::2] and item.identity.object_type!=op.identity.object_type
-                   and item.identity.object_type in {'TABLE','VIEW','SEQUENCE','PACKAGE_SPEC','PROCEDURE','FUNCTION','TYPE_SPEC','SYNONYM'}})
+        if op.kind=='CREATE':
+            from .namespace import namespace_conflicts,conflict_description
+            conflicts=namespace_conflicts(context,op.identity)
             if conflicts:
-                issues.append(f'{op.identity.owner.effective_name}.{op.identity.name.effective_name}: hedefte '+
-                              ', '.join(conflicts)+f' mevcut; kaynak {op.identity.object_type} oluşturulması aynı Oracle ad alanında çakışıyor')
+                issues.append(conflict_description(op.identity,conflicts))
+                extra_evidence.update(key for item in conflicts for key in item.evidence_ids)
                 blocked=True;namespace_conflict=True
         if extra_evidence:
             ids=tuple(sorted(set(op.evidence_ids)|extra_evidence))

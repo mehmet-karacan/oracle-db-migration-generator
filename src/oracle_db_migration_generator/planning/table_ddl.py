@@ -133,13 +133,21 @@ def table_base(obj,*,columns_fields=None,collation_enabled=None):
     columns = projection.properties.get('columns',{})
     if not columns:
         raise ValueError('SOURCE_TABLE_COLUMNS_UNAVAILABLE')
-    text = obj.raw_ddl.decode('utf-8')
+    # GET_DDL can append backing indexes and ALTER TABLE context without
+    # terminators. Only the parser-proven CREATE span belongs to this intent.
+    # Constraints and indexes retain their separate dependency-aware intents.
+    parsed = parse_ddl(obj.raw_ddl, obj.identity, metadata=True)
+    create = next((item for item in parsed.objects if item.identity.key == obj.object_key
+                   and item.parse_ok and not item.diagnostics), None)
+    if parsed.coverage != 'COMPLETE' or create is None:
+        raise ValueError('SOURCE_TABLE_BODY_UNAVAILABLE')
+    text = create.raw_ddl.decode('utf-8')
     tokens = code_tokens(text)
     depth=0
-    for token in tokens:
+    for index,token in enumerate(tokens):
         if token.text=='(': depth+=1
         elif token.text==')': depth-=1
-        elif depth==0 and token.upper=='AS':
+        elif depth==0 and token.upper=='AS' and (index==0 or tokens[index-1].upper!='STORE'):
             # CTAS reads business rows and can populate the new table. It is
             # outside the DDL-only plan even when its dependency is verified.
             raise ValueError('CREATE_TABLE_AS_QUERY_NOT_SUPPORTED')

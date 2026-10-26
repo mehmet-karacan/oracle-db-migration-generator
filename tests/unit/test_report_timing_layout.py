@@ -20,14 +20,14 @@ def rendered(view, profile):
 
 
 @pytest.mark.parametrize('profile', ['email', 'web'])
-def test_duration_is_a_discreet_traceability_note_without_operational_clocks(profile):
+def test_original_duration_is_visible_before_summary_metrics_without_refresh_clocks(profile):
     view = timing_view()
     before = deepcopy(view)
     html = rendered(view, profile)
     assert 'Karşılaştırma süresi: 75 dk 9 sn' in html
-    assert 'timing-summary' not in html and 'timing-value' not in html
-    assert html.index('Karşılaştırma süresi:') > html.index('Kaynak ve İzlenebilirlik')
-    assert html.index('Karşılaştırma süresi:') > html.index('class="metric"')
+    assert html.count('Karşılaştırma süresi:') == 1
+    assert html.index('Karşılaştırma süresi:') < html.index('class="metric"')
+    assert html.index('Karşılaştırma süresi:') < html.index('Tarama Kapsamı')
     assert 'Başlangıç' not in html and 'Bitiş' not in html and 'TSİ' not in html
     assert 'Rapor yenileme süresi' not in html and '1 dk 6 sn' not in html
     assert view == before
@@ -54,9 +54,9 @@ def test_duration_note_escapes_content_and_keeps_readable_small_text(profile):
     assert '<script>' not in html and '&lt;script&gt;' in html
     assert len(html.encode())<=200*1024
     if profile=='email':
-        assert 'class="timing-note"' in html and 'font-size:11px' in html
+        assert 'class="timing-summary"' in html and 'font-size:14px' in html
         assert re.findall(r'<th width="(\d+%)"',html)==['60%','12%','12%','16%']
         assert html.count('class="metric"')==5
     else:
         css=render_run_reports(view)['assets/report.css'].decode()
-        assert '.timing-note{font-size:11px' in css and 'overflow-wrap:anywhere' in css
+        assert '.timing-summary{' in css and 'overflow-wrap:anywhere' in css

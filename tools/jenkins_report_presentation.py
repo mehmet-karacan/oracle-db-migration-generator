@@ -16,13 +16,46 @@ from oracle_db_migration_generator.reporting.render import render_reports
 from oracle_db_migration_generator.reporting.formatting import difference_counts
 
 
-def refresh_bundle(previous, output):
+def archived_scan_summary(previous, source_path, target_path, profile):
+    """Bind saved inventory to an existing plan without comparing or emitting SQL."""
+    from oracle_db_migration_generator.model.snapshot_io import load_snapshot
+    from oracle_db_migration_generator.model.serialization import digest
+    from oracle_db_migration_generator.model.source_scope import source_for_schemas
+    from oracle_db_migration_generator.reporting.inventory import build_scan_summary,validate_scan_summary
+    previous=Path(previous).resolve();source_path=Path(source_path);target_path=Path(target_path)
+    verify_bundle(previous)
+    plan=json.loads((previous/'plan.json').read_bytes())
+    source=load_snapshot(source_path,require_ddl=True);target=load_snapshot(target_path,require_ddl=True)
+    if source.semantic_digest!=plan['source']['ddl_digest']:
+        source=source_for_schemas(source,profile,tuple(plan['target']['schemas']))
+    if (source.side!='SOURCE' or target.side!='TARGET'
+            or source.source_commit!=plan['source']['commit_sha']
+            or source.semantic_digest!=plan['source']['ddl_digest']
+            or target.semantic_digest!=plan['target_snapshot_digest']
+            or target.target_id!=plan['target']['id']
+            or digest(profile)!=plan['input_fingerprint']['profile_sha256']):
+        raise ValueError('PRESENTATION_INVENTORY_INPUT_MISMATCH')
+    summary=validate_scan_summary(build_scan_summary(source,target,profile.policy,plan),plan)
+    return summary,{'inventory_source_snapshot_sha256':hashlib.sha256(source_path.read_bytes()).hexdigest(),
+                    'inventory_target_snapshot_sha256':hashlib.sha256(target_path.read_bytes()).hexdigest(),
+                    'inventory_source_digest':source.semantic_digest}
+
+
+def refresh_bundle(previous, output, *, scan_summary=None):
     previous = Path(previous).resolve(); output = Path(output).resolve()
     if output.exists(): raise ValueError('OUTPUT_ALREADY_EXISTS')
     verify_bundle(previous)
     manifest = json.loads((previous/'bundle-manifest.json').read_bytes())
     plan = json.loads((previous/'plan.json').read_bytes())
     payload = {row['path']:safe_path(previous, row['path']).read_bytes() for row in manifest['files']}
+    original_payload=dict(payload)
+    if scan_summary is not None:
+        from oracle_db_migration_generator.reporting.inventory import validate_scan_summary
+        validate_scan_summary(scan_summary,plan)
+        if 'scan-summary.json' in payload and json.loads(payload['scan-summary.json'])!=scan_summary:
+            raise ValueError('PRESENTATION_INVENTORY_CONFLICT')
+        if 'scan-summary.json' not in payload:
+            payload['scan-summary.json']=canonical_bytes(scan_summary)+b'\n'
     reports = render_reports(plan, payload)
     retained = {name:raw for name,raw in payload.items()
                 if not (name=='index.html' or name.startswith('changes/') and name.endswith('.html'))}
@@ -31,7 +64,7 @@ def refresh_bundle(previous, output):
                           'media_type':mimetypes.guess_type(name)[0] or 'application/octet-stream'}
                          for name,raw in sorted(retained.items())]
     validate_document(manifest, 'bundle-manifest.schema.json')
-    immutable = {name:raw for name,raw in payload.items() if name not in reports
+    immutable = {name:raw for name,raw in original_payload.items() if name not in reports
                  and not (name.startswith('changes/') and name.endswith('.html'))}
     output.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.presentation-staging-',dir=output.parent) as temporary:
@@ -48,7 +81,8 @@ def refresh_bundle(previous, output):
     return {'plan_id':plan['plan_id'], 'counts':plan['counts'], 'difference_summary':difference_counts(plan),
             'plan_sha256':hashlib.sha256(payload['plan.json']).hexdigest(),
             'sql_files_verified':sum(name.endswith('.sql') for name in immutable),
-            'immutable_files_verified':len(immutable)}
+            'immutable_files_verified':len(immutable),
+            'scan_summary_added':'scan-summary.json' in payload and 'scan-summary.json' not in original_payload}
 
 
 def comparison_origin(base):
@@ -75,6 +109,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--release', type=Path, required=True)
     parser.add_argument('--previous-build', type=int, required=True)
+    parser.add_argument('--inventory-build', type=int)
     parser.add_argument('--output', type=Path, required=True)
     args=parser.parse_args();number=int(os.environ['BUILD_NUMBER']);output=args.output.resolve()
     if not 0<args.previous_build<number or output!=Path('output/runs').resolve()/('build-'+str(number)) or output.exists():
@@ -86,7 +121,18 @@ def main():
         raise ValueError('PRESENTATION_SCOPE_INVALID')
     target=old['targets'][0]
     if target['plan_path']!='targets/LOCAL-TTBP/plan.json': raise ValueError('PRESENTATION_PLAN_INVALID')
-    proof=refresh_bundle(base/'targets/LOCAL-TTBP',output/'targets/LOCAL-TTBP')
+    inventory=None;inventory_proof={}
+    if args.inventory_build is not None:
+        if not 0<args.inventory_build<=args.previous_build:raise ValueError('PRESENTATION_INVENTORY_BUILD_INVALID')
+        from oracle_db_migration_generator.config.loader import load_source_profile
+        inventory_base=base.parent/('build-'+str(args.inventory_build))
+        inventory,inventory_proof=archived_scan_summary(base/'targets/LOCAL-TTBP',
+            base.parent/'source-snapshots'/('build-'+str(args.inventory_build))/'source-snapshot.enriched.json',
+            inventory_base/'observations/LOCAL-TTBP/target-snapshot.json',
+            load_source_profile(Path(os.environ['GENERATOR_CONFIG_DIR'])/'config/source-profile.json'))
+        inventory_proof['inventory_build']=args.inventory_build
+    proof=refresh_bundle(base/'targets/LOCAL-TTBP',output/'targets/LOCAL-TTBP',scan_summary=inventory)
+    proof.update(inventory_proof)
     (output/'targets/LOCAL-TTBP.result.json').write_bytes(canonical_bytes(target)+b'\n')
     (output/'comparison-timing.json').write_bytes(canonical_bytes(timing)+b'\n')
     for name in ('source-scopes.json','scope-exclusions.json'):

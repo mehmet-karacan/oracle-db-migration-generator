@@ -14,9 +14,15 @@ def offline_plan(source,target,profile,output,*,name=None,secret_values=()):
     recorded=source.capabilities.get('source_profile_sha256')
     if recorded and (recorded.state!='KNOWN' or recorded.value!=digest(profile)):
         raise ValueError('SOURCE_PROFILE_FINGERPRINT_MISMATCH')
+    from ..portable.adapter import scope_comparison
+    from ..model.serialization import thaw
+    selected=source.capabilities.get('comparison_filter')
+    source,target=scope_comparison(source,target,thaw(selected.value) if selected and selected.state=='KNOWN' else None)
     differences=compare_snapshots(source,target,profile.policy)
     plan=plan_target(differences,PlanningContext(source,target,profile,name or target.target_id))
-    return write_bundle(plan,output,secret_values=secret_values)
+    from ..reporting.inventory import build_scan_summary
+    return write_bundle(plan,output,secret_values=secret_values,
+                        scan_summary=build_scan_summary(source,target,profile.policy,plan))
 
 
 def save_observation(observation,output):
@@ -30,6 +36,12 @@ def save_observation(observation,output):
         for obj in snapshot.objects:
             if obj.ddl_path and obj.raw_ddl:
                 path=safe_path(output,obj.ddl_path);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(obj.raw_ddl)
+        for evidence in snapshot.evidence:
+            if evidence.query_id!='oracle.compiled-static/v1' or not evidence.path:continue
+            artifact=next((item for item in observation.artifacts
+                           if item.path==evidence.path and item.sha256==evidence.sha256),None)
+            if artifact is None:raise ValueError('ROUTINE_METADATA_EVIDENCE_BLOB_MISSING')
+            path=safe_path(output,evidence.path);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(artifact.raw)
         (output/'target-snapshot.json').write_bytes(canonical_bytes(document)+b'\n')
 
 

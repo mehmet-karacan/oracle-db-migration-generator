@@ -1,5 +1,6 @@
 """Build to a sibling staging directory, validate, then atomically publish locally."""
 import hashlib
+from ..model.atomic import rename_new_directory
 import json
 import mimetypes
 import os
@@ -26,7 +27,7 @@ def _scan(payloads,secret_values):
             raise ValueError('SENSITIVE_CONTENT_DETECTED')
 
 
-def write_bundle(plan,output,*,secret_values=()):
+def write_bundle(plan,output,*,secret_values=(),scan_summary=None):
     output=Path(output).resolve()
     if output.exists(): raise ValueError('OUTPUT_ALREADY_EXISTS')
     payload={};ops=[];plan_id=plan.plan_id
@@ -46,11 +47,15 @@ def write_bundle(plan,output,*,secret_values=()):
     validate_plan(document)
     ready=[op.sql['path'] for op in ops if op.sql]
     if ready:
-        payload['migration.sql' if plan.status=='READY' else 'partial-ready.sql']=aggregate_sql(ready,plan_id,partial=plan.status!='READY',source_commit=document['source']['commit_sha'],target_id=document['target']['id'])
+        payload['migration.sql' if plan.status=='READY' else 'partial-ready.sql']=aggregate_sql(ready,plan_id,partial=plan.status!='READY',source_commit=document['source']['commit_sha'],target_id=document['target']['id'],source_origin=document['source'].get('origin'))
     payload['plan.json']=canonical_bytes(document)+b'\n'
+    if scan_summary is not None:
+        from ..reporting.inventory import validate_scan_summary
+        validate_scan_summary(scan_summary,document)
+        payload['scan-summary.json']=canonical_bytes(scan_summary)+b'\n'
     payload['evidence.json']=canonical_bytes({'plan_id':plan_id,'evidence':thaw(plan.evidence)})+b'\n'
     payload['README.md']=(f'# Oracle DB Migration Generator\n\nPlan: `{plan_id}`\n\nDurum: {plan.status}. '
-                          'Git source desired → Oracle target actual.\n\nVeritabanına uygulanmadı. Source ve target salt okunur. '
+                          f'{"Oracle" if document["source"].get("origin") else "Git"} source desired → Oracle target actual.\n\nVeritabanına uygulanmadı. Source ve target salt okunur. '
                           'Dosyaları çalıştırmadan önce plan.json içindeki kapsam, reason_codes ve bağımlılıkları inceleyin. '
                           'partial-ready.sql yalnız hazır alt kümedir; tam bir migration veya çalıştırma onayı değildir. '
                           'BLOCKED/REVIEW işlemleri aggregate SQL içine alınmaz.\n\n'
@@ -72,7 +77,7 @@ def write_bundle(plan,output,*,secret_values=()):
             target=safe_path(temporary,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
         verify_bundle(temporary)
         # rename on Windows refuses replacing an existing destination.
-        os.rename(temporary,output)
+        rename_new_directory(temporary,output)
     finally:
         if temporary.exists(): shutil.rmtree(temporary)
     return {'status':'WRITTEN','plan_id':plan_id,'decision':plan.status,'counts':plan.counts,
@@ -93,6 +98,9 @@ def verify_bundle(root):
     observed={path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file() or path.is_symlink()}
     if observed!=set(paths)|{'bundle-manifest.json'}: raise ValueError('BUNDLE_UNEXPECTED_FILES')
     document=validate_plan(read_json(root/'plan.json'))
+    if 'scan-summary.json' in paths:
+        from ..reporting.inventory import validate_scan_summary
+        validate_scan_summary(read_json(root/'scan-summary.json'),document)
     if document['plan_id']!=manifest['plan_id'] or document['target']['id']!=manifest['target_id']: raise ValueError('BUNDLE_PLAN_MISMATCH')
     for op in document['operations']:
         if op['sql']:
@@ -105,6 +113,6 @@ def verify_bundle(root):
     name='migration.sql' if document['status']=='READY' else 'partial-ready.sql'
     aggregates={p for p in ('migration.sql','partial-ready.sql') if (root/p).exists()}
     if aggregates != ({name} if ready else set()): raise ValueError('BUNDLE_UNSAFE_AGGREGATE')
-    if ready and (root/name).read_bytes()!=aggregate_sql(ready,document['plan_id'],partial=document['status']!='READY',source_commit=document['source']['commit_sha'],target_id=document['target']['id']):
+    if ready and (root/name).read_bytes()!=aggregate_sql(ready,document['plan_id'],partial=document['status']!='READY',source_commit=document['source']['commit_sha'],target_id=document['target']['id'],source_origin=document['source'].get('origin')):
         raise ValueError('BUNDLE_AGGREGATE_MISMATCH')
     return {'status':'VERIFIED','plan_id':manifest['plan_id'],'files':len(paths),'execution_status':'NOT_EXECUTED'}

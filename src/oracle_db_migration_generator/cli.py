@@ -10,9 +10,26 @@ from .preflight import run_preflight
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Oracle Migration Generator — yerel, salt okunur başlangıç')
+    parser = argparse.ArgumentParser(description='Oracle Migration Generator - yerel, salt okunur başlangıç')
     parser.add_argument('--version', action='version', version=__version__)
     commands = parser.add_subparsers(dest='command', required=True)
+    capture=commands.add_parser('prepare-capture',help='SQL*Plus/SQLcl toplama paketini bağlantı açmadan hazırla')
+    capture.add_argument('--output',type=Path,required=True)
+    for flag in ('schema','object-type','object-name','table-name','data-type'):
+        capture.add_argument('--'+flag,action='append',default=[])
+    capture.add_argument('--no-related',action='store_true')
+    capture.add_argument('--include-technical',action='store_true')
+    capture.add_argument('--reader-mode',choices=('AUTO','OWN','CATALOG','VISIBLE'),default='AUTO')
+    capture.add_argument('--filter-side',choices=('SOURCE','TARGET'),default='SOURCE')
+    capture.add_argument('--environment',default='')
+    capture.add_argument('--timeout-seconds',type=int,default=900)
+    capture.add_argument('--max-objects',type=int,default=10000)
+    imported=commands.add_parser('import-capture',help='Taşınabilir metadata dosyasını ağsız snapshot biçimine dönüştür')
+    imported.add_argument('--input',type=Path,required=True)
+    imported.add_argument('--source-profile',type=Path,required=True)
+    imported.add_argument('--side',choices=('SOURCE','TARGET'),required=True)
+    imported.add_argument('--connection-id',required=True)
+    imported.add_argument('--output',type=Path,required=True)
     validate = commands.add_parser('validate-config', help='Bağlantı açmadan yapılandırmayı doğrula')
     validate.add_argument('--source-profile', type=Path, required=True)
     validate.add_argument('--targets', type=Path, required=True)
@@ -47,6 +64,28 @@ def main(argv=None):
     archive.add_argument('--build-number',type=int)
     args = parser.parse_args(argv)
     try:
+        if args.command=='prepare-capture':
+            from .portable.builder import prepare_capture
+            values={'schemas':args.schema,'object_names':args.object_name,'table_names':args.table_name,
+                'data_types':args.data_type,'include_related':not args.no_related,
+                'exclude_system_generated':not args.include_technical,'reader_mode':args.reader_mode,
+                'environment':args.environment,'filter_side':args.filter_side,'timeout_seconds':args.timeout_seconds,'max_objects':args.max_objects}
+            if args.object_type:values['object_types']=args.object_type
+            folder=prepare_capture(args.output,values)
+            print(json.dumps({'status':'PREPARED','output':str(folder),'database_connections':0}));return 0
+        if args.command=='import-capture':
+            from .portable.stream import read_capture,MAX_PACKET_BYTES
+            from .portable.adapter import observation_from_capture
+            from .source.oracle_reader import from_observation,save_source
+            from .runtime.worker import save_observation
+            if args.input.stat().st_size>MAX_PACKET_BYTES:raise ValueError('CAPTURE_FILE_SIZE')
+            captured=read_capture(args.input.read_bytes());profile=load_source_profile(args.source_profile)
+            observation=observation_from_capture(captured,profile,target_id=args.connection_id,
+                schemas=[root.source_schema for root in profile.schema_roots])
+            if args.side=='SOURCE':save_source(from_observation(observation,connection_id=args.connection_id),args.output)
+            else:save_observation(observation,args.output)
+            print(json.dumps({'status':'IMPORTED','capture_status':captured.status,'objects':len(observation.snapshot.objects),
+                'sha256':captured.sha256,'database_connections':0}));return 0
         if args.command=='archive-run':
             from .artifacts.store import archive_run
             print(json.dumps(archive_run(args.run_root,args.store,build_number=args.build_number)));return 0
@@ -74,16 +113,45 @@ def main(argv=None):
             run=aggregate_run(args.output,source_commit=source.source_commit)
             print(json.dumps(result));return run['exit_code']
         if args.command=='prepare-source':
+            import os
+            import time
             from .model.snapshot_io import write_source_snapshot
             from .parsing.adapter import parse_source
             from .source.git_reader import GitRepository,resolve_source,read_source
+            from .source.prepared_cache import PreparedSourceCache
+            started=time.perf_counter();phases={}
             profile = load_source_profile(args.source_profile)
+            mark=time.perf_counter()
             inputs = read_source(resolve_source(GitRepository(args.repo),args.ref),profile)
+            phases['read_git']=time.perf_counter()-mark
+            cache_root=os.environ.get('GENERATOR_PREPARED_SOURCE_CACHE_DIR')
+            mark=time.perf_counter()
+            cache=PreparedSourceCache(cache_root,inputs) if cache_root else None
+            snapshot=cache.load() if cache else None
+            phases['checkpoint_read']=time.perf_counter()-mark
+            cache_status='HIT_VERIFIED' if snapshot is not None else 'MISS' if cache else 'DISABLED'
             def progress(index,total):
                 if index and index%50==0:
                     print(json.dumps({'phase':'parse_source','processed':index,'total':total}),flush=True)
-            snapshot = parse_source(inputs,profile,progress=progress)
+            mark=time.perf_counter()
+            if snapshot is None:
+                snapshot = parse_source(inputs,profile,progress=progress)
+                phases['parse']=time.perf_counter()-mark
+            else:
+                phases['parse']=0
+            mark=time.perf_counter()
             write_source_snapshot(snapshot,inputs,args.output)
+            phases['write_snapshot']=time.perf_counter()-mark
+            mark=time.perf_counter()
+            stored=cache.store(snapshot) if cache and cache_status=='MISS' else False
+            phases['checkpoint_write']=time.perf_counter()-mark
+            performance={'schema_version':'source-preparation-performance/1.0','cache_status':cache_status,
+                         'checkpoint_stored':stored,'source_files':len(inputs.artifacts),
+                         'phases_seconds':phases,'total_seconds':time.perf_counter()-started,
+                         'source_commit':inputs.revision.commit,'source_semantic_digest':snapshot.semantic_digest,
+                         'database_connections':0,'read_only':True}
+            (args.output/'preparation-performance.json').write_text(json.dumps(performance,sort_keys=True)+'\n',encoding='utf-8')
+            print(json.dumps({'phase':'source_preparation_performance',**performance}),flush=True)
             print(json.dumps({'status':'PREPARED','source_commit':snapshot.source_commit,
                               'objects':len(snapshot.objects),'inventory':snapshot.completeness.inventory,
                               'ddl':snapshot.completeness.ddl,'comparison_status':'NOT_RUN'}))

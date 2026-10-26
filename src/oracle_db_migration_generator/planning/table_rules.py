@@ -75,7 +75,9 @@ def create_table(context,obj,changes):
     except (ValueError,IndexError,TypeError):
         return [operation(context,obj,changes,'REVIEW','BLOCKED','PARTITION_LAYOUT_UNVERIFIED',
                           'Partition key, sınır, tip veya interval ifadesi üretim için doğrulanamadı.')]
-    if unsupported_table_feature(obj,partition_verified=layout is not None):
+    from .lob_rules import verified_basicfile_lobs
+    lob_verified=verified_basicfile_lobs(context,obj,columns)
+    if unsupported_table_feature(obj,partition_verified=layout is not None,lob_verified=lob_verified):
         return [operation(context,obj,changes,'REVIEW','BLOCKED','BLOCKED_UNSUPPORTED_FEATURE',
                           'Partition, LOB, IOT, external veya cluster özelliği sade tabloya dönüştürülemez.')]
     unknown=[name+' ('+', '.join({'data_type':'kolon tipi','length':'uzunluk','length_semantics':'uzunluk birimi'}[key]
@@ -95,7 +97,7 @@ def create_table(context,obj,changes):
     except (ValueError,KeyError,TypeError,StopIteration) as error:
         return [operation(context,obj,changes,'REVIEW','BLOCKED',_definition_error(error),
                           'Kaynak tablo tanımı veya hedefte collation korunumu üretim için doğrulanamadı.',extra_evidence_ids=capability_ids)]
-    result = [operation(context,obj,changes,'CREATE','READY','CREATE_VERIFIED_RANGE_TABLE' if layout else 'CREATE_VERIFIED_HEAP_TABLE',
+    result = [operation(context,obj,changes,'CREATE','READY','CREATE_VERIFIED_RANGE_TABLE' if layout else 'CREATE_VERIFIED_BASICFILE_LOB_TABLE' if lob_verified else 'CREATE_VERIFIED_HEAP_TABLE',
                         'Hedefte yokluğu doğrulanan tablo, tüm kolon özellikleri korunarak oluşturulacak.',
                         statement=statement,phase=20,feature_scope='TABLE_BASE',extra_evidence_ids=capability_ids)]
     for name,definition in sorted(projection.properties.get('constraints',{}).items()):
@@ -218,8 +220,11 @@ def change_table(context,desired,actual,changes):
                 factor = context.target.capabilities.get('max_bytes_per_character')
                 ceiling = 2000 if old_type=='RAW' else max_bytes.value if max_bytes and max_bytes.state=='KNOWN' else None
                 width = 1 if semantics=='BYTE' else 6 if old_type=='NVARCHAR2' else factor.value if factor and factor.state=='KNOWN' else None
-                widening = (isinstance(old_length,int) and isinstance(new_length,int) and new_length>old_length
-                            and semantics==_value(before,'length_semantics') and ceiling is not None and width is not None
+                same_semantics=(semantics==_value(before,'length_semantics') and isinstance(old_length,int) and isinstance(new_length,int) and new_length>old_length)
+                expanded_semantics=(old_type=='VARCHAR2' and _value(before,'length_semantics')=='BYTE' and semantics=='CHAR'
+                                    and isinstance(old_length,int) and isinstance(new_length,int) and new_length>=old_length)
+                widening = (isinstance(old_length,int) and isinstance(new_length,int) and (same_semantics or expanded_semantics)
+                            and ceiling is not None and width is not None
                             and new_length*width<=ceiling)
             elif old_type==new_type=='NUMBER':
                 left,right,scale = _value(before,'precision'),_value(after,'precision'),_value(after,'scale')
@@ -232,9 +237,10 @@ def change_table(context,desired,actual,changes):
                                         statement=f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} {datatype});'.encode(),
                                         phase=30,tag='type:'+name,feature_scope='COLUMN'))
             else:
+                from .review_reasons import type_review
                 result.append(operation(context,desired,typed,'REVIEW','REVIEW_REQUIRED' if not widening else 'BLOCKED',
                                         'TYPE_CHANGE_REQUIRES_REVIEW' if not widening else 'TYPE_SAFETY_METADATA_UNVERIFIED',
-                                        'Daraltma, scale/tip değişimi veya doğrulanamayan bağımlılık koşulu otomatik uygulanabilir değildir.',tag='type:'+name))
+                                        type_review(name,before,after)+(' Partition anahtarı veya domain index güvenlik kanıtı eksik.' if widening else ''),tag='type:'+name))
         for diff in remaining:
             field = diff.property_path.rsplit('/',1)[-1]
             if diff.kind=='INFORMATIONAL' or field=='position':
@@ -251,8 +257,21 @@ def change_table(context,desired,actual,changes):
                 if tokens and not any(token.upper in {'SELECT','NEXTVAL','CASE'} or token.text=='(' for token in tokens):
                     decision,code,description = 'READY','SET_VERIFIED_COLUMN_DEFAULT','Yalnız gelecekteki kayıtların default tanımı değiştirilecek; backfill yok.'
                     statement = f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} DEFAULT {raw_default or "NULL"});'.encode()
+            proof=()
+            if field=='nullable':
+                from .column_safety import not_null_relaxation_evidence
+                proof=not_null_relaxation_evidence(actual,name,before,after)
+                if proof:
+                    decision,code,description='READY','RELAX_VERIFIED_NOT_NULL','Kaynakta nullable olan kolonun açık NOT NULL koşulu, PK olmadığı doğrulanarak gevşetilecek; veri güncellenmez.'
+                    statement=f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} NULL);'.encode()
+                elif _value(after,'nullable') is False:
+                    description=name+': kaynak NOT NULL istiyor. Mevcut veride NULL bulunmadığı ve kısıt etkisi doğrulanmalı.'
+                else:
+                    description=name+': NULL kabulü isteniyor. Açık NOT NULL tanımı ve PK/kısıt envanteri birlikte doğrulanamadı.'
+            elif field=='collation':
+                description=name+': collation hedefte '+str(diff.before.value)+', kaynakta '+str(diff.after.value)+'. Tip/karakter karşılaştırma etkisi ayrıca incelenmeli.'
             result.append(operation(context,desired,(diff,),'MODIFY_COLUMN' if decision=='READY' else 'PRESERVE' if decision=='INFORMATIONAL' else 'REVIEW',
-                                    decision,code,description,statement=statement,tag=field+':'+name,feature_scope='COLUMN'))
+                                    decision,code,description,statement=statement,tag=field+':'+name,feature_scope='COLUMN',extra_evidence_ids=proof or ()))
     if other:
         partition=[diff for diff in other if diff.property_path=='/table_properties/partitioning' and diff.kind not in {'UNKNOWN','EXTRA','INFORMATIONAL'}]
         if partition:

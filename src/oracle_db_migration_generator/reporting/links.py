@@ -16,7 +16,7 @@ def safe_https(url, hosts):
 @dataclass(frozen=True)
 class ArchiveLink:
     url: str
-    note: str = 'Git yayını doğrulanmadı; erişilebilir sabit Jenkins arşivi kullanılıyor.'
+    note: str = 'Git yayını doğrulanmadı, erişilebilir sabit Jenkins arşivi kullanılıyor.'
 
 
 def verified_archive(url, allowed_hosts, check, *, build_url):

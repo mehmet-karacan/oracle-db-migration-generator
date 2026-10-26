@@ -28,9 +28,11 @@ def render_statement(operation,plan_id):
     return (f'-- plan_id: {plan_id}\n-- operation_id: {operation.operation_id}\n'+text+suffix).encode('utf-8')
 
 
-def aggregate_sql(paths,plan_id,*,partial=False,source_commit=None,target_id=None):
+def aggregate_sql(paths,plan_id,*,partial=False,source_commit=None,target_id=None,source_origin=None):
     title='PARTIAL READY SUBSET - REVIEW THE COMPLETE PLAN' if partial else 'READY MIGRATION PLAN'
     header=f'-- {title}\n-- plan_id: {plan_id}\n-- source_commit: {source_commit}\n-- target_id: {target_id}\n-- Generated offline; NOT EXECUTED.\nWHENEVER OSERROR EXIT FAILURE\nWHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK\nSET DEFINE OFF\nSET SQLBLANKLINES ON\n\n'
+    if source_origin:
+        header=header.replace(f'-- source_commit: {source_commit}\n',f"-- source_kind: ORACLE\n-- source_snapshot: {source_origin['snapshot_id']}\n")
     import re
     if any(not re.fullmatch(r'objects/(?:[A-Za-z0-9_-]{1,80}/[A-Za-z0-9_-]{1,80}/[A-Za-z0-9_-]{1,80}/)?op-[0-9a-f]{64}\.sql',path) for path in paths):
         raise ValueError('EMITTED_SQL_INCLUDE_PATH_UNSAFE')

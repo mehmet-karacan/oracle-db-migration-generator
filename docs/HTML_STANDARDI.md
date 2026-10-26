@@ -1,84 +1,100 @@
 # HTML Rapor Standardı
 
+## 23 Ekim 2026 kaynak esaslı Tarama Kapsamı
+
+Genel web, hedef web ve mail KPI şeridinin altında Tarama Kapsamı gösterir.
+Toplam ve tür dağılımı yalnız seçili kaynak şemalarındaki kapsam içi nesnelere
+aittir, değişmeyen nesneler dahildir. Kaynak aynı şemada birden fazla hedef
+için tekrar sayılmaz. COMMENT/GRANT metadata kayıtları nesne toplamını
+artırmaz, paket tanımı/gövdesi ayrı nesnelerdir. Teknik nesne politikası
+korunur. Hedef sayısı/fark/DDL sayısı bu toplamla karıştırılmaz.
+
+Snapshot'tan üretilen scan-summary.json plan ID/source digest/target digest
+ile bağlı ve bundle manifestiyle hash'lidir, karşılaştırma veya SQL kararını
+değiştirmez. Eski arşivde özet yoksa Bilinmiyor gösterilir. Kaynak envanteri
+eksikse sayı gözlenen alt sınırdır, hedef kapsamının eksikliği kaynak
+envanteri hakkında eksiklik iddiası üretmez. Genel ve mail kaynak toplamını,
+hedef raporu yalnız ilgili şemaların kaynak toplamını gösterir.
+
 ## Sabit Referans
 
 Yeni tasarım icat edilmez. Yüklenen Analyzer'da `workflow.py` schema_version≥2 veya jenkins_artifact tesliminde `build_innova_mail_view`/`render_innova_view` kullanıyor. Bu nedenle ana referans **innova-db-report/1.0**, `templates/innova_v1/report_email.html.j2` ve `assets/innova-logo-approved.png` dosyalarıdır. V5'in koyu başlığı/başka paleti kullanılmaz. DDL Sync'in `templates/mail_report.html` dosyası aynı ürün ailesinin ikincil referansıdır.
 
-`reference-ui/` paketinde asıl şablon, logo, hash kaydı ve eski ürünün sentetik render'ı bulunur. Buradaki 'YZ Destekli' gibi eski ürün ifadeleri tasarım kanıtıdır; Generator çıktısına otomatik taşınmaz. Koşu title'ı **Oracle Migration Artifact Kataloğu**, e-posta title'ı **Oracle DDL Migration Raporu** olur; target ayrıntısı Generator adını taşır. Model adı, AI değerlendirme rozeti ve yorumlayıcı uydurulmaz.
+`reference-ui/` paketinde asıl şablon, logo, hash kaydı ve eski ürünün sentetik render'ı bulunur. Buradaki 'YZ Destekli' gibi eski ürün ifadeleri tasarım kanıtıdır, Generator çıktısına otomatik taşınmaz. Koşu title'ı **Oracle Migration Artifact Kataloğu**, e-posta title'ı **Oracle DDL Migration Raporu** olur, target ayrıntısı Generator adını taşır. Model adı, AI değerlendirme rozeti ve yorumlayıcı uydurulmaz.
 
 ## Görsel Kimlik
 
-ODMG-RPT-UPDATE-001 onaylı referansları web için 1.100 px, e-posta için 820 px shell kullanır; beyaz içerik, #EBF0F4 dış zemin, #F3F6F8 açık alanlar, #111B2D/#253142 başlık/gövde, #68778B ikincil metin, #CF1838 sınırlı kurumsal vurgu. Aptos/Calibri/Segoe UI/Arial fallback zinciri. İnnova logosu değişmeden ve oranı korunarak kullanılır. Font dosyası paketlenmez; harici CDN/font isteği yoktur.
+ODMG-RPT-UPDATE-001 onaylı referansları web için 1.100 px, e-posta için 820 px shell kullanır, beyaz içerik, #EBF0F4 dış zemin, #F3F6F8 açık alanlar, #111B2D/#253142 başlık/gövde, #68778B ikincil metin, #CF1838 sınırlı kurumsal vurgu. Aptos/Calibri/Segoe UI/Arial fallback zinciri. İnnova logosu değişmeden ve oranı korunarak kullanılır. Font dosyası paketlenmez, harici CDN/font isteği yoktur.
 
-Özet KPI şeridi, sol ince vurgu çizgili bölüm başlıkları, metadata tablosu ve satır bazlı durum badge'leri korunur. Risk rengi yalnız küçük vurgu; tüm sayfayı sarı/kırmızı boyama yoktur. İçerik yoğun diye yazı 9px'e düşürülmez.
+Özet KPI şeridi, sol ince vurgu çizgili bölüm başlıkları, metadata tablosu ve satır bazlı durum badge'leri korunur. Risk rengi yalnız küçük vurgu, tüm sayfayı sarı/kırmızı boyama yoktur. İçerik yoğun diye yazı 9px'e düşürülmez.
 
 ## Rapor İçeriği
 
-`index.html`: kaynak SHA ve kapsam, target sayısı, karşılaştırılan/başarısız/eksik hedefler, üretilen READY SQL sayısı, inceleme/blok sayısı, zaman ve build linki. Durumlar metinle de görünür; sadece renk yoktur.
+`index.html`: kaynak SHA ve kapsam, target sayısı, karşılaştırılan/başarısız/eksik hedefler, üretilen READY SQL sayısı, inceleme/blok sayısı, zaman ve build linki. Durumlar metinle de görünür, sadece renk yoktur.
 
 Her target'ın `index.html` sayfası: source/target yönü, schema listesi, fark ve üretim özeti, metadata kapsamı, dependency/risk uyarıları, sınırlı DDL önizleme, tam dosya ve JSON linkleri, validation seviyesi. `Üretildi · Veritabanına uygulanmadı` ifadesi görünürdür.
 
 ## Kesin Boyut Sınırları
 
-- Target sayfasında ilk **5** önemli değişiklik; önce BLOCKED/REVIEW, sonra risk, sonra stabil object ID.
+- Target sayfasında ilk **5** önemli değişiklik, önce BLOCKED/REVIEW, sonra risk, sonra stabil object ID.
 - Her SQL önizlemesi en çok **30 satır veya 2.048 karakter**, hangisi önce dolarsa. HTML escaping sonrasında sayfa bütçesi ayrıca ölçülür.
-- Tam PL/SQL uzunluğu SQL dosyasında korunur; HTML içine `display:none`, JS string veya JSON blob olarak bile gömülmez.
-- Bütün değişiklikler nesne metadata listesinde erişilebilir; sayfa başına **100** satır. İlk beş SQL önizlemesinin dışında kalan farklar kaybolmaz.
-- Ana target listesi sayfa başına **50** kayıt; `index.html` giriş noktası kalır, devam sayfalarına açık link verir. N target veri modelinde sabit sınıra dönüşmez.
+- Tam PL/SQL uzunluğu SQL dosyasında korunur, HTML içine `display:none`, JS string veya JSON blob olarak bile gömülmez.
+- Bütün değişiklikler nesne metadata listesinde erişilebilir, sayfa başına **100** satır. İlk beş SQL önizlemesinin dışında kalan farklar kaybolmaz.
+- Ana target listesi sayfa başına **50** kayıt, `index.html` giriş noktası kalır, devam sayfalarına açık link verir. N target veri modelinde sabit sınıra dönüşmez.
 - Web HTML dosyası en çok **200 KiB**. Bütçe dolarsa SQL önizleme azaltılır, truncation sayısı ve tam liste bağlantısı görünür tutulur. Özet toplamları değişmez.
 
 No-change, connection-error, partial-metadata ve all-blocked durumlarının gerçek boş/uyarı ekranları vardır. Hatalı target '0 fark' kartı olarak çizilmez.
 
 ## Jenkins Ve İndirilmiş Rapor
 
-Jenkins artifact sayfalarında inline style/data-image engeli olabilir (K04). Bu yüzden web çıktısı için CSS `assets/report.css`, logo `assets/innova-logo.png` olarak göreli dosyalarla paketlenir; aynı görsel token'lar korunur. JavaScript gerekmez. HTML Publisher bulunmazsa standart Jenkins artifact linki çalışır. İndirme, CSS/logo/SQL/JSON içeren bundle ZIP'tir; yalnız HTML indirilirse bağımlı dosyaların gerektiği anlaşılır.
+Jenkins artifact sayfalarında inline style/data-image engeli olabilir (K04). Bu yüzden web çıktısı için CSS `assets/report.css`, logo `assets/innova-logo.png` olarak göreli dosyalarla paketlenir, aynı görsel token'lar korunur. JavaScript gerekmez. HTML Publisher bulunmazsa standart Jenkins artifact linki çalışır. İndirme, CSS/logo/SQL/JSON içeren bundle ZIP'tir, yalnız HTML indirilirse bağımlı dosyaların gerektiği anlaşılır.
 
-Generator'da SMTP gönderimi yoktur. E-posta aynı koşu view model'inden inline CSS + CID logo ile **ayrı** statik çıktı olarak üretilir; CID adresi web HTML'ine taşınmaz. Jenkins global CSP'yi gevşetmek, script-src unsafe-inline veya güvenliği kapatmak çözüm olarak uygulanmaz. Admin'in Resource Root URL ayarı ayrı ortam konusudur.
+Generator'da SMTP gönderimi yoktur. E-posta aynı koşu view model'inden inline CSS + CID logo ile **ayrı** statik çıktı olarak üretilir, CID adresi web HTML'ine taşınmaz. Jenkins global CSP'yi gevşetmek, script-src unsafe-inline veya güvenliği kapatmak çözüm olarak uygulanmaz. Admin'in Resource Root URL ayarı ayrı ortam konusudur.
 
 ## Güvenlik Ve Kanıt
 
-Jinja2 StrictUndefined + autoescape. SQL/nesne adı/comment/message trusted HTML değildir. Göreli link traversal engellenir. Dış linkler yalnız izinli host/protokol; token query parametresi veya credential linki yoktur. SQL ve JSON artifact bağlantıları tam revision/plan ID ile ilişkilidir; 'latest' linki kanıt yerine geçmez.
+Jinja2 StrictUndefined + autoescape. SQL/nesne adı/comment/message trusted HTML değildir. Göreli link traversal engellenir. Dış linkler yalnız izinli host/protokol, token query parametresi veya credential linki yoktur. SQL ve JSON artifact bağlantıları tam revision/plan ID ile ilişkilidir, 'latest' linki kanıt yerine geçmez.
 
-Testler: 390/820/1440 px ekran, 200 karakter identifier, Türkçe, `<script>` içeren comment, 5.000 satır body, 51 target, 101 fark, eksik CSS/logo ve broken link. Tarayıcı screenshot karşılaştırmasında aile standardı referans alınır; yeni ürün içeriği farklı olduğu için ham piksel eşitliği beklenmez. Logo, palette, shell, tipografi ve bölüm düzeni ölçülür.
+Testler: 390/820/1440 px ekran, 200 karakter identifier, Türkçe, `<script>` içeren comment, 5.000 satır body, 51 target, 101 fark, eksik CSS/logo ve broken link. Tarayıcı screenshot karşılaştırmasında aile standardı referans alınır, yeni ürün içeriği farklı olduğu için ham piksel eşitliği beklenmez. Logo, palette, shell, tipografi ve bölüm düzeni ölçülür.
 
 
 ## ODMG-RPT-UPDATE-001 uygulaması
 
 Onaylı ZIP referanslarının özgün byte/hash kayıtları output/report-update-original altında korunur.
-Web CSS referansın token ve yerleşimini kullanır; harici CSS/logo paketlenir. Mailde MSO 820 px
+Web CSS referansın token ve yerleşimini kullanır, harici CSS/logo paketlenir. Mailde MSO 820 px
 wrapper, inline hücre stilleri ve cid:innova-logo vardır. Bağımsız preview aynı onaylı PNG'yi gömer.
-Web 50 target / target ayrıntısı 100 işlem sayfalar; HTML bütçesi 200 KiB.
-Mail 5 kritik hedef / öncelik sırasındaki ilk 5 benzersiz nesneyle sınırlı;
+Web 50 target / target ayrıntısı 100 işlem sayfalar, HTML bütçesi 200 KiB.
+Mail 5 kritik hedef / öncelik sırasındaki ilk 5 benzersiz nesneyle sınırlı,
 KPI bütün hedefler üzerinden hesaplanır. Başlangıç/bitiş zamanı farkı çalışma
-süresi olarak gösterilir; eksik, hatalı veya negatif zaman farkı Bilinmiyor kalır.
+süresi olarak gösterilir, eksik, hatalı veya negatif zaman farkı Bilinmiyor kalır.
 Bilinmeyen fark null kalır, toplam bilinen alt toplam + ? olarak görünür. SQL mailde yer almaz.
-Sayılar sunumda Türkçe binlik ayraçlıdır; JSON sayıları ve SQL byte'ları değişmez.
-Genel mailde nesne satırının İşlem hücresi yalnız işlem türlerini gösterir;
+Sayılar sunumda Türkçe binlik ayraçlıdır, JSON sayıları ve SQL byte'ları değişmez.
+Genel mailde nesne satırının İşlem hücresi yalnız işlem türlerini gösterir,
 nesne başına `1 işlem / 1 hedef` gibi tekrar sayıları gösterilmez.
 Nesne / Fark, Hedef, İşlem, Sonuç sütunlarına sırasıyla %60/%12/%12/%16
 genişlik ayrılır. E-posta uyumluluğu için HTML width attribute ve inline CSS
-birlikte kullanılır; küçük ekranda uzun tanımlayıcıların kaydırılması korunur.
-Onaylı 3305×630 PNG yeniden çizilmez; e-posta img genişlik/yükseklik attribute'ları
-156×30'dur. Yalnız height:auto'ya güvenilmez; mail istemcilerinde doğal piksel/DPI
+birlikte kullanılır, küçük ekranda uzun tanımlayıcıların kaydırılması korunur.
+Onaylı 3305×630 PNG yeniden çizilmez, e-posta img genişlik/yükseklik attribute'ları
+156×30'dur. Yalnız height:auto'ya güvenilmez, mail istemcilerinde doğal piksel/DPI
 yüksekliğinin kullanılıp logonun dikey gerilmesi önlenir.
 Bağımlılık gerekçeleri ilgili şema, nesne, tür ve gerektiğinde kolonları adlandırır.
 Eksik tablo, hazır olmayan işlem, anahtar yokluğu, görünürlük belirsizliği ve ad
-alanı çakışması kendi kanıtıyla açıklanır; doğrulanamayan nesne yok sayılmaz.
+alanı çakışması kendi kanıtıyla açıklanır, doğrulanamayan nesne yok sayılmaz.
 Yayın linki açık host allowlist + current run ID + immutable SHA + erişim kanıtı ister.
 Jenkins fallback ayrıca mevcut run.build_url altındaki sayısal build artifact'i olmalıdır.
 # 20 Ekim 2026 görünür nesne ve ortam etiketleri
 
-Görünen hedef adı registry'deki `name` alanıdır (`PROD`); şema ayrıca gösterilir
+Görünen hedef adı registry'deki `name` alanıdır (`PROD`), şema ayrıca gösterilir
 (`TTBP`). Teknik target ID gruplama ve göreli arşiv yollarında kalır. Planı
-üretilemeyen hedefte ad/şema uydurulmaz; fark sayısı bilinmiyor diye gösterilir.
+üretilemeyen hedefte ad/şema uydurulmaz, fark sayısı bilinmiyor diye gösterilir.
 Hata kodları makine kaydında ve teknik kanıt bölümünde korunur.
 
 COMMENT/GRANT kayıtlarının iç `S_<hash>` kimliği nesne adı olarak gösterilmez.
-Bilinen bağlı nesne ve varsa kolon, optional `object.display_name` ile etiketlenir;
+Bilinen bağlı nesne ve varsa kolon, optional `object.display_name` ile etiketlenir,
 bilinmeyen bağlı nesne açıkça belirtilir. İç kimlik, operation ID ve SQL gövdesi
 korunur. Ek display alanı plan ID'sini ve SQL plan başlık hash'lerini değiştirebilir.
 Gerçek 64 hexadecimal veya `S_` + 64 hexadecimal adlı teknik nesneler
-`exclude_system_generated` politikasıyla karşılaştırmadan dışlanır; bağlı
+`exclude_system_generated` politikasıyla karşılaştırmadan dışlanır, bağlı
 index/yorum/grant da aynı politikayı izler. Ham envanter ve dışlama kanıtı korunur.
 
 ## 21 Ekim 2026 anlaşılır durum ve nedenler
@@ -87,15 +103,15 @@ Genel mail ve web özetinde BLOCKED, REVIEW_REQUIRED, COMMENT veya [TABLE]
 gibi iç etiketler gösterilmez. Kullanıcı karşılıkları DDL üretilemedi, İnceleme
 gerekli, Açıklama ve Tablo'dur. Üretilemeyen DDL sayısı gizlenmez veya sıfırlanmaz.
 Nesne adının altında küçük yazıyla kısa, nesneye özgü neden gösterilir. Mailde
-neden yalnız Nesne / Fark hücresinde kalır; diğer sütunlara taşmaz. Metin en
-fazla 150 karakterdir; özel tablo yapısı gibi bilinen nedenler kısa cümleyle
+neden yalnız Nesne / Fark hücresinde kalır, diğer sütunlara taşmaz. Metin en
+fazla 150 karakterdir, özel tablo yapısı gibi bilinen nedenler kısa cümleyle
 özetlenir. Tam gerekçe ayrıntılı raporda korunur.
 Aynı bağlı
-nesneye ait tekrarlar tek açıklamada birleştirilir; asıl eksik bilgi mevcutsa
+nesneye ait tekrarlar tek açıklamada birleştirilir, asıl eksik bilgi mevcutsa
 genel hazır değil ifadesi yerine o bilgi yazılır. Belirsizlik yokluk diye sunulmaz.
 Operasyonun tam teknik gerekçesi hedef raporunda açılır teknik ayrıntılarda kalır.
 Kanıtlı plan kararları, sayılar, SQL ve karşılaştırma kapsamı sunumla değiştirilmez.
-Salt sunum yenilemesi doğrulanmış arşivden yapılabilir; JSON/SQL byte'ları korunur,
+Salt sunum yenilemesi doğrulanmış arşivden yapılabilir, JSON/SQL byte'ları korunur,
 yenilenen HTML dosyalarının manifest hash'leri tekrar doğrulanır. Yeni Oracle
 bağlantısı veya yeni karşılaştırma yapılmadığı ve kullanılan eski build açıkça yazılır.
 
@@ -103,10 +119,31 @@ bağlantısı veya yeni karşılaştırma yapılmadığı ve kullanılan eski bu
 Kaynak ve İzlenebilirlik bölümünde küçük (11px), gri bir not olarak yer alır.
 Üst bölümde süre kartı veya büyük süre değeri bulunmaz. Başlangıç, bitiş,
 TSİ etiketi ve rapor yenileme süresi kullanıcı görünümünde gösterilmez.
-comparison-timing.json özgün karşılaştırma zamanlarını ve kaynak SHA'sını;
+comparison-timing.json özgün karşılaştırma zamanlarını ve kaynak SHA'sını,
 run.json gerçek yenileme zamanlarını korur. Süre yenileme süresinden türetilmez.
 75 dakika 8,869 saniye kullanıcıya75 dk9 sn yuvarlanır.
-Bulunan fark, tamamlanmış hedefte doğrulanmış toplam; kısmi hedefte planın
+Bulunan fark, tamamlanmış hedefte doğrulanmış toplam, kısmi hedefte planın
 UNKNOWN dışındaki fark kayıtlarıdır. UNKNOWN kayıtlar bu sayıya eklenmez ve
-ayrı sayılır. Eksik kapsamda sayı alt sınırdır; ek fark bulunabileceği yazılır.
+ayrı sayılır. Eksik kapsamda sayı alt sınırdır, ek fark bulunabileceği yazılır.
 Hiçbir hedefin sonucu alınamadıysa Sonuç alınamadı gösterilir, sıfır uydurulmaz.
+
+## 23 Ekim 2026 Jenkins dosya erişimi ve genel görünüm
+
+Genel web başlığı Oracle Şema Karşılaştırma Raporu'dur, alt metin kaynak yapı,
+hedef durumu ve DDL üretimini açıklar. Tek hedef kartı içerik genişliğini kullanır.
+Kaynak toplamı ve tür sayaçları web'de harici CSS ile biçimlenir, Jenkins'in
+artifact CSP/sandbox ayarı değiştirilmez. E-posta için inline stiller korunur.
+
+Doğrulanmış Jenkins job/build bağlamında Genel DDL’i görüntüle bağlantısı aynı
+sayısal build'in SQL artifact `/*view*/` yoluna gider. DDL dosyalarını indir,
+aynı hedefin Jenkins dosya listesini açar, kullanıcı bütün dosyaları ZIP olarak
+alabilir. Ana SQL'in nesne dosyalarını sırayla çağırdığı açıklanır. Offline
+HTML kendi göreli SQL bağlantısını ve download niteliğini korur. Plan ve
+manifest bağlantıları açılır Teknik dosyalar bölümündedir. Bu sunum adımı SQL
+byte'larını ve plan kararlarını değiştirmez.
+
+23 Ekim sonraki kullanıcı talimatı: karşılaştırma süresi genel web/mail
+başlığının altında, sayaçlardan önce tek satırda gösterilir. Bu talimat önceki
+alt gri not yerleşiminin yerini alır. Özgün karşılaştırma süresi korunur,
+rapor yenileme süresi bu değere yazılmaz. Eksik/geçersiz özgün saatte
+Ölçülemedi gösterilir. Saat/başlangıç/bitiş ve plan kararları değişmez.

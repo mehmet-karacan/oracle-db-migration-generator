@@ -1,0 +1,14 @@
+<section aria-label="Tarama Kapsamı">
+<h2 class="section" style="margin:0 0 13px;border-left:5px solid #CF1838;padding-left:16px;font-size:21px;line-height:28px;color:#131E30">Tarama Kapsamı</h2>
+<table role="presentation" class="scope-panel" width="100%" cellpadding="0" cellspacing="0" bgcolor="#F3F6F8" style="width:100%;table-layout:fixed;border-collapse:collapse;background:#F3F6F8"><tr>
+<td class="scope-total" width="25%" style="width:25%;padding:18px 16px;border:0;border-right:1px solid #DFE5EB;vertical-align:middle">
+<div class="scope-label" style="font-size:11px;line-height:17px;color:#77869A;font-weight:700">Toplam taranan nesne</div>
+<div class="scope-value" style="margin-top:3px;font-size:28px;line-height:34px;font-weight:700;color:#1B283B">{{ scan_scope.source_total|count_tr if scan_scope.source_total is not none else 'Bilinmiyor' }}</div>
+<div class="scope-caption" style="font-size:11px;line-height:17px;color:#77869A">Kaynak envanteri</div>
+</td><td class="scope-breakdown" width="75%" style="width:75%;padding:8px 12px;border:0;vertical-align:middle">
+{% if scan_scope.rows %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed;border-collapse:collapse">
+{% for group in scan_scope.rows|batch(4) %}<tr>{% for row in group %}<td class="scope-item" width="25%" style="width:25%;padding:7px 6px;border:0;vertical-align:top;overflow-wrap:anywhere"><div class="scope-name" style="font-size:11px;line-height:17px;color:#68778B">{{ row.label }}</div><div class="scope-value" style="font-size:16px;line-height:22px;font-weight:700;color:#1B283B">{{ row.count|count_tr }}</div></td>{% endfor %}</tr>{% endfor %}
+</table>{% else %}<p style="margin:0;padding:8px 6px;font-size:12px;line-height:18px;color:#68778B">{{ 'Tür dağılımı kaydedilmedi.' if scan_scope.source_total is none else 'Kaynakta kapsam içi nesne bulunmadı.' }}</p>{% endif %}
+</td></tr></table>
+<p class="scope-note" style="margin:8px 0 0;font-size:11px;line-height:17px;color:#788599;overflow-wrap:anywhere">{{ scan_scope.note }}</p>
+</section>

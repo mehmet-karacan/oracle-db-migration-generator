@@ -83,10 +83,21 @@ class SchemaSnapshot:
     capabilities: object
     evidence: tuple[Evidence, ...]
     observed_consistency: str
+    source_origin: object = None
 
     def __post_init__(self):
         object.__setattr__(self, 'capabilities', MappingProxyType(dict(self.capabilities)))
-        if self.side=='SOURCE' and (self.source_commit is None or self.target_id is not None):
+        oracle=(self.source_origin is not None and self.source_origin.get('kind')=='ORACLE')
+        if oracle:
+            import re
+            if (set(self.source_origin)!={'kind','connection_id','snapshot_id'}
+                    or not isinstance(self.source_origin['connection_id'],str) or not self.source_origin['connection_id']
+                    or not re.fullmatch('[0-9a-f]{64}',self.source_origin.get('snapshot_id',''))
+                    or self.side!='SOURCE' or self.source_commit is not None):
+                raise ValueError('SOURCE_ORIGIN_INVALID')
+            object.__setattr__(self,'source_origin',freeze(dict(self.source_origin)))
+        elif self.source_origin is not None:raise ValueError('SOURCE_ORIGIN_INVALID')
+        if self.side=='SOURCE' and ((self.source_commit is None and not oracle) or self.target_id is not None):
             raise ValueError('SOURCE_SNAPSHOT_REVISION_REQUIRED')
         if self.side=='TARGET' and (self.target_id is None or self.source_commit is not None):
             raise ValueError('TARGET_SNAPSHOT_ID_REQUIRED')
@@ -108,9 +119,11 @@ class SchemaSnapshot:
         return digest(state)
 
     def to_dict(self):
-        return {'schema_version': self.schema_version, 'synthetic': self.synthetic, 'side': self.side,
+        document={'schema_version': self.schema_version, 'synthetic': self.synthetic, 'side': self.side,
                 'profile_id': self.profile_id, 'schemas': list(self.schemas), 'source_commit': self.source_commit,
                 'target_id': self.target_id, 'objects': [obj.to_dict() for obj in self.objects],
                 'coverage': thaw(self.completeness), 'capabilities': thaw(self.capabilities),
                 'evidence': thaw(self.evidence), 'observed_consistency': self.observed_consistency,
                 'semantic_digest': self.semantic_digest}
+        if self.source_origin is not None:document['source_origin']=thaw(self.source_origin)
+        return document

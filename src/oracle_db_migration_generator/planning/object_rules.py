@@ -23,10 +23,121 @@ def replace_header(raw):
     return text.encode('utf-8')
 
 
+def _verified_unusable_index_sql(context,obj,projection):
+    """Preserve a proven unusable normal index on a new verified heap table."""
+    props=projection.properties
+    if (props.get('kind')!='NORMAL' or props.get('unique')!='NONUNIQUE'
+            or props.get('availability')!='UNUSABLE'
+            or props.get('index_properties',{}).get('partitioning') is not None):
+        return None
+    rows=value(obj,'dictionary.indexes')
+    if not isinstance(rows,(list,tuple)) or len(rows)!=1:
+        return None
+    row=rows[0]
+    owner=obj.identity.owner.effective_name;index=obj.identity.name.effective_name
+    if index.startswith(('SYS_','ISEQ$$_','BIN$')):
+        return None
+    if any(row.get(key)!=expected for key,expected in {
+            'index_name':index,'index_type':'NORMAL','status':'UNUSABLE',
+            'partitioned':'NO','uniqueness':'NONUNIQUE','generated':'N',
+            'table_owner':owner}.items()):
+        return None
+    if any(value(obj,'dictionary.'+group)!=() and value(obj,'dictionary.'+group)!=[]
+           for group in ('index_expressions','index_partitioning','index_partition_counts',
+                         'index_partitions','index_subpartitions')):
+        return None
+    table_name=row.get('table_name')
+    if not table_name or not context.new_table(owner,table_name):
+        return None
+    table=context.lookup(owner,'TABLE',table_name)
+    table_projection=source_projection(table) if table else None
+    table_props=table_projection.properties.get('table_properties',{}) if table_projection else {}
+    table_rows=value(table,'dictionary.tables') if table else None
+    if (not table_projection or not isinstance(table_rows,(list,tuple)) or len(table_rows)!=1
+            or table_rows[0].get('table_name')!=table_name
+            or any(table_rows[0].get(key)!=expected for key,expected in {
+                'temporary':'N','partitioned':'NO','cluster_name':None,
+                'iot_type':None,'nested':'NO'}.items())
+            or any(table_props.get(key) is not None for key in
+                   ('temporary','partitioning','external','organization'))):
+        return None
+    text=obj.raw_ddl.decode('utf-8') if obj.raw_ddl else ''
+    tokens=code_tokens(text) or ()
+    words=[token.upper for token in tokens]
+    if any(word in words for word in ('BITMAP','INDEXTYPE','PARTITION','SUBPARTITION','UNIQUE')):
+        return None
+    from ..parsing.statements import qualified_parts
+    alter_positions=[i for i,word in enumerate(words) if word=='ALTER']
+    if len(alter_positions)>1:
+        return None
+    if alter_positions:
+        at=alter_positions[0]
+        tail=tokens[at:]
+        if len(tail)<5 or [token.upper for token in tail[:2]]!=['ALTER','INDEX']:
+            return None
+        name_end=next((i for i in range(2,len(tail)) if tail[i].upper=='UNUSABLE'),None)
+        if name_end is None or [token.upper for token in tail[name_end:]] not in (['UNUSABLE'],['UNUSABLE',';']):
+            return None
+        try:
+            names=qualified_parts(tail[2:name_end])
+        except (ValueError,TypeError):
+            return None
+        if names not in ((index,),(owner,index)):
+            return None
+        create=text[:tokens[at].start].rstrip(' \t\r\n;')+' UNUSABLE'
+    else:
+        if not tokens or any(word=='UNUSABLE' for word in words[:-2]):
+            return None
+        create=text.rstrip(' \t\r\n;')
+        if 'UNUSABLE' not in words:
+            create+=' UNUSABLE'
+    statement=create.encode('utf-8')
+    from ..parsing.adapter import parse_ddl
+    parsed=parse_ddl(statement,obj.identity)
+    if parsed.diagnostics or len(parsed.objects)!=1:
+        return None
+    candidate=parsed.objects[0]
+    if (not candidate.parse_ok or candidate.diagnostics or candidate.identity.key!=obj.identity.key
+            or candidate.projection is None):
+        return None
+    checked=candidate.projection.properties
+    if (any(checked.get(key)!=props.get(key) for key in
+            ('kind','unique','target','visibility','index_properties'))
+            or tuple(checked.get('keys') or ())!=tuple(props.get('keys') or ())
+            or tuple(checked.get('directions') or ())!=tuple(props.get('directions') or ())
+            or checked.get('availability')!='UNUSABLE'):
+        return None
+    return statement
+
+
 def _index(context,obj,changes):
     projection = source_projection(obj)
     props = projection.properties if projection else {}
     if props.get('availability','VALID')!='VALID':
+        statement=_verified_unusable_index_sql(context,obj,projection) if projection else None
+        if statement is not None:
+            text=statement.decode('utf-8');tokens=code_tokens(text) or ()
+            words=[token.upper for token in tokens]
+            try:
+                at=words.index('ON')+1
+                opening=next(i for i in range(at,len(tokens)) if tokens[i].text=='(')
+                from ..parsing.statements import qualified_parts
+                names=qualified_parts(tokens[at:opening])
+                owner,name=(obj.identity.owner.effective_name,names[0]) if len(names)==1 else names
+                group=enclosed(tokens,opening)
+                if group is None:raise ValueError('INDEX_KEYS_UNVERIFIED')
+                from .index_rules import index_key_columns
+                table=context.lookup(owner,'TABLE',name)
+                columns,expression,index_evidence=index_key_columns(context,table,group[0])
+                if expression or owner!=obj.identity.owner.effective_name:
+                    raise ValueError('INDEX_SHAPE_UNVERIFIED')
+                return operation(context,obj,changes,'CREATE_INDEX','READY','CREATE_VERIFIED_UNUSABLE_INDEX',
+                                 'Kaynakta kullanılamaz durumdaki normal indeks, aynı durumda oluşturulacak.',
+                                 statement=statement,phase=35,
+                                 references=(DependencyReference(owner,'TABLE',name,'INDEX_TABLE',tuple(columns)),),
+                                 extra_evidence_ids=index_evidence)
+            except (ValueError,KeyError,TypeError,StopIteration):
+                pass
         return operation(context,obj,changes,'REVIEW','REVIEW_REQUIRED','INDEX_AVAILABILITY_REQUIRES_REVIEW',
                          'Kaynak index UNUSABLE durumundadır; sessizce kullanılabilir index oluşturulmaz.')
     text = obj.raw_ddl.decode() if obj.raw_ddl else ''
@@ -86,9 +197,16 @@ def _index(context,obj,changes):
 def object_change(context,obj,actual,changes):
     kind = obj.identity.object_type
     missing = actual is None
-    def decide(decision,code,text,*,statement=None,op_kind='REVIEW',phase=60,refs=(),plsql=False):
+    def decide(decision,code,text,*,statement=None,op_kind='REVIEW',phase=60,refs=(),plsql=False,proof=None):
         return [operation(context,obj,changes,op_kind,decision,code,text,statement=statement,
-                          phase=phase,references=refs,statement_kind='PLSQL' if plsql else 'SQL')]
+                          phase=phase,references=refs,statement_kind='PLSQL' if plsql else 'SQL',
+                          feature_scope='COMPILED_STATIC' if proof else 'OBJECT',extra_evidence_ids=proof.evidence_ids if proof else ())]
+    if missing:
+        from .namespace import namespace_conflicts,conflict_description
+        conflicts=namespace_conflicts(context,obj.identity)
+        if conflicts:
+            return [operation(context,obj,changes,'REVIEW','BLOCKED','TARGET_NAMESPACE_CONFLICT',
+                conflict_description(obj.identity,conflicts),extra_evidence_ids=tuple(key for item in conflicts for key in item.evidence_ids))]
     if kind=='INDEX':
         return [_index(context,obj,changes)] if missing else decide('REVIEW_REQUIRED','EXISTING_INDEX_CHANGE_REQUIRES_REVIEW','Mevcut index DROP/CREATE ile değiştirilmez.')
     if kind=='SEQUENCE':
@@ -105,7 +223,8 @@ def object_change(context,obj,actual,changes):
             if increment and increment.value=='0':
                 return decide('BLOCKED','INVALID_SEQUENCE_INCREMENT','Sequence increment sıfır olamaz.')
             return decide('READY','CREATE_MISSING_SEQUENCE','Hedefte bulunmayan sequence kaynak tanımıyla oluşturulacak.',statement=obj.raw_ddl,op_kind='CREATE',phase=10)
-        return decide('REVIEW_REQUIRED','SEQUENCE_STATE_PRESERVED','Mevcut sequence ayarları sayaç etkisi incelemesi gerektiriyor; reset üretilmez.')
+        from .review_reasons import sequence_review
+        return decide('REVIEW_REQUIRED','SEQUENCE_STATE_PRESERVED',sequence_review(changes))
     if kind in {'COMMENT','GRANT'}:
         parent = context.source_objects.get(obj.identity.parent_key) or context.target_objects.get(obj.identity.parent_key)
         if parent is None:
@@ -148,9 +267,10 @@ def object_change(context,obj,actual,changes):
         tokens=code_tokens(obj.raw_ddl.decode()) or ()
         declared_complete=bool(declared and declared.state=='KNOWN')
         from ..parsing.dependencies import has_dynamic_sql
+        from .review_reasons import routine_inventory
         if has_dynamic_sql(obj):
             return decide('REVIEW_REQUIRED','DYNAMIC_SQL_DEPENDENCY_REQUIRES_REVIEW',
-                          'Dinamik SQL içindeki nesne ve çalışma zamanı etkileri ayrıca incelenmeli.')
+                          'Dinamik SQL içindeki nesne ve çalışma zamanı etkileri ayrıca incelenmeli.'+routine_inventory(obj))
         if kind=='TYPE_BODY' and not declared_complete:
             return decide('REVIEW_REQUIRED','TYPE_BODY_DEPENDENCY_INVENTORY_REQUIRED','Type body parametre ve çağrı bağımlılık envanteri doğrulanmalı.')
         # Qualified declarations, %TYPE/%ROWTYPE and code references not covered
@@ -161,11 +281,21 @@ def object_change(context,obj,actual,changes):
                           and tokens[i-1].text.strip('"').upper()==obj.identity.owner.effective_name.upper()
                           and tokens[i+1].text.strip('"').upper()==obj.identity.name.effective_name.upper()
                           for i in range(min(len(tokens),12)))
+        compiled=None
+        needs_inventory=(kind in {'PROCEDURE','FUNCTION','PACKAGE_SPEC','PACKAGE_BODY'} and not declared_complete
+                         and (qualified_uses>int(own_qualified) or any(word in words for word in ('SELECT','INSERT','UPDATE','DELETE','MERGE','EXECUTE'))))
+        if needs_inventory:
+            from .routine_proof import compiled_static_inventory
+            compiled=compiled_static_inventory(context,obj)
+            if compiled is not None and not compiled.approved:
+                return decide('REVIEW_REQUIRED','COMPILED_DEPENDENCY_PROOF_INCOMPLETE',
+                              ' '.join(compiled.issues)+'.',proof=compiled)
+            if compiled:declared_complete=True
         if kind in {'PROCEDURE','FUNCTION','PACKAGE_SPEC','PACKAGE_BODY'} and not declared_complete and qualified_uses>int(own_qualified):
-            return decide('REVIEW_REQUIRED','QUALIFIED_REFERENCE_INVENTORY_REQUIRED','Qualified çağrı, type veya değişken referansının tam bağımlılık envanteri doğrulanmalı.')
+            return decide('REVIEW_REQUIRED','QUALIFIED_REFERENCE_INVENTORY_REQUIRED','Nitelikli çağrı, tip veya değişken referanslarının tam bağımlılık envanteri doğrulanmalı.'+routine_inventory(obj))
         if kind in {'PACKAGE_SPEC','PACKAGE_BODY','PROCEDURE','FUNCTION'} and (any(word in words for word in ('SELECT','INSERT','UPDATE','DELETE','MERGE','EXECUTE'))
-                             and not (declared and declared.state=='KNOWN')):
-            return decide('REVIEW_REQUIRED','ROUTINE_DEPENDENCY_INVENTORY_REQUIRED','SQL veya dynamic SQL içeren birimin bağımlılık envanteri doğrulanmalı.')
+                             and not declared_complete):
+            return decide('REVIEW_REQUIRED','ROUTINE_DEPENDENCY_INVENTORY_REQUIRED','SQL içeren birimin statik bağımlılık ve çağrı envanteri doğrulanmalı.'+routine_inventory(obj))
         if kind.startswith('TYPE') and not missing:
             return decide('BLOCKED','EXISTING_TYPE_EVOLUTION_UNSUPPORTED','Mevcut type evrimi otomatik üretilmez.')
         if not missing and kind=='PACKAGE_SPEC':
@@ -204,7 +334,7 @@ def object_change(context,obj,actual,changes):
             except (ValueError,StopIteration,TypeError):
                 return decide('REVIEW_REQUIRED','TRIGGER_RUNTIME_EFFECT_REQUIRES_REVIEW','Trigger parent, enabled durumu veya veri etkisi inceleme gerektiriyor.')
         refs = []
-        if kind in {'PROCEDURE','FUNCTION'}:
+        if kind in {'PROCEDURE','FUNCTION'} and not compiled:
             projection=source_projection(obj)
             if projection is None or '_generator_routine_analysis' not in projection.properties:
                 from ..parsing.adapter import parse_ddl
@@ -217,6 +347,7 @@ def object_change(context,obj,actual,changes):
             else: analyzed=obj
             from ..parsing.dependencies import references
             refs.extend(references(analyzed))
+        if compiled:refs.extend(compiled.references)
         if kind.endswith('_BODY'):
             refs.append(DependencyReference(obj.identity.owner.effective_name,kind.replace('_BODY','_SPEC'),obj.identity.name.effective_name,'SPEC'))
         # FORCE is an installation behavior, never a substitute for dependencies.
@@ -229,9 +360,9 @@ def object_change(context,obj,actual,changes):
         statement = replace_header(effective_create.encode('utf-8') if effective_create else obj.raw_ddl)
         if kind=='VIEW':
             statement = re.sub(rb'(?i)^(\s*CREATE\s+OR\s+REPLACE\s+(?:(?:NON)?EDITIONABLE\s+)?)FORCE\s+',rb'\1',statement,count=1)
-        return decide('READY','CREATE_VERIFIED_OBJECT' if missing else 'REPLACE_VERIFIED_OBJECT',
+        return decide('READY',('CREATE_COMPILED_STATIC_OBJECT' if missing else 'REPLACE_COMPILED_STATIC_OBJECT') if compiled else 'CREATE_VERIFIED_OBJECT' if missing else 'REPLACE_VERIFIED_OBJECT',
                       'Doğrulanan kaynak birimi bağımlılık denetiminden sonra üretilecek.',statement=statement,
-                      op_kind='CREATE' if missing else 'REPLACE',phase=55 if kind.endswith('_SPEC') else 60,refs=tuple(refs),plsql=kind!='VIEW')
+                      op_kind='CREATE' if missing else 'REPLACE',phase=55 if kind.endswith('_SPEC') else 60,refs=tuple(refs),plsql=kind!='VIEW',proof=compiled)
     if kind=='SYNONYM':
         from ..parsing.statements import qualified_parts
         tokens=code_tokens(obj.raw_ddl.decode()) or ();words=[t.upper for t in tokens]

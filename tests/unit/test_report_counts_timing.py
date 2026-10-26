@@ -41,7 +41,7 @@ def test_comparison_duration_remains_primary_after_a_short_presentation_refresh(
         html=raw.decode()
         assert 'Karşılaştırma süresi' in html and '75 dk 9 sn' in html
         assert 'Rapor yenileme süresi' not in html and '1 dk 5 sn' not in html
-        assert html.index('75 dk 9 sn') > html.index('Kaynak ve İzlenebilirlik')
+        assert html.index('75 dk 9 sn') < html.index('class="metric"')
 
 
 def test_invalid_comparison_timing_is_not_replaced_with_the_refresh_duration():

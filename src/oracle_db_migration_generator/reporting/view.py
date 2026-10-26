@@ -52,7 +52,7 @@ def _timing_view(run,comparison_timing):
             'comparison_finished_label':date(origin,'finished_at')}
 
 
-def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,allowed_link_hosts=(),comparison_timing=None):
+def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,allowed_link_hosts=(),comparison_timing=None,scan_summaries=None):
     targets=[];unique={};counts={'ready_operations':0,'review_operations':0,'blocked_operations':0}
     for target in run['targets']:
         plan=plans.get(target['id'])
@@ -62,7 +62,8 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
               'confirmed_difference_count':target['difference_count'] if target['difference_count'] is not None else facts['confirmed'] if facts else None,
               'unverified_difference_count':facts['unverified'] if facts else None,
               'display_status':target_status(plan) if plan else status_label(target['status']), 'status_reason':target_reason(plan),
-              'counts':plan['counts'] if plan else None,'report_path':None,'aggregate_path':None,'manifest_path':None,'objects_path':None}
+              'counts':plan['counts'] if plan else None,'report_path':None,'aggregate_path':None,
+              'aggregate_view_path':None,'download_path':None,'manifest_path':None,'objects_path':None}
         if plan:
             base=str(PurePosixPath(target['plan_path']).parent)
             item.update(report_path=base+'/index.html',manifest_path=base+'/bundle-manifest.json',objects_path=base+'/README.md')
@@ -108,7 +109,9 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
         from .links import verified_archive
         checked=verified_archive(fallback.url,allowed_link_hosts,url_check,build_url=run['build_url'])
         if checked: link=checked.url;note=checked.note
-    return {'run':run,'display_status':status_label(run.get('status')),'duration_label':_duration_label(run),**_timing_view(run,comparison_timing),'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
+    from .inventory import scan_scope_view
+    return {'scan_scope':scan_scope_view(plans,scan_summaries or {},[target['id'] for target in targets]),
+            'run':run,'display_status':status_label(run.get('status')),'duration_label':_duration_label(run),**_timing_view(run,comparison_timing),'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
             'metrics':metrics,'important_objects':important,'unique_objects':len(unique),'unknown_targets':unknown,
             'confirmed_differences':known,'unverified_differences':unverified,'difference_note':' '.join(notes),
             'counts':counts,'link':link,'link_note':note}

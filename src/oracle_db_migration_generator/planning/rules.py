@@ -74,8 +74,9 @@ def plan_target(differences,context):
         for ref in external.value:
             if ref['status']=='INVALID':
                 warnings.append('TARGET_INVALID_REFERENCE: '+ref['owner']+'.'+ref['name']+' ['+ref['object_type']+']')
+    from ..source.oracle_reader import source_descriptor
     return TargetPlan(context.source.synthetic or context.target.synthetic,__version__+'+sha256.'+generator_artifact_sha256(),RULE_VERSION,
-                      {'profile_id':context.profile.id,'commit_sha':context.source.source_commit,'ddl_digest':context.source.semantic_digest},
+                      source_descriptor(context.source),
                       {'id':context.target.target_id,'name':context.target_name,'schemas':context.target.schemas},
                       context.target.semantic_digest,differences.scope,status_for(operations,differences.complete),tuple(operations),
                       differences.differences,context.evidence,

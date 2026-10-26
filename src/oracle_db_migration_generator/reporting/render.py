@@ -1,11 +1,11 @@
 from importlib.resources import files
-from jinja2 import Environment, StrictUndefined
+from jinja2 import Environment, StrictUndefined, PackageLoader
 from .formatting import format_count,warning_text,difference_counts
 from .labels import object_label, status_label, type_label, kind_label, operation_reason, target_reason, target_status
 
 
 def _template(name):
-    environment=Environment(autoescape=True,undefined=StrictUndefined)
+    environment=Environment(autoescape=True,undefined=StrictUndefined,loader=PackageLoader(__package__,'templates'))
     environment.filters['count_tr']=format_count
     return environment.from_string(files(__package__).joinpath('templates',name).read_text(encoding='utf-8'))
 
@@ -39,7 +39,12 @@ def preview(text):
 
 
 def render_reports(document,sql_files):
-    environment=Environment(autoescape=True,undefined=StrictUndefined)
+    import json
+    from .inventory import scan_scope_view
+    summary=json.loads(sql_files['scan-summary.json']) if 'scan-summary.json' in sql_files else None
+    target_id=document['target']['id']
+    scan_scope=scan_scope_view({target_id:document},{target_id:summary} if summary else {},[target_id])
+    environment=Environment(autoescape=True,undefined=StrictUndefined,loader=PackageLoader(__package__,'templates'))
     environment.filters['count_tr']=format_count
     template=environment.from_string(files(__package__).joinpath('templates/report.html.j2').read_text(encoding='utf-8'))
     ops=[{**op,'object_label':object_label(op['object']),'display_status':status_label(op['decision']),
@@ -71,9 +76,9 @@ def render_reports(document,sql_files):
         return template.render(plan=document,difference_summary=difference_counts(document),display_status=target_status(document),status_reason=target_reason(document),title=title,rows=[operation_view(op,compact) for op in rows],
                                prefix=prefix,pages=pages,page_links=links,
                                previews=previews if show_previews else [],warning_rows=warning_rows,
-                               remaining_warnings=max(0,len(warnings)-20)).encode('utf-8')
+                               remaining_warnings=max(0,len(warnings)-20),scan_scope=scan_scope).encode('utf-8')
     # Reserve 10 KiB for the final page count and navigation while partitioning.
-    # Each successful prefix is consumed once; no operation is dropped or copied.
+    # Each successful prefix is consumed once, no operation is dropped or copied.
     groups=[(ops[start:start+100],False) for start in range(0,len(ops),100)] or [([],False)]
     if any(len(render(f'Değişiklikler · {page}/{len(groups)}',rows,'../',False,len(groups),page))>200*1024
            for page,(rows,_) in enumerate(groups,1)):

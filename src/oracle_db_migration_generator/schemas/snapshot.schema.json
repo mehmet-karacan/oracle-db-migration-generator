@@ -360,7 +360,8 @@
               "TARGET_METADATA",
               "ABSENCE_SCOPE",
               "DEPENDENCY",
-              "POLICY"
+              "POLICY",
+              "SOURCE_METADATA"
             ]
           },
           "side": {
@@ -478,6 +479,28 @@
         "CHANGED_DURING_CAPTURE",
         "NOT_VERIFIED"
       ]
+    },
+    "source_origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "ORACLE"
+        },
+        "connection_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "kind",
+        "connection_id",
+        "snapshot_id"
+      ]
     }
   },
   "required": [
@@ -507,7 +530,10 @@
       "then": {
         "properties": {
           "source_commit": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
           },
           "target_id": {
@@ -523,6 +549,39 @@
           "target_id": {
             "type": "string",
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "source_origin"
+        ]
+      },
+      "then": {
+        "properties": {
+          "side": {
+            "const": "SOURCE"
+          },
+          "source_commit": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "side": {
+              "const": "SOURCE"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "source_commit": {
+              "type": "string"
+            }
           }
         }
       }

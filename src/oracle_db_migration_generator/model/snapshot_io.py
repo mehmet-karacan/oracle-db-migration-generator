@@ -43,6 +43,12 @@ def load_snapshot(path: Path, *, require_ddl=False):
     registry = {item.id:item for item in evidence}
     if len(registry)!=len(evidence):
         raise ValueError('SNAPSHOT_DUPLICATE_EVIDENCE')
+    if require_ddl and document.get('source_origin'):
+        for ev in evidence:
+            if ev.path:
+                blob=safe_path(path.parent,ev.path)
+                if not blob.is_file():raise ValueError('SNAPSHOT_EVIDENCE_MISSING')
+                if hashlib.sha256(blob.read_bytes()).hexdigest()!=ev.sha256:raise ValueError('SNAPSHOT_EVIDENCE_INTEGRITY_MISMATCH')
     objects = []
     for item in document['objects']:
         data = item['identity']
@@ -73,7 +79,7 @@ def load_snapshot(path: Path, *, require_ddl=False):
                     candidate = payload[reference.start_byte:reference.end_byte]
                     if hashlib.sha256(candidate).hexdigest()==item['ddl_sha256']:
                         raw = candidate
-                if raw is None and identity.object_type not in {'COMMENT','GRANT'}:
+                if raw is None and (document.get('source_origin') or identity.object_type not in {'COMMENT','GRANT'}):
                     raise ValueError('SNAPSHOT_DDL_INTEGRITY_MISMATCH')
             elif require_ddl and document['side']=='SOURCE':
                 raise ValueError('SNAPSHOT_DDL_MISSING')
@@ -82,7 +88,7 @@ def load_snapshot(path: Path, *, require_ddl=False):
     return SchemaSnapshot(document['schema_version'],document['synthetic'],document['side'],document['profile_id'],
                           tuple(document['schemas']),document['source_commit'],document['target_id'],tuple(objects),
                           _coverage(document['coverage']),{key:_known(value) for key,value in document['capabilities'].items()},
-                          evidence,document['observed_consistency'])
+                          evidence,document['observed_consistency'],document.get('source_origin'))
 
 
 def write_source_snapshot(snapshot,inputs,output: Path):

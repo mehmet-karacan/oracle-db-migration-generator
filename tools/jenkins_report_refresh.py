@@ -35,7 +35,8 @@ def refresh_plan(previous,source_path,target_path,profile,output):
         if not old_sql or render_statement(op,plan.plan_id).split(b'\n',1)[1]!=safe_path(previous,old_sql['path']).read_bytes().split(b'\n',1)[1]:
             raise ValueError('REFRESH_SQL_CHANGED')
         verified+=1
-    result=write_bundle(plan,output)
+    from oracle_db_migration_generator.reporting.inventory import build_scan_summary
+    result=write_bundle(plan,output,scan_summary=build_scan_summary(source,target,profile.policy,plan))
     return {**result,'database_connections':0,'sql_bodies_verified':verified,'source_commit':source.source_commit}
 
 

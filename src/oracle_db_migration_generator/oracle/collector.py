@@ -30,6 +30,7 @@ class CaptureError(ValueError):
 class TargetObservation:
     snapshot: SchemaSnapshot | None
     receipt: dict
+    artifacts: tuple = ()
 
 
 def get_dependent_ddl(cursor, ddl_type, name, owner, *, inventory_complete, expected_count=None):
@@ -267,7 +268,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                                          if obj.identity.object_type in {'COMMENT','GRANT'} else obj for obj in snapshot.objects))
         timings['sidecar_merge'] += time.monotonic()-phase_started
         return snapshot, {'schema':mapping.source_schema,'status':'CAPTURED','dictionary_errors':failures,'capability_errors':capability_errors,
-                          'object_count':len(snapshot.objects),'inventory_count':len(before),'phase_timings_seconds':timings}
+                          'object_count':len(snapshot.objects),'inventory_count':len(before),'phase_timings_seconds':timings}, artifacts
     finally:
         # Close all handles, including after permission errors or retry.
         cleanup_failed = False
@@ -286,12 +287,13 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
 def collect_target(config, credentials, profile, *, connect=connect_read_only, progress=None, timeout_seconds=None, source=None):
     started = datetime.now(timezone.utc).isoformat()
     deadline = time.monotonic()+(config.capture_timeout_seconds if timeout_seconds is None else timeout_seconds)
-    snapshots, receipts, failed = [], [], False
+    snapshots, receipts, artifacts, failed = [], [], [], False
     for mapping in config.schema_mappings:
         for attempt in range(2):
             try:
-                snapshot, receipt = _capture_schema(config,mapping,credentials,profile,connect,deadline,progress,source)
+                snapshot, receipt, blobs = _capture_schema(config,mapping,credentials,profile,connect,deadline,progress,source)
                 snapshots.append(snapshot); receipts.append(receipt)
+                artifacts.extend(blobs)
                 break
             except Exception as error:
                 changed = isinstance(error,CaptureError) and str(error)=='CHANGED_DURING_CAPTURE'
@@ -320,4 +322,9 @@ def collect_target(config, credentials, profile, *, connect=connect_read_only, p
     receipt = {'target_id':config.id,'status':status,'started_at':started,
                'finished_at':datetime.now(timezone.utc).isoformat(),'schemas':receipts,
                'difference_count':None,'execution_status':'NOT_EXECUTED','read_only':True}
-    return TargetObservation(snapshot,receipt)
+    observation=TargetObservation(snapshot,receipt,tuple(artifacts))
+    if source is not None and snapshot is not None:
+        from .routine_metadata import complete_routine_observation
+        observation=complete_routine_observation(observation,config,credentials,source=source,
+                                                  connect=connect,deadline=deadline)
+    return observation

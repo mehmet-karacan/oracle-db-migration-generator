@@ -18,6 +18,7 @@ pipeline {
     GENERATOR_BUILD_STARTED_AT_MS = "${currentBuild.startTimeInMillis}"
     GENERATOR_CONFIG_DIR = ".runtime/scopes/build-${env.BUILD_NUMBER}"
     GENERATOR_PARSER_CACHE_DIR = '.runtime/parser-cache'
+    GENERATOR_PREPARED_SOURCE_CACHE_DIR = '.runtime/prepared-source-cache'
     GENERATOR_RELEASE_SHA = '@@RELEASE_SHA@@'
     GENERATOR_RELEASE_DIR = '.runtime/releases/@@RELEASE_SHA@@'
     GENERATOR_RUNTIME_DIR = '.runtime/python/@@RELEASE_SHA@@-r3'

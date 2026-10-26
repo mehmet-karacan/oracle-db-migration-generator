@@ -11,7 +11,7 @@ from ..reporting.render import render_run_reports
 from ..artifacts.layout import markdown
 
 
-def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,build_url=None):
+def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,build_url=None,source_origin=None):
     root=Path(root).resolve();results=[];commits=set();synthetic=False;plans={}
     for path in sorted((root/'targets').glob('*')):
         if not path.is_dir(): continue
@@ -35,6 +35,14 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
             results.append(result)
     if not results: raise ValueError('RUN_HAS_NO_TARGET_RESULTS')
     if source_commit: commits.add(source_commit)
+    origins=[plan['source'].get('origin') for plan in plans.values()]
+    if origins and any(origin!=origins[0] for origin in origins):raise ValueError('RUN_SOURCE_ORIGIN_MISMATCH')
+    if origins and origins[0]:
+        if source_origin is not None and source_origin!=origins[0]:raise ValueError('RUN_SOURCE_ORIGIN_MISMATCH')
+        source_origin=origins[0]
+    if source_origin:
+        if source_commit:raise ValueError('RUN_SOURCE_ORIGIN_MISMATCH')
+        commits.add(None)
     if len(commits)!=1: raise ValueError('RUN_SOURCE_COMMIT_MISMATCH')
     now=datetime.now(timezone.utc).isoformat()
     partial=any(item['status'] in {'BLOCKED','REVIEW_REQUIRED','ERROR','INCONSISTENT','INCOMPLETE'} for item in results)
@@ -44,6 +52,7 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
               'source_commit':commits.pop(),'status':'FAILED' if failed else 'PARTIAL' if partial else 'COMPLETE',
               'exit_code':code,'build_url':build_url,'targets':results}
     if build_number is not None: document['build_number']=build_number
+    if source_origin:document['source_origin']=source_origin
     validate_document(document,'run.schema.json')
     (root/'run.json').write_bytes(canonical_bytes(document)+b'\n')
     lines=['# Oracle Migration çalışma kaydı', '', f"Run: `{document['run_id']}`", '', 'Üretildi · Veritabanına uygulanmadı.', '', '[Çalışma JSON](run.json) · [Web raporu](index.html)', '']
@@ -55,7 +64,9 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
     (root/'README.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
     timing=read_json(root/'comparison-timing.json') if (root/'comparison-timing.json').is_file() else None
     if timing and timing.get('source_commit')!=document['source_commit']:raise ValueError('COMPARISON_TIMING_SOURCE_MISMATCH')
-    view=build_run_view(document,plans,comparison_timing=timing)
+    from ..reporting.inventory import load_scan_summaries
+    view=build_run_view(document,plans,comparison_timing=timing,
+                        scan_summaries=load_scan_summaries(root,document,plans))
     for path,raw in render_run_reports(view).items():
         destination=root/path;destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(raw)
     return document

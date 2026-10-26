@@ -39,7 +39,7 @@ def _plain_reason(text):
                                                        else ' işlemi inceleme bekliyor'), text)
     replacements = {'bağımlı nesnenin gerekli işlemi hazır değil:': 'bağlı nesnenin işlemi hazır değil:',
                     'hedefte bulunamadı ve oluşturulmasını sağlayan kaynak işlemi yok':
-                    'hedefte bulunamadı; kaynakta oluşturma tanımı bulunmuyor',
+                    'hedefte bulunamadı, kaynakta oluşturma tanımı bulunmuyor',
                     'kaynak kolon karşılaştırmasındaki eksik metadata bu yapısal önkoşul için doğrulanamadı':
                     'kaynak kolon bilgileri eksik',
                     'metadata': 'tanım bilgisi', 'dictionary': 'veritabanı kayıtları',
@@ -81,7 +81,7 @@ def operation_reason(op):
             if old is None or 'bağımlı nesnenin gerekli işlemi hazır değil:' in old:
                 grouped[name] = detail
         parts = [name + ': ' + _plain_reason(detail).rstrip('.') for name, detail in grouped.items()]
-        text = '; '.join(parts[:2]) + (f'; ayrıca {len(parts)-2} bağlı nesne' if len(parts)>2 else '') + '.'
+        text = ', '.join(parts[:2]) + (f', ayrıca {len(parts)-2} bağlı nesne' if len(parts)>2 else '') + '.'
     else:
         text = _plain_reason(text)
     return text if len(text)<=240 else text[:239]+'…'
@@ -101,7 +101,7 @@ def mail_operation_reason(op):
 
 
 def target_reason(plan):
-    if not plan: return 'Hedef bilgileri alınamadı; fark sonucu üretilemedi.'
+    if not plan: return 'Hedef bilgileri alınamadı, fark sonucu üretilemedi.'
     count = plan['counts']['blocked_operations']
     if count:
         return 'Bazı DDL’ler üretilemedi. Kayıtların altında nedenleri gösteriliyor.'

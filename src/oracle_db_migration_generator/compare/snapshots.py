@@ -52,7 +52,7 @@ def compare_snapshots(desired,actual,policy):
             for snapshot,value in ((actual,before),(desired,after)):
                 if value.state=='ABSENT' and present.identity.object_type in {'COMMENT','GRANT'}:
                     cap = snapshot.capabilities.get('coverage.'+present.identity.object_type)
-                    if snapshot.side=='TARGET' and (cap is None or cap.state!='KNOWN' or cap.value!='COMPLETE'):
+                    if (snapshot.side=='TARGET' or snapshot.source_origin) and (cap is None or cap.state!='KNOWN' or cap.value!='COMPLETE'):
                         if snapshot is actual:
                             before = KnownValue('UNKNOWN',None,value.evidence_ids)
                         else:
@@ -116,9 +116,9 @@ def compare_snapshots(desired,actual,policy):
             diagnostics.append(side+'_INVENTORY_'+coverage.inventory)
         if coverage.ddl!='COMPLETE' and not (side=='TARGET' and target_ddl_complete):
             diagnostics.append(side+'_DDL_'+coverage.ddl)
-        if snapshot.side=='TARGET' and coverage.dictionary!='COMPLETE':
+        if (snapshot.side=='TARGET' or snapshot.source_origin) and coverage.dictionary!='COMPLETE':
             diagnostics.append(side+'_DICTIONARY_'+coverage.dictionary)
     scope = Coverage('COMPLETE' if desired.completeness.inventory==actual.completeness.inventory=='COMPLETE' else 'PARTIAL',
                      'COMPLETE' if desired.completeness.ddl=='COMPLETE' and target_ddl_complete else 'PARTIAL',
-                     actual.completeness.dictionary,tuple(sorted(diagnostics)))
+                     'PARTIAL' if desired.source_origin and desired.completeness.dictionary!='COMPLETE' else actual.completeness.dictionary,tuple(sorted(diagnostics)))
     return DifferenceSet(desired.semantic_digest,actual.semantic_digest,tuple(differences),scope,tuple(sorted(diagnostics)))

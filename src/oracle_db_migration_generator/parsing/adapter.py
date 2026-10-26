@@ -38,11 +38,8 @@ class ParseResult:
 
 def parse_ddl(raw: bytes, identity_hint: ObjectIdentity | None,*,metadata=False) -> ParseResult:
     owner = identity_hint.owner.effective_name if identity_hint else None
-    timeout=120 if len(raw)>24*1024 else 30
-    # Full-grammar frozen captures measured 157–202s for large package bodies.
-    # Keep that narrow case bounded; all other unit budgets stay unchanged.
-    if identity_hint and identity_hint.object_type=='PACKAGE_BODY' and len(raw)>128*1024:
-        timeout=240
+    from .budgets import parser_timeout
+    timeout=parser_timeout(len(raw),identity_hint.object_type if identity_hint else None)
     try:
         payload = request_parse(raw, owner,timeout=timeout,metadata=metadata)
     except TimeoutError:

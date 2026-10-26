@@ -29,18 +29,66 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
         },
         "commit_sha": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
         },
         "ddl_digest": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "origin": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ORACLE"
+            },
+            "connection_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshot_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "connection_id",
+            "snapshot_id"
+          ]
         }
       },
       "required": [
         "profile_id",
         "commit_sha",
         "ddl_digest"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "origin"
+            ]
+          },
+          "then": {
+            "properties": {
+              "commit_sha": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "commit_sha": {
+                "type": "string"
+              }
+            }
+          }
+        }
       ]
     },
     "target": {
@@ -593,7 +641,8 @@
               "TARGET_METADATA",
               "ABSENCE_SCOPE",
               "DEPENDENCY",
-              "POLICY"
+              "POLICY",
+              "SOURCE_METADATA"
             ]
           },
           "side": {

@@ -175,6 +175,59 @@ def test_new_unusable_index_is_not_silently_created_as_usable():
     assert any(op.identity.object_type=='INDEX' and op.decision=='REVIEW_REQUIRED' for op in direct.operations)
 
 
+def test_verified_unusable_index_on_new_heap_table_keeps_source_availability(tmp_path):
+    from oracle_db_migration_generator.artifacts.bundle import write_bundle
+    from oracle_db_migration_generator.model.snapshot import KnownValue
+    from oracle_db_migration_generator.planning.object_rules import _verified_unusable_index_sql
+    from oracle_db_migration_generator.planning.table_ddl import source_projection
+    for suffix in ('CREATE INDEX APP.I ON APP.T(ID); ALTER INDEX APP.I UNUSABLE;',
+                   'CREATE INDEX APP.I ON APP.T(ID) UNUSABLE;'):
+        selected=profile()
+        desired=source('CREATE TABLE APP.T(ID NUMBER); '+suffix)
+        objects=[]
+        for obj in desired.objects:
+            props=dict(obj.properties)
+            if obj.identity.object_type=='TABLE':
+                props['dictionary.tables']=KnownValue('KNOWN',[{
+                    'table_name':'T','temporary':'N','partitioned':'NO','cluster_name':None,
+                    'iot_type':None,'nested':'NO'}],obj.evidence_ids)
+            if obj.identity.object_type=='INDEX':
+                props['dictionary.indexes']=KnownValue('KNOWN',[{
+                    'index_name':'I','index_type':'NORMAL','status':'UNUSABLE',
+                    'partitioned':'NO','uniqueness':'NONUNIQUE','table_owner':'APP',
+                    'table_name':'T','generated':'N','visibility':'VISIBLE'}],obj.evidence_ids)
+                for group in ('index_expressions','index_partitioning','index_partition_counts',
+                              'index_partitions','index_subpartitions'):
+                    props['dictionary.'+group]=KnownValue('KNOWN',[],obj.evidence_ids)
+            objects.append(replace(obj,properties=props))
+        desired=replace(desired,objects=tuple(objects))
+        observed=actual('',selected)
+        diff=compare_snapshots(desired,observed,selected.policy)
+        result=plan_target(diff,
+                           PlanningContext(desired,observed,selected,'Synthetic'))
+        index=next(op for op in result.operations if op.identity.object_type=='INDEX')
+        assert index.decision=='READY', (index.reason_codes, desired.objects[-1].coverage, [(d.kind,d.property_path) for d in diff.differences if d.object_key==index.identity.key])
+        assert index.intent is not None
+        sql=index.intent.statement.upper()
+        assert sql.count(b'CREATE INDEX')==1 and b'UNUSABLE' in sql
+        assert b'ALTER INDEX' not in sql
+        write_bundle(result,tmp_path/('inline' if ' ON APP.T(ID) UNUSABLE;' in suffix else 'sidecar'))
+        index_obj=next(obj for obj in desired.objects if obj.identity.object_type=='INDEX')
+        context=PlanningContext(desired,observed,selected,'Synthetic')
+        assert _verified_unusable_index_sql(context,index_obj,source_projection(index_obj)) is not None
+        bad_props=dict(index_obj.properties)
+        bad_props['dictionary.indexes']=KnownValue('KNOWN',[{
+            'index_name':'I','index_type':'NORMAL','status':'VALID',
+            'partitioned':'NO','uniqueness':'NONUNIQUE','table_owner':'APP',
+            'table_name':'T','generated':'N','visibility':'VISIBLE'}],index_obj.evidence_ids)
+        bad_index=replace(index_obj,properties=bad_props)
+        assert _verified_unusable_index_sql(context,bad_index,source_projection(bad_index)) is None
+        with_parent=PlanningContext(desired,actual('CREATE TABLE APP.T(ID NUMBER);',selected),selected,'Synthetic')
+        assert _verified_unusable_index_sql(with_parent,index_obj,source_projection(index_obj)) is None
+        bad_raw=replace(index_obj,raw_ddl=b'CREATE INDEX APP.I ON APP.T(ID); ALTER INDEX APP.OTHER UNUSABLE;')
+        assert _verified_unusable_index_sql(context,bad_raw,source_projection(bad_raw)) is None
+
+
 def test_invalid_target_compile_status_is_visible_even_without_ddl_drift():
     from oracle_db_migration_generator.model.snapshot import KnownValue
     selected=profile();desired=source('CREATE PROCEDURE APP.P AS BEGIN NULL; END;\n/')

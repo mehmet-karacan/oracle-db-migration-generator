@@ -6,6 +6,42 @@ from oracle_db_migration_generator.artifacts.bundle import write_bundle, verify_
 from tests.unit.test_bundle import make_plan
 
 
+def test_legacy_presentation_can_add_verified_inventory_without_replanning(tmp_path,monkeypatch):
+    from tests.factories import source,actual,profile
+    from oracle_db_migration_generator.model.serialization import canonical_bytes
+    from tools.jenkins_report_presentation import archived_scan_summary,refresh_bundle
+    sql='CREATE TABLE APP.T(ID NUMBER);'
+    previous=tmp_path/'previous';write_bundle(make_plan(sql),previous)
+    source_dir=tmp_path/'source';(source_dir/'app').mkdir(parents=True)
+    (source_dir/'app/fixture.sql').write_text(sql,encoding='utf-8')
+    source_path=source_dir/'source-snapshot.json';source_path.write_bytes(canonical_bytes(source(sql).to_dict()))
+    target_path=tmp_path/'target-snapshot.json';target_path.write_bytes(canonical_bytes(actual().to_dict()))
+    def forbidden(*a,**kw):raise AssertionError('No comparison or Oracle connection during presentation refresh')
+    monkeypatch.setattr('oracledb.connect',forbidden)
+    monkeypatch.setattr('oracle_db_migration_generator.compare.snapshots.compare_snapshots',forbidden)
+    summary,proof=archived_scan_summary(previous,source_path,target_path,profile())
+    output=tmp_path/'new';refresh_bundle(previous,output,scan_summary=summary)
+    assert verify_bundle(output)['status']=='VERIFIED'
+    assert json.loads((output/'scan-summary.json').read_bytes())['source']['by_schema']=={'APP':{'TABLE':1}}
+    assert len(proof['inventory_source_snapshot_sha256'])==64
+    assert (previous/'plan.json').read_bytes()==(output/'plan.json').read_bytes()
+    for path in previous.rglob('*.sql'):
+        assert path.read_bytes()==(output/path.relative_to(previous)).read_bytes()
+
+
+def test_legacy_inventory_rejects_unrelated_snapshot(tmp_path):
+    from tests.factories import source,actual,profile
+    from oracle_db_migration_generator.model.serialization import canonical_bytes
+    from tools.jenkins_report_presentation import archived_scan_summary
+    previous=tmp_path/'previous';write_bundle(make_plan('CREATE TABLE APP.T(ID NUMBER);'),previous)
+    root=tmp_path/'source';(root/'app').mkdir(parents=True)
+    sql='CREATE TABLE APP.OTHER(ID NUMBER);';(root/'app/fixture.sql').write_text(sql,encoding='utf-8')
+    source_path=root/'source-snapshot.json';source_path.write_bytes(canonical_bytes(source(sql).to_dict()))
+    target_path=tmp_path/'target-snapshot.json';target_path.write_bytes(canonical_bytes(actual().to_dict()))
+    with pytest.raises(ValueError,match='PRESENTATION_INVENTORY_INPUT_MISMATCH'):
+        archived_scan_summary(previous,source_path,target_path,profile())
+
+
 def test_presentation_refresh_preserves_every_non_presentation_byte(tmp_path):
     from tools.jenkins_report_presentation import refresh_bundle
     previous = tmp_path/'previous'; output = tmp_path/'new'

@@ -4,11 +4,11 @@ Bu depo, Oracle DB Migration Generator tarafından otomatik üretilen hedef bazl
 
 ## Okuma Sırası
 
-AGENTS.md → catalog.json → plans/<source-profile-id>/<target-id>/<plan-id>/plan.json → seçilen operation'ın SQL ve evidence dosyası. Her planın README ve HTML raporu vardır. latest/ işaretçisi kolaylık içindir; denetim için değiştirilemez plan ID kullanılır.
+AGENTS.md → catalog.json → plans/<source-profile-id>/<target-id>/<plan-id>/plan.json → seçilen operation'ın SQL ve evidence dosyası. Her planın README ve HTML raporu vardır. latest/ işaretçisi kolaylık içindir, denetim için değiştirilemez plan ID kullanılır.
 
-SQL dosyaları **üretilmiştir, uygulanmamıştır**. READY, bir kuralın üretime izin verdiğini belirtir; deployment/DBA onayı değildir. REVIEW/BLOCKED işlemler otomatik çalıştırılabilir paket dışında tutulur.
+SQL dosyaları **üretilmiştir, uygulanmamıştır**. READY, bir kuralın üretime izin verdiğini belirtir, deployment/DBA onayı değildir. REVIEW/BLOCKED işlemler otomatik çalıştırılabilir paket dışında tutulur.
 
-Source Git durumunun bütün hedeflere aynı SQL olarak gönderilmesi yoktur. Her hedefin actual durumu ayrı değerlendirilir. before=target; after=source.
+Source Git durumunun bütün hedeflere aynı SQL olarak gönderilmesi yoktur. Her hedefin actual durumu ayrı değerlendirilir. before=target, after=source.
 
 ## Gizlilik
 
