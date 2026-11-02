@@ -2251,3 +2251,18 @@ Güncel taslak `.local/mail-draft-prod-innova-odi-20261102.html`,
 görseli `.local/mail-draft-prod-innova-odi-20261102-final.png`.
 Jenkins ve rapor odaklı testlerde 72 PASS. Eposta gönderilmedi.
 Canlı Oracle NOT_RUN. Jenkins NOT_RUN.
+
+## 2 Kasım 2026 - Uzak ana dal doğrulaması
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Mail taslağı ve önceki DDL üretim düzeltmeleri `9fba2dc` commit'iyle
+uzak `main` dalına gönderildi. Uzak dal SHA değeri
+`9fba2dc1136782cf0d350cb5d4db93313fd3fefc` olarak doğrulandı.
+Yeni dal oluşturulmadı. `.local` dosyaları Git'e eklenmedi.
+
+İlk tam test koşusu 1259 PASS ve iki eski yerleşim testi hatası verdi.
+Bu testler üç sütunlu mail düzenine uyarlandı. İlgili 35 test PASS.
+Son iki test düzenlemesinden sonra tam paket yeniden çalıştırılmadı.
+Jenkins dağıtımı ve eposta gönderimi NOT_RUN.

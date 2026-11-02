@@ -2606,3 +2606,20 @@ tests/unit/test_report_counts_timing.py tests/unit/test_ui_jenkins_archive.py
 tests/unit/test_review_ddl_proposals.py tests/unit/test_report_scan_scope.py
 tests/unit/test_report_plain_language.py -q` sonucu 72 PASS.
 Eposta gönderilmedi. Canlı Oracle NOT_RUN. Jenkins NOT_RUN.
+
+## 2 Kasım 2026 - Mail ve DDL değişikliklerinin ana dala gönderimi
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Mail taslağında tekrarlanan şema adı, Ayrı DDL kartı ve İşlem sütunu
+kaldırıldı. Kaynak nesne sayısı ve üretilen DDL toplamı gösteriliyor.
+Değişiklikler `9fba2dc` commit'i ile uzak `main` dalına gönderildi.
+Uzak dalın tam SHA değeri yeniden okunarak doğrulandı.
+
+Tam test koşusunda 1259 test geçti. İki eski mail yerleşim testi,
+kaldırılan sütunu beklediği için başarısız oldu. Testler güncellendi ve
+ilgili 35 test yeniden çalıştırılarak geçti. Son değişiklikten sonra
+tam test paketi yeniden çalıştırılmadı. Canlı Oracle NOT_RUN.
+Jenkins release kurulumu NOT_RUN. Eposta gönderilmedi.
+Sonraki adım güncel release'i Jenkins'e kurup tek alıcılı maili sınamaktır.
