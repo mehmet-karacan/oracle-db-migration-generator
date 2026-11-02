@@ -1,10 +1,15 @@
-"""A separate, closed compiler-backed path. Exporter evidence is never fabricated."""
+"""Şema Karşılaştırma derlenmiş statik bağımlılık kanıtını denetler.
+
+Author: Mehmet KARACAN
+Date: 2026-10-26
+"""
 from dataclasses import dataclass, replace
 
 from ..model.plan import DependencyReference
 from ..model.serialization import digest, thaw
 from ..parsing.dependencies import has_dynamic_sql
 from ..oracle.routine_metadata import _base_snapshot, scoped_snapshot_matches, snapshot_binding_digest
+from ..oracle.sequence_proof import sequence_advance_matches
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens
 
 
@@ -202,7 +207,11 @@ def compiled_static_inventory(context,obj):
                     if actual is None:
                         if stamp is not None:raise ValueError('hedef envanteri snapshot sonrasında değişmiş')
                     else:
-                        if stamp is None or _hash(dst,'dependency_ddl')!=actual.ddl_sha256:
+                        current_hash=_hash(dst,'dependency_ddl') if stamp is not None else None
+                        advanced_sequence=(which=='SEQUENCE' and stamp is not None
+                            and sequence_advance_matches(actual.raw_ddl,
+                                dst.get('dependency_ddl',{}).get('sequence_definition')))
+                        if stamp is None or (current_hash!=actual.ddl_sha256 and not advanced_sequence):
                             raise ValueError('güncel hedef bağımlılık tanımı snapshot ile aynı değil')
                         if which in {'TABLE','VIEW'} and _rows(src,'columns')!=_rows(dst,'columns'):
                             raise ValueError('kaynak ve hedef kolon imzaları aynı değil')

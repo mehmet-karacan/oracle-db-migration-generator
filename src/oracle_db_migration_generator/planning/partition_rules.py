@@ -1,4 +1,8 @@
-"""Typed proof for ordinary RANGE/INTERVAL layouts; never reconstruct the suffix."""
+"""Oracle DB Migration Generator partition tanımının DDL sınırını belirler.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal,InvalidOperation
@@ -166,6 +170,50 @@ def range_layout(obj,columns):
     return RangeLayout(keys,interval,tuple(partitions),_logical_options(tokens[group[1]:]))
 
 
+def partition_change_statement(identity,wanted,observed,key_type):
+    """Eşleşen sınırları koruyup eksik aralık bölümlerinin DDL'sini önerir."""
+    if wanted is None or observed is None or wanted.keys!=observed.keys:
+        return None,False
+    from ..parsing.statements import quote_identifier
+    from .table_ddl import qualified
+    names={part.name for part in observed.partitions}
+    rows=[]
+    prefix=0
+    for source_part,target_part in zip(wanted.partitions,observed.partitions):
+        if source_part.high!=target_part.high:
+            break
+        prefix+=1
+        if source_part.name==target_part.name:
+            continue
+        if source_part.name in names:
+            return None,False
+        rows.append('ALTER TABLE '+qualified(identity)+' RENAME PARTITION '
+                    +quote_identifier(target_part.name)+' TO '+quote_identifier(source_part.name)+';')
+    complete=(prefix==len(observed.partitions) and len(wanted.partitions)>=prefix
+              and wanted.interval is None and observed.interval is not None
+              and not wanted.options and not observed.options
+              and all(not part.options for part in (*wanted.partitions,*observed.partitions)))
+    if complete:
+        def bound_sql(bound):
+            flag,value=bound
+            if flag:return 'MAXVALUE'
+            if key_type in {'NUMBER','FLOAT'}:return format(value,'f')
+            if key_type=='DATE':return "DATE '"+value.date().isoformat()+"'"
+            if key_type=='TIMESTAMP':return "TIMESTAMP '"+value.isoformat(sep=' ')+"'"
+            raise ValueError('PARTITION_KEY_TYPE_UNSUPPORTED')
+        additions=[]
+        try:
+            for part in wanted.partitions[prefix:]:
+                bounds=', '.join(bound_sql(bound) for bound in part.high)
+                additions.append('ALTER TABLE '+qualified(identity)+' ADD PARTITION '
+                                 +quote_identifier(part.name)+' VALUES LESS THAN ('+bounds+');')
+        except (ValueError,AttributeError,TypeError):
+            complete=False
+        if complete:
+            rows=['ALTER TABLE '+qualified(identity)+' SET INTERVAL ();',*rows,*additions]
+    return (('\n'.join(rows)+'\n').encode('utf-8') if rows else None),complete
+
+
 def partition_change(context,desired,actual,changes):
     from .table_rules import column_fields
     from .builder import operation
@@ -183,5 +231,12 @@ def partition_change(context,desired,actual,changes):
     if wanted is not None and wanted==observed and not context.profile.policy.compare_physical_storage:
         return operation(context,actual,changes,'PRESERVE','INFORMATIONAL','PARTITION_PHYSICAL_STORAGE_PRESERVED',
                          'Partition kolonları, adları, sınırları ve interval aynı; hedef fiziksel ayarları korunacak.',tag='layout')
+    source_fields=column_fields(desired,context.source,context.profile.policy)
+    key_type=source_fields[wanted.keys[0]]['data_type'].value if wanted and len(wanted.keys)==1 else None
+    proposal,complete=partition_change_statement(desired.identity,wanted,observed,key_type)
+    reason=('Hedefteki interval kapatılıp bölüm adları ve eksik kaynak bölümleri için DDL önerildi. SQL uygulanmadı.'
+            if complete else 'Eşleşen sınırların bölüm adları için değişim DDL önerildi. '
+            'Interval ve diğer bölüm farkları bu öneriyle kapanmaz.' if proposal else
+            'Partition kolon, ad, sınır veya interval farkı için DDL dönüşümü henüz tanımlı değil.')
     return operation(context,desired,changes,'REVIEW','REVIEW_REQUIRED','PARTITION_LAYOUT_REQUIRES_REVIEW',
-                     'Partition kolon, ad, sınır veya interval farkı var; mevcut veriyi taşıyan dönüşüm DBA incelemesi gerektiriyor.',tag='layout')
+                     reason,statement=proposal,tag='layout')

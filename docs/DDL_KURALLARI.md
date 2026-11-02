@@ -1,10 +1,18 @@
 # DDL Üretim Ve Güvenlik Kuralları
 
+Oracle DB Migration Generator yalnız şema tanımlarını karşılaştırır ve DDL üretir. İş verisi
+okunmaz, satır uyumu ölçülmez, veri taşıma veya veritabanına uygulama yapılmaz.
+READY üretilen DDL anlamına gelir. Verinin bu DDL ile uyumlu olduğu iddiası değildir.
+REVIEW_REQUIRED veya BLOCKED işlemin kaynak nesnesinde DDL metni varsa
+bu metin `source-ddl/` arşivinde korunur. Kaynak `CREATE` metni mevcut hedef
+nesne için doğrudan çalıştırılabilir `ALTER` olarak sunulmaz. Böylece farkın
+kaynak tanımı görünür kalır, hazır dönüşüm SQL'iyle karıştırılmaz.
+
 ## Karar Sınıfları
 
 **READY:** Tanımlı V1 kuralıyla, yeterli metadata/parse/bağımlılık kanıtıyla üretilebilir SQL. Otomatik uygulanmaz ve Oracle üzerinde test edildiği anlamına gelmez.
 
-**REVIEW_REQUIRED:** Fark ve aday dönüşüm belli, veri, yetki, bağımlılık veya operasyon koşulu ayrıca doğrulanmalıdır. Aday SQL varsa `review/` altında tutulur, ana migration'a eklenmez.
+**REVIEW_REQUIRED:** Fark bellidir, fakat DDL dönüşümü veya gerekli tanım bağımlılığı henüz doğrulanmamıştır. Aday SQL varsa `review/` altında tutulur, ana migration'a eklenmez.
 
 **BLOCKED:** Eksik/çelişkili metadata, belirsiz dönüşüm, desteklenmeyen söz dizimi veya güvenlik engeli. Uygulanabilir SQL yoktur, açık reason code vardır.
 
@@ -17,27 +25,27 @@
 | Nesne/Dönüşüm | İlk Teslimatta Beklenen Davranış |
 |---|---|
 | Eksik normal heap TABLE | Doğrulanmış tam DDL'den CREATE, kolon tipi/uzunluk/CHAR-BYTE/default/NOT NULL kaybolmaz. Named PK/UK/CHECK ayrıştırılır, FK sonraki faza taşınır. Karmaşık depolama özelliği sessiz atılmaz. |
-| Eksik nullable kolon | Doğrulanmış tip ile `ALTER TABLE ADD`, yalnız gerçekten eksik alan eklenir. |
-| VARCHAR2/NVARCHAR2/RAW genişletme | Aynı tip ve aynı semantik, hedef sürüm limiti, partition key/domain index engeli ve metadata tamlığı doğrulanırsa READY. Diğer durum REVIEW/BLOCKED. |
-| NUMBER precision genişletme | Scale değişmiyorsa ve her iki taraf explicit/bilinense, Oracle sınırları ve bağımlılıklar uygunsa READY. Unconstrained NUMBER↔NUMBER(p,s) otomatik güvenli sayılmaz. |
-| Veri tipi daraltma/değiştirme | Otomatik READY yok. Veri kontrolü gereği + REVIEW, dönüşüm belirsizse BLOCKED. |
+| Eksik kolon | Doğrulanmış kaynak tanımı ile `ALTER TABLE ADD` üretilir. DEFAULT ve NOT NULL korunur. |
+| Kolon veri tipi ve uzunluk farkı | Kaynak tipinin DDL ifadesi, hedef sürüm limiti, partition key/domain index engeli ve metadata tamlığı doğrulanırsa `ALTER TABLE MODIFY` üretilir. Satır taraması yapılmaz. |
+| NUMBER precision ve scale farkı | Kaynak NUMBER tanımı ve yapısal bağımlılık doğrulanırsa `ALTER TABLE MODIFY` üretilir. |
+| Veri tipi daraltma/değiştirme | Desteklenen kaynak tipinde DDL üretilir. Kaynak tipinin SQL ifadesi veya yapısal bağımlılığı doğrulanamazsa BLOCKED. |
 | Default ekleme/değiştirme | Mevcut kolon için doğrulanmış ifade ve bağımlılıklarla üretilir, data backfill yapılmaz. DEFAULT ON NULL ayrı özellik, otomatik normal DEFAULT sayılmaz. |
-| NOT NULL | Yeni boş tablo tanımında üretilebilir, mevcut tabloda sıkılaştırma veya gevşetme REVIEW. İş verisi okunmadan veri uyumu iddia edilmez. |
+| NOT NULL | Mevcut tabloda kaynak NOT NULL tanımı DDL olarak üretilir. Gevşetmede PK ve açık kısıt envanteri doğrulanır. |
 | Virtual/identity kolon | Tam tanınmış yeni tablo tanımında korunur, mevcut tabloda değiştirme V1 BLOCKED. İç sequence nesnesi ayrı migration yapılmaz. |
 | Kolon sırası | Farkı raporla, tablo drop/recreate, görünmez-görünür döngüsü veya data copy üretme. |
-| Eksik named PK/UK/CHECK/FK | Yeni oluşturulan boş tabloda önkoşullarla üret, mevcut tabloda veri uyumu gerektiren eklemeler REVIEW. FK referansı/external object bilinmiyorsa BLOCKED. |
+| Eksik named PK/UK/CHECK/FK | Kaynak tanımı ve bağımlılıkları doğrulanırsa mevcut tabloda da `ALTER TABLE ADD` üretilir. FK referansı bilinmiyorsa BLOCKED. |
 | Değişen constraint | ENABLE/VALIDATE, deferrable, delete rule, expression ayrı fark. Drop+recreate otomatik ana dosyada yok, REVIEW/BLOCKED. |
-| Eksik nonunique normal index | Tablo/kolonlar ve ad çakışması doğrulanırsa CREATE INDEX. Existing rows için unique index REVIEW. |
+| Eksik normal index | Tablo, kolonlar ve ad çakışması doğrulanırsa unique index dahil CREATE INDEX üretilir. |
 | Kaynakta `UNUSABLE` normal index | Yalnız hedefte bulunmayan, yeni doğrulanmış heap tabloya bağlı, nonunique ve bölümsüz index için kaynak sözlüğü `UNUSABLE` durumunu doğruluyorsa tek `CREATE INDEX ... UNUSABLE` üretilir. Yeniden parse ile anahtar, hedef, görünürlük ve fiziksel özellikler eşitliği aranır. Eksik kanıt REVIEW kalır; index kullanılabilir duruma geçirilmez. |
-| Eksik tarih function index | 20 Ekim kullanıcı kapsamıyla: bilinen DATE/TIMESTAMP kolonunda TO_CHAR ve kapalı sayısal tarih formatı, gözlenmiş GREGORIAN session calendar, parent/kolon kanıtı varsa kaynak ifade korunarak CREATE. Örtük tip dönüşümü, başka fonksiyon, bilinmeyen NLS veya unique existing rows REVIEW. |
+| Eksik tarih function index | Bilinen DATE/TIMESTAMP kolonunda TO_CHAR ve kapalı sayısal tarih formatı, gözlenmiş GREGORIAN session calendar, parent/kolon kanıtı varsa kaynak ifade korunarak CREATE. Örtük tip dönüşümü, başka fonksiyon veya bilinmeyen NLS inceleme gerektirir. |
 | PK/UK backing index | Tablo DDL/constraint ile aynı index iki kez oluşturulmaz, dictionary association + AST kanıtı gerekir. |
 | Değişen index | Otomatik DROP+CREATE yok. Görünürlük/depolama gibi dönüşümler REVIEW, domain/bitmap/function-based/partition bakım kuralları destek yoksa BLOCKED. |
-| Eksik SEQUENCE | Kaynak explicit tanımı korunur, NOCACHE/CACHE doğru üretilir. Başlangıç değerinin source snapshot'tan geldiği işaretlenir. Aynı planda yeni/boş tüketiciler dışında mevcut veriyle çakışma belirsizse REVIEW. |
+| Eksik SEQUENCE | Kaynak explicit tanımı korunur, NOCACHE/CACHE doğru üretilir. Mevcut tüketici satırları taranmaz. |
 | Mevcut SEQUENCE | START WITH/LAST_NUMBER runtime state olarak raporlanır, reset yok, NEXTVAL okunmaz. CACHE/CYCLE/ORDER/MIN/MAX/INCREMENT değişiklikleri ayrı değerlendirilir ve V1 REVIEW. |
 | VIEW | Tanınan sıradan view için CREATE OR REPLACE, kolon ve sorgu metni korunur. FORCE ile eksik bağımlılık gizlenmez. Materialized/editioning özel durumları ayrı. |
-| PACKAGE_SPEC/BODY | Yalnız değişen bileşen üretilir. Spec gerekliliği ve body bağımlılıkları korunur. Ham kodda yalnız kanıtlı CREATE header/terminator müdahalesi, body içerik kaybı yok. Public imza değişimi + çözümlenmeyen dış tüketici REVIEW. |
+| PACKAGE_SPEC/BODY | Yalnız değişen bileşen üretilir. Spec gerekliliği ve body bağımlılıkları korunur. Ham kodda yalnız kanıtlı CREATE header/terminator müdahalesi yapılır. |
 | PROCEDURE/FUNCTION | Tam parse/kimlik/bağımlılık kanıtı varsa CREATE OR REPLACE. İşlev çağrısı yapılmaz. |
-| TRIGGER | DDL+ENABLE/DISABLE birlikte modellenir. Yeni trigger ancak yeni boş tablo veya etkisizlik kanıtı varsa READY, mevcut iş tablolarında yeni/değişen trigger REVIEW. Yan etkili trigger'ı düşük risk sanma. |
+| TRIGGER | DDL ve ENABLE/DISABLE birlikte modellenir. Parent tablo, kaynak tanımı ve kod bağımlılıkları doğrulanırsa mevcut tabloda da yeni veya değişen trigger DDL'si üretilir. |
 | TYPE_SPEC/BODY | Standalone tanınmış yeni type/type body, doğrulanmış tip grafıyla CREATE edilebilir. Kullanılan mevcut type evrimi, FORCE veya cascade dönüşümü BLOCKED. |
 | Private SYNONYM | Referans owner/name doğrulanırsa CREATE OR REPLACE, DB link/private-public scope karıştırılmaz. Public synonym REVIEW, DB link üretimi yok. |
 | COMMENT ON TABLE/COLUMN | Ayrı sidecar'dan karşılaştır, tek tırnak/q-quote korunur. Ekle/güncelle üret, kaldırma ayrı açık fark ve inceleme gereği. |
@@ -79,12 +87,12 @@ desteklenir. Yukarıdaki V1 tablosunun ilgili dar sınırlarını bu ek güncell
   doğrulanır. Tekrarlanan veya çelişen seçenekler reddedilir. SECUREFILE,
   adlandırılmış LOB segmenti, şifreleme/sıkıştırma ve partition LOB bu destek
   kapsamında değildir. STORE AS, CTAS ile karıştırılmaz. CTAS hâlâ engellidir.
-- VARCHAR2 BYTE -> CHAR: yeni karakter sınırı eski bayt sınırından küçük değil,
-  yeni bayt kapasitesi hedef limitinde ve partition/domain index güvenlik kanıtı
-  tam ise üretilebilir. CHAR -> BYTE ve kapasitesi kanıtlanamayan dönüşüm incelemedir.
+- VARCHAR2 BYTE -> CHAR ve CHAR -> BYTE dahil desteklenen kolon tipi farkı:
+  kaynak tanımının hedef uzunluk sınırına sığması ve partition/domain index
+  bağımlılığının doğrulanması gerekir. Bu koşullarda DDL üretilir.
 - NOT NULL gevşetme: kaynak nullable, hedefte açık NOT NULL tanımı, tam ve tutarlı
   constraint/kolon envanteri, PK dışında olma ve iki tarafta DEFAULT ON NULL=false
-  koşulları birlikte gerekir. NOT NULL sıkılaştırma hâlâ veri uyumu incelemesidir.
+  koşulları birlikte gerekir. NOT NULL sıkılaştırma kaynak tanımıyla DDL olarak üretilir.
   DEFAULT ON NULL kaldırılmadan NULL gevşetme üretilmez.
 - Mevcut hedef nesnesiyle aynı Oracle ad alanındaki farklı tür çatışması, routine
   dependency incelemesinin arkasında gizlenmez. Açık TARGET_NAMESPACE_CONFLICT ile
@@ -110,6 +118,13 @@ Kök body kanıtı yalnız doğru body türünü seçer; başka beklenmeyen tür
 veya eksik body satırı incelemede kalır. Kaynak ve hedef spec tanımları da kendi
 snapshot'larının DDL hash'iyle karşılaştırılır. Böylece body kanıtı, sonradan
 değişmiş bir public spec üzerinden geçmez.
+
+Taşınabilir hedef kanıtında yerel sequence bağımlılığının `START WITH` değeri
+snapshot'tan sonra artmış olabilir. Bu fark yalnız pozitif `INCREMENT BY`,
+`NOCYCLE`, aynı DDL'nin diğer tüm baytları, aynı nesne durumu ve geriye
+gitmeyen sayaç birlikte kanıtlandığında PL/SQL bağımlılık kontrolünde kabul
+edilir. Sequence DDL'si değiştirilmez. Diğer sequence değişimleri incelemede
+kalır. Bu dar kural hedefte DDL uygulama izni vermez.
 
 ## Birleşik SQL Ve Kısmi Plan
 

@@ -1,4 +1,8 @@
-"""Render the approved general summary directly into a Jenkins HTML email."""
+"""Oracle DB Migration Generator sonucunu Jenkins epostasına dönüştürür.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
 import json
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
@@ -15,11 +19,13 @@ def write_notification(output,run,build_url,job_url,*,context_note=None,publicat
         raise ValueError('JENKINS_BUILD_LINK_MISMATCH')
     plans={target['id']:json.loads((output/target['plan_path']).read_bytes())
            for target in run['targets'] if target.get('plan_path')}
+    proposal_ids={target['id']:{item.stem for item in (output/PurePosixPath(target['plan_path']).parent/'proposals').rglob('op-*.sql')}
+                  for target in run['targets'] if target.get('plan_path')}
     timing=json.loads((output/'comparison-timing.json').read_bytes()) if (output/'comparison-timing.json').is_file() else None
     if timing and timing.get('source_commit')!=run['source_commit']:raise ValueError('COMPARISON_TIMING_SOURCE_MISMATCH')
     from oracle_db_migration_generator.reporting.inventory import load_scan_summaries
     view=build_run_view(run,plans,publication=publication,url_check=url_check,allowed_link_hosts=('github.com',),comparison_timing=timing,
-                        scan_summaries=load_scan_summaries(output,run,plans))
+                        scan_summaries=load_scan_summaries(output,run,plans),proposal_ids=proposal_ids)
     artifact_root=build_url+'artifact/output/runs/build-'+str(number)+'/'
     for target in view['targets']:
         if target['aggregate_path']:

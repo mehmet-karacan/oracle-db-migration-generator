@@ -1,3 +1,118 @@
+## 2 Kasım 2026 - Kaynak DDL arşivi
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Kullanıcı bütün farklı nesnelerin DDL tanımını görmek istiyor. Kayıtlı
+INNOVA_ODI planında eksik 242 tablo için CREATE TABLE zaten READY idi.
+Kalan 19 farkın kaynak snapshot'ında özgün DDL metni vardır. Mevcut hedef
+nesneye doğrudan uygulanabilir ALTER veya CREATE OR REPLACE dönüşümü
+doğrulanmayan işlemlerin kaynak metni artık hedef paketinin `source-ddl/`
+arşivine yazılır. HTML raporundaki Kaynak DDL bağlantısı ve nesne README
+dosyası bu metni açar. Kaynak CREATE metni hazır migration SQL'i diye
+gösterilmez. Genel SQL dosyası yalnız READY işlemlerinden oluşur.
+
+Değişen ürün dosyaları `artifacts/bundle.py`, `artifacts/layout.py`,
+`reporting/render.py`, `reporting/templates/report.html.j2`,
+`runtime/worker.py`, `README.md`, `docs/DDL_KURALLARI.md`,
+`docs/DOGRULAMA.md` ve `tests/unit/test_bundle.py`.
+Kırmızı test kaynak arşiv parametresi yokken başarısız oldu, uygulamadan
+sonra geçti. İlgili 50 test PASS. İlk gerçek paket gereksiz bir indeks
+incelemesini gösterdi ve koşul düzeltildi. Son gerçek paket
+`.local/ddl-complete-plan-20261102-v2/` altında VERIFIED. 1743 fark,
+600 READY, 18 REVIEW, 1 BLOCKED ve 610 bilgi farkı var. Hazır SQL 600.
+Bekleyen 19 işlemin 19 özgün kaynak DDL dosyası ve 19 HTML bağlantısı var.
+Önceki 569 SQL gövdesinin tamamı aynı kaldı. Tam
+`PYTHONPATH=src pytest -q --tb=short` sonucu 1250 PASS ve bir mevcut
+Starlette uyarısı. Canlı Oracle NOT_RUN, Jenkins NOT_RUN. Sonraki somut
+iş 18 incelemenin hedef dönüşüm SQL'ini türlerine göre genişletmektir.
+
+## 2 Kasım 2026 - Yalnız DDL kapsamı
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Kullanıcı ürünün iş verisi taraması, veri uygunluğu, taşıma ve SQL uygulama
+işi yapmayacağını kesinleştirdi. Karşılaştırma yalnız kaynak ve hedef DDL
+tanımlarını kullanır. Değişen kolon tipi ve uzunluğu, eksik NOT NULL kolon,
+mevcut tabloda NOT NULL, PK, unique indeks, eksik sequence, trigger ve paket
+spec farkı için veri kontrolüne bağlı REVIEW kapıları kaldırıldı. Kaynak SQL
+tanımı, hedef sürüm sınırı ve yapısal bağımlılık kanıtı yine denetlenir.
+PK veya UK ile ilişkili mevcut indeks kanıtlanmıyorsa DDL hazır sayılmaz.
+
+Değişen ürün dosyaları `planning/table_rules.py`, `object_rules.py`,
+`context.py`, `partition_rules.py`, `review_reasons.py`, `README.md`,
+`docs/DDL_KURALLARI.md`, `docs/DOGRULAMA.md`, `docs/DIS_KAYNAKLAR.md`
+ve ilgili birim testleridir. Önceki 1 Kasım SQLcl kanıtı korunmuştur.
+
+Kayıtlı INNOVA_ODI kaynak ve hedef snapshot'larıyla çevrimdışı plan
+`.local/ddl-only-plan-20261102/` içinde üretildi. Bundle VERIFIED.
+1743 fark aynı kaldı. READY 569'dan 600'e, REVIEW 49'dan 18'e indi.
+BLOCKED 1 kaldı. Eski 569 SQL gövdesi byte düzeyinde aynı, 31 yeni DDL
+gövdesi eklendi. Plan için veritabanına bağlanılmadı ve SQL uygulanmadı.
+
+Dar testler 42 PASS. Tam `PYTHONPATH=src pytest -q --tb=short`
+çalışması 1249 PASS ve bir mevcut Starlette uyarısıyla tamamlandı.
+`git diff --check` temiz. Canlı Oracle
+kabulü NOT_RUN. Jenkins kurulumu bu aşamada NOT_RUN. Sonraki somut adım
+kalan 18 incelemenin DDL ve metadata nedenlerini ayrı ayrı ele almaktır.
+
+## 1 Kasım 2026 - Taşınabilir PL/SQL kanıtı devri
+
+Author: Mehmet KARACAN
+Date: 2026-11-01
+
+Aktif geliştirme, eski SQLcl hedef snapshot'ındaki sekiz PL/SQL REVIEW farkını
+salt okunur kanıtla azaltmaya yöneldi. Yeni komutlar
+`prepare-routine-capture` ve `import-routine-capture`. Değişen dosyalar
+`src/oracle_db_migration_generator/portable/builder.py`, `stream.py`,
+`routine_capture.py`, `templates/collect-routine.sql`,
+`src/oracle_db_migration_generator/oracle/sequence_proof.py`,
+`src/oracle_db_migration_generator/planning/routine_proof.py`, `cli.py`,
+`README.md`, `docs/DDL_KURALLARI.md`, `docs/YEREL_BASLANGIC.md`,
+`tests/unit/test_portable_routine_capture.py`,
+`tests/unit/test_compiled_routine_proof.py` ve bu devir belgeleri. Önce
+kırmızı test, ardından uygulama yapıldı.
+
+Gerçek SQLcl hedef toplaması `.local/routine-proof-20261101-v3/` içindedir.
+433 sorgu ve 57 kayıt doğrulandı. `import-routine-capture` çıktısı
+`.local/routine-imported-20261101-v4/`, plan
+`.local/routine-proof-plan-20261101-v4/`. Son bundle VERIFIED.
+Kayıtlı canlı planla 569 READY SQL gövdesinin tamamı ve bütün kararlar aynı.
+Sekiz eski fark kapandı. `PCK_CALL_CENTER` paket gövdesi için bağımlı
+`SEQ_ET_PRIM_ISLEMLERI_ID` sayacının yalnız ileri ve aynı tanımlı ilerlemesi
+kanıtlandı. Farklı DDL gövdesi veya geri giden sayaç REVIEW kalır. Taze PROD
+toplaması iki denemeden sonra INCONSISTENT, yeni snapshot yok.
+
+Test komutu `python -m pytest -q tests/unit`, PYTHONPATH `src;tests/unit;.`.
+Son tam sonuç 1235 PASS, bir mevcut Starlette uyarısı, 321.11 sn. Son dar
+güvenlik düzeltmesinden sonra ilgili 66 test ayrıca PASS. Veri tabanı
+DDL/DML/COMPILE, SMTP, Jenkins ve Git push yapılmadı. Sonraki somut iş
+kalan 49 incelemeyi veri taraması gerektirmeyen adaylardan başlayarak
+ele almak. Dört büyük PROD taraması kullanıcı kararıyla ertelendi.
+
+## 27 Ekim 2026 - Yerel HTML raporu devri
+
+Author: Mehmet KARACAN
+Date: 2026-10-27
+
+Kullanıcı HTML'i gerçek karşılaştırma ile doldurmayı istedi. SKY projesinin
+`INNOVA_ODI - Canlı ve SQLcl Eşdeğerlik` profili yerel olarak çalıştırıldı.
+Run kimliği `e05dc68153a649d5bf54d075a022c11f`, durum PARTIAL.
+Özel çıktı `.local/ui-state/runs/<run-id>/` altındadır. `index.html` ve iki
+target HTML'i üretildi, iki bundle VERIFIED. Canlı hedefte 1743 fark,
+569 READY, 49 REVIEW, 1 BLOCKED. Kayıtlı SQLcl snapshot hedefinde 1743 fark,
+561 READY, 57 REVIEW, 1 BLOCKED. Sekiz PL/SQL karar farkı SQLcl snapshot'ın
+derlenmiş statik bağımlılık kanıtı eksikliğinden kaynaklanıyor.
+
+Değişen dosyalar yalnız `yz/GELISTIRME_DURUMU.md` ve `yz/DEVIR.md`.
+Rapor test komutu `.venv/Scripts/python.exe -m pytest -q
+tests/unit/test_report_counts_timing.py tests/unit/test_report_scan_scope.py
+tests/unit/test_report_presentation_refresh.py` sonucu 20 PASS.
+Canlı Oracle metadata okuması PASS. SQL uygulanması, mail ve Jenkins NOT_RUN.
+Yerel frontend `http://127.0.0.1:8800/` açık. Sonraki adım SQLcl snapshot
+PL/SQL kanıt kapsamını araştırmak; dört büyük PROD taramasını ertelemek.
+
 ## 26 Ekim 2026 - UNUSABLE İndeks Devri
 
 `planning/object_rules.py` dar kapsamlı kaynak `UNUSABLE` indeks kuralı eklendi.
@@ -2329,3 +2444,165 @@ Kullanıcı ilk mailin gövdede genel HTML özeti olmasını ve konu biçimini S
 Bağımsız incelemede column set fallback ve saat→plan ID bulguları kırmızı→yeşil kapandı, son19 scopedtest geçti ve açık önemli bulgu yok. Tam paket332passed/35.61s/skip0. Ürün wheel'i hâlâ aynı97d09db..., yeni CI helper'ları ayrı SHA'lı release içinde. Yeni releaseZIP SHA222ecbfec12f8c3bb66f99a98694a06bfbf49561660883365a5aabc294f91e7a.
 
 #6 sourceSHAce8d62d18f46657b702a12bd5fe6fc58ec27cb5a okundu, canlı kaynak405table/0reject, source/target readonly. Şu anda target821nesne capture sürüyor. Bitişte yeni bodyHTML/mail ve targetplan kapsamı doğrulanacak, bu paragraf nihai başarı kaydı değildir.
+## 2 Kasım 2026 - HTML rapor düzeni
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Hedef HTML raporu yeniden düzenlendi. Görünen metinlerde ok işareti ve
+yapay ayraçlar kaldırıldı. Kaynak kapsamı ve uyarılar açılır alanlarda.
+İşlem kartları kaynak DDL bağlantılarını koruyor. Çalışma özeti ve eposta
+başlıkları sadeleştirildi. Değişen dosyalar `reporting/render.py`,
+`reporting/formatting.py`, üç HTML şablonu, `reporting/assets/report.css`
+ve ilgili rapor testleri. Yerel örnek rapor
+`.local/report-redesign-preview-20261102/index.html` dosyasında.
+Paket VERIFIED. Plan JSON aynı ve 621 SQL dosyası değişmedi.
+Tam test paketi 1251 PASS ve mevcut Starlette uyarısı. Canlı Oracle
+NOT_RUN. Jenkins NOT_RUN. Sonraki adım örnek raporun kullanıcı tarafından
+incelenmesi.
+
+## 2 Kasım 2026 - İnceleme DDL önerileri
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Kullanıcının isteğiyle inceleme gerektiren farklara ayrı SQL önerisi ve
+altında gerekçe eklendi. Plan ve rapor öneri bağlantısını taşır. Toplu
+DDL'ye yalnız hazır işlemler girer. ET_PRIM_ISLEMLERI_TTNET için 21 ALTER
+ifadesi vardır. Kaynak 20 aralık bölümü içerir. Hedefte 2 başlangıç
+bölümüyle interval düzeni bulunur. Öneri hedefte interval düzenini
+kapatır, iki bölüm adını değiştirir ve eksik 18 bölümü ekler.
+
+Değişen dosyalar `src/oracle_db_migration_generator/model/plan.py`,
+`planning/builder.py`, `planning/object_rules.py`,
+`planning/partition_rules.py`, `planning/review_reasons.py`,
+`planning/table_rules.py`, `emission/sql.py`, `artifacts/bundle.py`,
+`reporting/render.py`, `reporting/templates/report.html.j2` ve
+`tests/unit/test_review_ddl_proposals.py`.
+
+Doğrulama komutu `$env:PYTHONPATH='src'; python -m pytest -q`.
+Sonuç 1257 PASS ve mevcut Starlette uyarısı. Yerel snapshot ile
+1743 fark, 600 READY, 17 REVIEW_REQUIRED, 1 BLOCKED, 611 bilgi kaydı.
+17 inceleme kaydının hepsinde öneri dosyası var. Önceki paketin 600
+hazır SQL gövdesi aynı. Canlı Oracle NOT_RUN. Jenkins NOT_RUN.
+
+`DENEME` hedef ad çakışması BLOCKED kalır ve bu nesneye dokunulmaz.
+Sonraki adım rapordaki SQL önerilerini incelemek ve Oracle erişimi
+olduğunda bölüm sınırlarını salt okunur yeniden doğrulamaktır.
+
+## 2 Kasım 2026 - Eksik DDL önerisi denetimi
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Kayıtlı Oracle snapshotındaki 1743 farkın tamamı planda bir işleme
+bağlı. 600 hazır DDL ve 18 ayrı DDL önerisi var. Önerilerin 17 tanesi
+inceleme işlemlerine, biri DENEME fonksiyonunun hedef tabloyla ad
+çakışmasına ait. İnceleme veya engel kararı olup öneri dosyası
+olmayan işlem sayısı sıfır. 18 dosyanın tümü HTML raporunda açılıyor.
+600 hazır SQL gövdesi değişmedi. Paket VERIFIED ve 1703 dosya.
+
+Değişen dosyalar `planning/builder.py`, `planning/object_rules.py`,
+`planning/graph.py`, `artifacts/bundle.py`, `emission/sql.py`,
+`reporting/render.py`, `tests/unit/test_review_ddl_proposals.py`.
+Son rapor `.local/review-proposals-20261102-v8/index.html`.
+Kapsam testi komutu `$env:PYTHONPATH='src'; python -m pytest
+tests/unit/test_review_ddl_proposals.py tests/unit/test_backend_completion.py
+tests/unit/test_report_reasons.py tests/unit/test_rules.py -q`.
+Sonuç 88 PASS. Tam test komutu `$env:PYTHONPATH='src'; python -m pytest -q`
+ile 1259 PASS ve mevcut Starlette uyarısı verdi. Canlı Oracle NOT_RUN.
+Jenkins NOT_RUN. DDL uygulanmadı.
+
+DENEME fonksiyonu önerisi, hedefteki aynı adlı tablo korundukça
+uygulanamaz. Bu bir kod üretim eksiği değildir. Kullanıcının tabloya
+dokunmama kararı sürer. Sonraki adım salt okunur canlı metadata
+doğrulaması ve öneri dosyalarının gözden geçirilmesidir.
+
+## 2 Kasım 2026 - DDL üretiminin raporlanması
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Kullanıcı ürünün fark bulma ve DDL üretme görevini netleştirdi.
+Rapor artık hazır SQL ile ayrı önerileri birlikte sayıyor. Kayıtlı
+snapshot için 618 DDL üretildi. Bunun 600 tanesi hazır dosya, 18 tanesi
+nesneye bağlı ayrı dosya. DENEME satırında kaynak fonksiyon ile hedef
+tablonun aynı adı taşıdığı kısa not olarak gösteriliyor.
+
+Değişen dosyalar `reporting/render.py`,
+`reporting/templates/report.html.j2`, `emission/sql.py` ve
+`tests/unit/test_review_ddl_proposals.py`. Son doğrulanmış paket
+`.local/review-proposals-20261102-v10/index.html`.
+`verify_bundle` VERIFIED. 18 öneri bağlantısı ve 1743 farkın plan
+kapsamı doğrulandı. Tam test komutu `$env:PYTHONPATH='src'; python -m
+pytest -q` ile 1259 PASS ve mevcut Starlette uyarısı verdi. Canlı
+Oracle NOT_RUN. Jenkins NOT_RUN. SQL uygulanmadı. Sonraki adım
+kullanıcının rapor görünümünü incelemesidir.
+
+## 2 Kasım 2026 - Eposta önizlemesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Mail ve çalışma özeti her hedefin ayrı DDL dosyalarını sayıyor.
+Son tek hedef örneğinde 1743 fark için 618 DDL ve 0 eksik DDL
+görünüyor. DENEME satırında kaynak fonksiyon ile hedef tablonun aynı
+adı kullandığı kısa not var. Taslak `.local/mail-draft-20261102.html`
+dosyasında, ekran görüntüsü `.local/mail-draft-20261102-final2.png`
+dosyasında. Taslak gönderilmedi.
+
+Değişen dosyalar `src/oracle_db_migration_generator/reporting/view.py`,
+`reporting/templates/email.html.j2`, `runtime/aggregate.py`,
+`tools/jenkins_notification.py` ve
+`tests/unit/test_review_ddl_proposals.py`. Jenkins bildirim yolu
+sentetik paketle test edildi. Tam test komutu
+`$env:PYTHONPATH='src'; python -m pytest -q` ile 1261 PASS ve
+mevcut Starlette uyarısı verdi. Canlı Oracle NOT_RUN. Jenkins
+çalıştırması NOT_RUN. Sonraki adım taslağı kullanıcının incelemesi.
+
+## 2 Kasım 2026 - Tek PROD hedefi
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+Yerel SKY INNOVA_ODI profili ve şema eşleştirmesi dördüncü sürümde
+yalnız `PROD - INNOVA_ODI` hedefini seçiyor. SQLcl snapshot
+bağlantısı korunuyor, profilin hedefi değil. Eski çalışma kayıtları
+değişmedi. Yeni `run_spec` tek hedef döndürdü.
+
+Kayıtlı PROD hedef snapshotı ile çevrimdışı plan
+`.local/prod-innova-odi-plan-20261102` altında VERIFIED.
+1743 fark için 618 DDL üretildi. Eposta taslağı
+`.local/mail-draft-prod-innova-odi-20261102.html` ve görseli
+`.local/mail-draft-prod-innova-odi-20261102.png` konumunda.
+`Ayrı DDL` alanı kaldırıldı. Değişen kod `reporting/view.py`,
+`reporting/templates/email.html.j2` ve ilgili test.
+
+Doğrulama komutu `$env:PYTHONPATH='src'; python -m pytest
+tests/unit/test_jenkins_runtime.py tests/unit/test_jenkins_multi_schema.py
+tests/unit/test_report_counts_timing.py tests/unit/test_ui_jenkins_archive.py
+tests/unit/test_review_ddl_proposals.py tests/unit/test_report_scan_scope.py
+-q`. Sonuç 64 PASS. Canlı Oracle NOT_RUN. Jenkins NOT_RUN.
+Eposta gönderilmedi. Sonraki adım kullanıcı taslağının incelenmesi.
+
+## 2 Kasım 2026 - Mail tablosu sadeleştirmesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+
+`PROD - INNOVA_ODI` adının altında aynı şema yeniden gösterilmiyor.
+Mail fark tablosunda `İşlem` sütunu kaldırıldı. Artık nesne ve fark,
+hedef ve sonuç sütunları var. Değişen dosyalar
+`reporting/view.py`, `reporting/templates/email.html.j2`,
+`tests/unit/test_review_ddl_proposals.py` ve
+`tests/unit/test_report_plain_language.py`.
+
+Son taslak `.local/mail-draft-prod-innova-odi-20261102.html`.
+Ekran görüntüsü `.local/mail-draft-prod-innova-odi-20261102-final.png`.
+Jenkins ve rapor odaklı test komutu
+`$env:PYTHONPATH='src'; python -m pytest
+tests/unit/test_jenkins_runtime.py tests/unit/test_jenkins_multi_schema.py
+tests/unit/test_report_counts_timing.py tests/unit/test_ui_jenkins_archive.py
+tests/unit/test_review_ddl_proposals.py tests/unit/test_report_scan_scope.py
+tests/unit/test_report_plain_language.py -q` sonucu 72 PASS.
+Eposta gönderilmedi. Canlı Oracle NOT_RUN. Jenkins NOT_RUN.

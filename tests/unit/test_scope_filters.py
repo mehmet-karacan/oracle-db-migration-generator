@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator kapsam filtrelerini sentetik şemalarda sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 import json
 from dataclasses import replace
 
@@ -256,7 +262,7 @@ def test_hash_parent_via_parent_key_excludes_index_without_using_dependency_edge
     assert [obj.identity.name.effective_name for obj in kept] == ['BUSINESS_VIEW']
 
 
-def test_excluded_hash_consumer_still_prevents_missing_sequence_ready():
+def test_excluded_hash_consumer_keeps_missing_sequence_ddl_visible():
     from oracle_db_migration_generator.planning.rules import PlanningContext, plan_target
     selected = replace(profile(), policy=policy(exclude_system_generated=True))
     name = 'S_'+'A'*64
@@ -267,6 +273,5 @@ def test_excluded_hash_consumer_still_prevents_missing_sequence_ready():
     context = PlanningContext(desired, target, selected, 'PROD')
     result = plan_target(changes, context)
     sequence = next(op for op in result.operations if op.identity.object_type == 'SEQUENCE')
-    assert sequence.decision == 'REVIEW_REQUIRED' and sequence.intent is None
-    assert 'SEQUENCE_EXISTING_DATA_COLLISION_UNKNOWN' in sequence.reason_codes
+    assert sequence.decision == 'READY' and sequence.intent is not None
     assert len(context.source.objects) == 2 and len(context.target.objects) == 1

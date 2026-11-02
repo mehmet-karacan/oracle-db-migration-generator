@@ -1,3 +1,9 @@
+"""Şema Karşılaştırma hedef sonuçlarını tek çalışma raporunda toplar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from datetime import datetime,timezone
 from pathlib import Path
 from uuid import uuid4
@@ -12,12 +18,13 @@ from ..artifacts.layout import markdown
 
 
 def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,build_url=None,source_origin=None):
-    root=Path(root).resolve();results=[];commits=set();synthetic=False;plans={}
+    root=Path(root).resolve();results=[];commits=set();synthetic=False;plans={};proposal_ids={}
     for path in sorted((root/'targets').glob('*')):
         if not path.is_dir(): continue
         if (path/'plan.json').is_file():
             verify_bundle(path);plan=read_json(path/'plan.json');commits.add(plan['source']['commit_sha'])
             synthetic=synthetic or plan['synthetic'];plans[plan['target']['id']]=plan
+            proposal_ids[plan['target']['id']]={item.stem for item in (path/'proposals').rglob('op-*.sql')}
             result_path=path.parent/(path.name+'.result.json')
             expected={
                 'id':plan['target']['id'],'status':plan['status'],'difference_count':plan['counts']['observed_differences'] if plan['scope']['inventory']==plan['scope']['ddl']==plan['scope']['dictionary']=='COMPLETE' else None,
@@ -66,7 +73,7 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
     if timing and timing.get('source_commit')!=document['source_commit']:raise ValueError('COMPARISON_TIMING_SOURCE_MISMATCH')
     from ..reporting.inventory import load_scan_summaries
     view=build_run_view(document,plans,comparison_timing=timing,
-                        scan_summaries=load_scan_summaries(root,document,plans))
+                        scan_summaries=load_scan_summaries(root,document,plans),proposal_ids=proposal_ids)
     for path,raw in render_run_reports(view).items():
         destination=root/path;destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(raw)
     return document

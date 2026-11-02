@@ -5,7 +5,7 @@
 | Kod | Kaynak | Bu Tasarımda Kullanıldığı Yer |
 |---|---|---|
 | K01 | Oracle 19c DBMS_METADATA - https://docs.oracle.com/en/database/oracle/oracle-database/19/arpls/DBMS_METADATA.html | GET_DDL/dependent DDL ve görünürlük. Object SELECT izni ile metadata çıkarımı aynı değildir, boş sonuç tamlık kanıtı sayılmaz. |
-| K02 | Oracle 19c ALTER TABLE - https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/ALTER-TABLE.html | Kolon dönüşümlerinde boyut/semantik, mevcut veri, constraint ve partition kısıtları, koşulsuz güvenli ALTER varsaymama. |
+| K02 | Oracle 19c ALTER TABLE - https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/ALTER-TABLE.html | Kolon dönüşümlerinde boyut, semantik, constraint ve partition DDL sözdizimi. SQL uygulaması ürün kapsamı dışındadır. |
 | K03 | Jenkins Credentials Binding - https://www.jenkins.io/doc/pipeline/steps/credentials-binding/ | Sırları dar scope'da bağlama, Groovy interpolation ve log masking sınırları. |
 | K04 | Jenkins Artifact Content Security Policy - https://www.jenkins.io/doc/book/security/configuring-content-security-policy/ | Web raporunda yerel CSS/logo, script gerektirmeme, global CSP gevşetmeme. |
 | K05 | Config File Provider - https://plugins.jenkins.io/config-file-provider/ | Merkezi JSON profile/target registry seçimi. |

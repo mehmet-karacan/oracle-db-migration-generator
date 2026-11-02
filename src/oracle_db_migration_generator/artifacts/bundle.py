@@ -1,4 +1,8 @@
-"""Build to a sibling staging directory, validate, then atomically publish locally."""
+"""Oracle DB Migration Generator DDL paketini doğrulayıp yerel arşive yazar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
 import hashlib
 from ..model.atomic import rename_new_directory
 import json
@@ -11,12 +15,12 @@ from dataclasses import replace
 from pathlib import Path
 
 from ..config.loader import read_json, validate_document
-from ..emission.sql import aggregate_sql, render_statement
+from ..emission.sql import aggregate_sql, render_statement, render_review_proposal
 from ..model.serialization import canonical_bytes, thaw
 from ..model.snapshot_io import safe_path
 from ..reporting.render import render_reports
 from .validation import validate_plan
-from .layout import object_sql_path, navigation
+from .layout import component, object_sql_path, navigation
 
 
 def _scan(payloads,secret_values):
@@ -27,21 +31,51 @@ def _scan(payloads,secret_values):
             raise ValueError('SENSITIVE_CONTENT_DETECTED')
 
 
-def write_bundle(plan,output,*,secret_values=(),scan_summary=None):
+def write_bundle(plan,output,*,secret_values=(),scan_summary=None,source=None):
     output=Path(output).resolve()
     if output.exists(): raise ValueError('OUTPUT_ALREADY_EXISTS')
     payload={};ops=[];plan_id=plan.plan_id
+    source_paths={}
+    proposal_paths={}
+    if source is not None:
+        if source.side!='SOURCE' or source.profile_id!=plan.source['profile_id']:
+            raise ValueError('SOURCE_DDL_SNAPSHOT_MISMATCH')
+        objects={obj.object_key:obj for obj in source.objects}
+        archive={}
+        for op in plan.operations:
+            if op.decision not in {'REVIEW_REQUIRED','BLOCKED'}:
+                continue
+            obj=objects.get(op.identity.key)
+            key=op.identity.key
+            if key not in archive:
+                path=('source-ddl/'+component(op.identity.owner.effective_name)+'/'
+                      +component(op.identity.object_type)+'/'+component(op.identity.name.effective_name)+'.sql')
+                raw=obj.raw_ddl if obj else None
+                archive[key]={'object_key':key,'path':path if raw else None,
+                              'sha256':hashlib.sha256(raw).hexdigest() if raw else None,
+                              'operation_ids':[]}
+                if raw:payload[path]=raw
+            archive[key]['operation_ids'].append(op.operation_id)
+            if archive[key]['path']:source_paths[op.operation_id]=archive[key]['path']
+        if archive:
+            payload['source-ddl/index.json']=canonical_bytes({'plan_id':plan_id,
+                'objects':sorted(archive.values(),key=lambda item:item['object_key'])})+b'\n'
     for op in plan.operations:
         if op.decision=='READY':
             raw=render_statement(op,plan_id);path=object_sql_path(op)
             payload[path]=raw
             op=replace(op,sql={'path':path,'sha256':hashlib.sha256(raw).hexdigest(),'statement_kind':op.intent.statement_kind})
+        elif op.decision in {'REVIEW_REQUIRED','BLOCKED'} and op.proposal is not None:
+            path=('proposals/'+component(op.identity.owner.effective_name)+'/'+component(op.identity.object_type)+'/'
+                  +component(op.identity.name.effective_name)+'/'+op.operation_id+'.sql')
+            payload[path]=render_review_proposal(op,plan_id)
+            proposal_paths[op.operation_id]=path
         ops.append(op)
     checks=b'-- Read-only postchecks for a separately authorized execution environment.\nSELECT owner, object_name, object_type, status FROM all_objects WHERE status = \'INVALID\';\nSELECT owner, name, type, line, position, text FROM all_errors ORDER BY owner, name, sequence;\n'
     payload['checks/postcheck.sql']=checks
     validation={'level':'OFFLINE_VALIDATED','execution_status':'NOT_EXECUTED',
                 'checks':['CLOSED_JSON_SCHEMA','EVIDENCE_AND_CHANGE_REFERENCES','DEPENDENCY_ORDER','EMITTED_SQL_GRAMMAR_AND_IDENTITY','PAYLOAD_SHA256'],
-                'limitations_tr':['Oracle üzerinde syntax/compile veya iş verisi doğrulaması yapılmadı.',
+                'limitations_tr':['Oracle üzerinde syntax veya compile doğrulaması yapılmadı.',
                                   'Eksik metadata, inceleme ve bloklar plan kapsamındadır; partial-ready.sql tam migration değildir.']}
     document=plan.with_operations(ops,validation=validation).to_dict()
     validate_plan(document)
@@ -59,9 +93,9 @@ def write_bundle(plan,output,*,secret_values=(),scan_summary=None):
                           'Dosyaları çalıştırmadan önce plan.json içindeki kapsam, reason_codes ve bağımlılıkları inceleyin. '
                           'partial-ready.sql yalnız hazır alt kümedir; tam bir migration veya çalıştırma onayı değildir. '
                           'BLOCKED/REVIEW işlemleri aggregate SQL içine alınmaz.\n\n'
-                          'Doğrulama: offline grammar, kimlik, kanıt bağlantıları ve hash; canlı Oracle compile/iş verisi testi yapılmadı.\n').encode()
-    payload.update(navigation(document))
-    payload.update(render_reports(document,payload))
+                          'Doğrulama: offline grammar, kimlik, kanıt bağlantıları ve hash; canlı Oracle compile testi yapılmadı.\n').encode()
+    payload.update(navigation(document,source_paths=source_paths))
+    payload.update(render_reports(document,payload,source_ddl_paths=source_paths,proposal_paths=proposal_paths))
     _scan(payload.values(),secret_values)
     manifest={'schema_version':'bundle-manifest/1.0','synthetic':plan.synthetic,'plan_id':plan_id,
               'target_id':document['target']['id'],'execution_status':'NOT_EXECUTED',
@@ -108,6 +142,14 @@ def verify_bundle(root):
             if hashlib.sha256(raw).hexdigest()!=op['sql']['sha256']: raise ValueError('BUNDLE_SQL_INTEGRITY_MISMATCH')
         for condition in op['postconditions']:
             if condition['check_path'] and not safe_path(root,condition['check_path']).is_file(): raise ValueError('BUNDLE_POSTCHECK_MISSING')
+    if 'source-ddl/index.json' in paths:
+        archive=read_json(root/'source-ddl/index.json')
+        if archive.get('plan_id')!=document['plan_id']:raise ValueError('SOURCE_DDL_PLAN_MISMATCH')
+        for item in archive.get('objects',()):
+            if item['path']:
+                raw=safe_path(root,item['path']).read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=item['sha256']:
+                    raise ValueError('SOURCE_DDL_INTEGRITY_MISMATCH')
     if document['status']!='READY' and (root/'migration.sql').exists(): raise ValueError('BUNDLE_UNSAFE_AGGREGATE')
     ready=[op['sql']['path'] for op in document['operations'] if op['sql']]
     name='migration.sql' if document['status']=='READY' else 'partial-ready.sql'

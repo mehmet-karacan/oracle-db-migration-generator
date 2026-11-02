@@ -1,3 +1,9 @@
+"""Şema Karşılaştırma planındaki işlem ve kanıt kayıtlarını taşır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import dataclass, field, replace
 
 from .identity import ObjectIdentity
@@ -38,6 +44,11 @@ class Condition:
 
 @dataclass(frozen=True, slots=True)
 class Operation:
+    """Bir nesne farkının kararını, hazır SQL'ini veya ayrı önerisini tutar.
+
+    Author: Mehmet KARACAN
+    Date: 2026-11-02
+    """
     operation_id: str
     identity: ObjectIdentity
     kind: str
@@ -55,6 +66,7 @@ class Operation:
     preconditions: tuple[Condition, ...] = ()
     postconditions: tuple[Condition, ...] = ()
     intent: SqlIntent | None = field(default=None,repr=False,compare=False)
+    proposal: SqlIntent | None = field(default=None,repr=False,compare=False)
     display_name: str | None = None
 
     def to_dict(self):

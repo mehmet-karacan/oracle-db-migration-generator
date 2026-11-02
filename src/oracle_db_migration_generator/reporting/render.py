@@ -1,6 +1,12 @@
+"""Oracle DB Migration Generator karşılaştırma raporlarını HTML olarak üretir.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from importlib.resources import files
 from jinja2 import Environment, StrictUndefined, PackageLoader
-from .formatting import format_count,warning_text,difference_counts
+from .formatting import format_count,warning_text,difference_counts,human_text
 from .labels import object_label, status_label, type_label, kind_label, operation_reason, target_reason, target_status
 
 
@@ -38,24 +44,81 @@ def preview(text):
     return '\n'.join(text.splitlines()[:30])[:2048]
 
 
-def render_reports(document,sql_files):
+def render_reports(document,sql_files,*,source_ddl_paths=None,proposal_paths=None):
     import json
+    import re
     from .inventory import scan_scope_view
     summary=json.loads(sql_files['scan-summary.json']) if 'scan-summary.json' in sql_files else None
     target_id=document['target']['id']
+    target_name=document['target'].get('name') or ''
+    target_label='hedef ortam' if not target_name or re.fullmatch(r'[0-9a-fA-F]{32,}',target_name) else target_name
+    differences={item['id']:item for item in document['differences']}
+    def review_explanation(op):
+        """Bölüm ve kolon farkını raporda nesneye özgü sözcüklerle açıklar."""
+        codes=set(op['reason_codes'])
+        if 'PARTITION_LAYOUT_REQUIRES_REVIEW' in codes:
+            try:
+                change=next(differences[key] for key in op['change_ids'] if differences[key]['property_path']=='/table_properties/partitioning')
+                def partition_count(side):
+                    tokens=json.loads(change[side]['value'])
+                    count=sum(value=='PARTITION' and index+1<len(tokens) and tokens[index+1][1]!='BY'
+                              for index,(_,value) in enumerate(tokens))
+                    return count,any(value=='INTERVAL' for _,value in tokens),any(value=='MAXVALUE' for _,value in tokens)
+                target_count,target_interval,_=partition_count('before')
+                source_count,_,source_max=partition_count('after')
+                if target_interval and source_max:
+                    return (f'Kaynakta {source_count} bölümlü aralık düzeni ve MAXVALUE sınırı var. '
+                            f'Hedefte {target_count} başlangıç bölümü ile interval düzeni bulunuyor. '
+                            'Önerilen SQL interval düzenini kapatır, bölüm adlarını eşitler ve eksik bölümleri ekler.')
+            except (KeyError,ValueError,TypeError,StopIteration,IndexError):
+                pass
+        if 'COLUMN_CHANGE_REQUIRES_REVIEW' in codes:
+            try:
+                change=differences[op['change_ids'][0]]
+                if (change['property_path'].endswith('/collation') and change['after']['value'] is None
+                        and change['before']['value']=='USING_NLS_COMP'):
+                    return ('Kaynak kolonda açık kolasyon yok. Hedefte USING_NLS_COMP kayıtlı. '
+                            'Eşdeğerlik doğrulanmadan ALTER komutu önerilmez.')
+            except (KeyError,IndexError,TypeError):
+                pass
+        return human_text(operation_reason(op))
     scan_scope=scan_scope_view({target_id:document},{target_id:summary} if summary else {},[target_id])
     environment=Environment(autoescape=True,undefined=StrictUndefined,loader=PackageLoader(__package__,'templates'))
     environment.filters['count_tr']=format_count
     template=environment.from_string(files(__package__).joinpath('templates/report.html.j2').read_text(encoding='utf-8'))
-    ops=[{**op,'object_label':object_label(op['object']),'display_status':status_label(op['decision']),
+    source_ddl_paths=source_ddl_paths or {}
+    proposal_paths=proposal_paths or {}
+    generated_count=document['counts']['ready_operations']+len(proposal_paths)
+    action_count=sum(op['decision'] in {'READY','REVIEW_REQUIRED','BLOCKED'} for op in document['operations'])
+    generation_complete=action_count>0 and generated_count==action_count
+    ops=[{**op,'source_ddl_path':source_ddl_paths.get(op['id']),'proposal_path':proposal_paths.get(op['id']),'object_label':object_label(op['object']),'display_status':('DDL üretildi' if op['decision']=='BLOCKED' and proposal_paths.get(op['id']) else status_label(op['decision'])),
           'type_label':type_label(op['object']['object_type']),'kind_label':kind_label(op['kind']),
-          'summary_reason':operation_reason(op)} for op in document['operations']]
+          'summary_reason':('Kaynakta fonksiyon, hedefte aynı adlı tablo var.'
+                            if proposal_paths.get(op['id']) and 'TARGET_NAMESPACE_CONFLICT' in op['reason_codes'] and op['object']['object_type']=='FUNCTION'
+                            else 'Kaynak sequence ayarları için değişim DDL önerildi. Hedef sayaç değeri korunur.'
+                            if proposal_paths.get(op['id']) and 'SEQUENCE_STATE_PRESERVED' in op['reason_codes']
+                            else review_explanation(op)),
+          'reason_tr':('Kaynakta fonksiyon, hedefte aynı adlı tablo var.'
+                       if proposal_paths.get(op['id']) and 'TARGET_NAMESPACE_CONFLICT' in op['reason_codes'] and op['object']['object_type']=='FUNCTION'
+                       else 'Kaynak sequence ayarları için değişim DDL önerildi. Hedef sayaç değeri korunur.'
+                       if proposal_paths.get(op['id']) and 'SEQUENCE_STATE_PRESERVED' in op['reason_codes']
+                       else human_text(op['reason_tr']))} for op in document['operations']]
     rank={'BLOCKED':0,'REVIEW_REQUIRED':1,'READY':2,'INFORMATIONAL':3}
+    ops.sort(key=lambda op:(rank[op['decision']],op['object_label'],op['id']))
     important=sorted(ops,key=lambda op:(rank[op['decision']],op['id']))[:5]
     previews=[{'operation':op,'text':preview(sql_files.get(op['sql']['path'],b'').decode('utf-8')) if op['sql'] else ''} for op in important]
     result={}
-    warnings=[warning_text(value) for value in document['warnings']
-              if not value.startswith(('TARGET_INVALID_DDL_REPORTED:','BACKING_INDEX_CREATED_BY_CONSTRAINT:'))]
+    warning_sources=[value for value in document['warnings']
+                     if not value.startswith(('TARGET_INVALID_DDL_REPORTED:','BACKING_INDEX_CREATED_BY_CONSTRAINT:'))]
+    warnings=[warning_text(value) for value in warning_sources]
+    from collections import Counter
+    warning_codes=Counter(value.partition(': ')[0] for value in document['warnings']
+                          if not value.startswith(('TARGET_INVALID_DDL_REPORTED:','BACKING_INDEX_CREATED_BY_CONSTRAINT:')))
+    warning_labels={'TARGET_INVALID_OBJECT':'derleme sorunu',
+                    'TARGET_INVALID_REFERENCE':'dış bağlantı sorunu',
+                    'PHYSICAL_STORAGE_PRESERVED':'depolama notu'}
+    warning_groups=[{'label':warning_labels.get(code,'diğer uyarı'),'count':count}
+                    for code,count in sorted(warning_codes.items(),key=lambda item:(-item[1],item[0]))]
     def operation_view(op,compact):
         row={**op,'reason_remaining':0,'field_previews':[]}
         if compact:
@@ -72,8 +135,14 @@ def render_reports(document,sql_files):
         # A bounded window keeps navigation independent of the operation count.
         links=list(range(1,pages+1)) if pages<=9 else sorted({1,pages,*range(max(1,current-2),min(pages,current+2)+1)})
         warning_rows=[{'text':text[:256] if compact else text,
-                       'characters':max(0,len(text)-256) if compact else 0} for text in warnings[:20]]
-        return template.render(plan=document,difference_summary=difference_counts(document),display_status=target_status(document),status_reason=target_reason(document),title=title,rows=[operation_view(op,compact) for op in rows],
+                       'characters':max(0,len(source)-256) if compact else 0}
+                      for text,source in zip(warnings[:20],warning_sources[:20])]
+        return template.render(plan=document,target_label=target_label,difference_summary=difference_counts(document),
+                               display_status='DDL üretildi' if generation_complete else target_status(document),
+                               status_reason=('Kaynak ve hedef farkları için DDL üretildi. Nesneye özgü notlar ilgili kayıtların altında yer alıyor.'
+                                              if generation_complete and document['counts']['blocked_operations'] else target_reason(document)),
+                               generated_count=generated_count,proposal_count=len(proposal_paths),generation_complete=generation_complete,title=title,
+                               rows=[operation_view(op,compact) for op in rows],show_previews=show_previews,warning_groups=warning_groups,
                                prefix=prefix,pages=pages,page_links=links,
                                previews=previews if show_previews else [],warning_rows=warning_rows,
                                remaining_warnings=max(0,len(warnings)-20),scan_scope=scan_scope).encode('utf-8')

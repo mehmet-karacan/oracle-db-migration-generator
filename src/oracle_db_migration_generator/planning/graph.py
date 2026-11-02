@@ -11,7 +11,8 @@ def _key(identity):
 
 
 def _block(op,code,details):
-    return replace(op,decision='BLOCKED',risk='UNKNOWN',intent=None,sql=None,
+    proposal=op.intent if code=='TARGET_NAMESPACE_CONFLICT' and op.intent is not None else op.proposal
+    return replace(op,decision='BLOCKED',risk='UNKNOWN',intent=None,proposal=proposal,sql=None,
                    reason_codes=tuple(sorted(set((*op.reason_codes,code)))),
                    reason_tr='; '.join(sorted(set(details)))+'.',postconditions=())
 

@@ -32,7 +32,7 @@ def test_jenkins_general_sql_opens_in_view_and_downloads_use_native_file_page(tm
     assert view['attrs']['href']==base+'migration.sql/*view*/'
     assert files['attrs']['href']==base
     assert (destination/'migration.sql').read_bytes()==sql
-    assert 'Oracle Şema Karşılaştırma' in (root/'index.html').read_text(encoding='utf-8')
+    assert 'Şema karşılaştırması' in (root/'index.html').read_text(encoding='utf-8')
 
 
 def test_offline_report_keeps_portable_sql_download_link(tmp_path):

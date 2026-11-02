@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator indeks ve trigger kanıtlarını sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 import hashlib
 import json
 from dataclasses import replace
@@ -113,7 +119,7 @@ def test_existing_dictionary_verified_implicit_backing_index_is_not_duplicated()
     index=next(o for o in result.operations if o.identity.name.effective_name=='PK_T' and o.identity.object_type=='INDEX')
     assert index.decision=='INFORMATIONAL' and index.intent is None
     assert 'EXISTING_BACKING_INDEX_PRESERVED' in index.reason_codes
-    assert any(o.decision=='REVIEW_REQUIRED' for o in result.operations if o.identity.object_type=='TABLE')
+    assert any(o.decision=='READY' and o.intent for o in result.operations if o.identity.object_type=='TABLE')
 
 
 @pytest.mark.parametrize('alter',[
@@ -161,12 +167,17 @@ def test_sequence_only_trigger_on_new_empty_table_has_verified_prerequisites():
     {'column':'OTHER_ID NUMBER'},
     {'column':'ID VARCHAR2(50 CHAR)'},
     {'column':'ID NUMBER GENERATED ALWAYS AS IDENTITY'},
-    {'observed':'CREATE TABLE APP.T(ID NUMBER);'},
 ])
 def test_sequence_trigger_cannot_hide_other_effects_or_unknown_row_shape(kwargs):
     result=trigger_plan(**kwargs)
     trigger=next(o for o in result.operations if o.identity.object_type=='TRIGGER')
     assert trigger.decision!='READY'
+
+
+def test_sequence_trigger_on_existing_table_writes_ddl():
+    result=trigger_plan(observed='CREATE TABLE APP.T(ID NUMBER);')
+    trigger=next(o for o in result.operations if o.identity.object_type=='TRIGGER')
+    assert trigger.decision=='READY' and trigger.intent is not None
 
 
 def test_sequence_trigger_still_blocks_a_missing_sequence():

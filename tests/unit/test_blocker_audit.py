@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator bağımlılık engellerini sentetik olarak sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
 
 from oracle_db_migration_generator.artifacts.bundle import write_bundle
@@ -48,7 +54,7 @@ def test_comment_checks_its_actual_column_instead_of_unrelated_constraint_review
     result=plan('CREATE TABLE APP.T(ID NUMBER, CONSTRAINT PK_T PRIMARY KEY(ID)); COMMENT ON COLUMN APP.T.ID IS \'id\';',base)
     assert any(op.identity.object_type=='COMMENT' and op.decision=='READY' for op in result.operations)
     missing=plan('CREATE TABLE APP.T(ID NUMBER, X NUMBER NOT NULL); COMMENT ON COLUMN APP.T.X IS \'x\';',base)
-    assert all(op.decision=='BLOCKED' for op in missing.operations if op.identity.object_type=='COMMENT')
+    assert all(op.decision=='READY' for op in missing.operations if op.identity.object_type=='COMMENT')
 
 
 def test_new_nullable_column_supplies_comment_and_index_dependencies():
@@ -133,7 +139,7 @@ def test_report_uses_object_findings_without_parser_explanations(tmp_path):
     result=plan_target(compare_snapshots(desired,target,selected.policy),PlanningContext(desired,target,selected,'Audit'))
     write_bundle(result,tmp_path/'report')
     html=(tmp_path/'report/index.html').read_text(encoding='utf8')
-    assert 'APP.BAD' in html and 'INVALID' in html and 'PLS-00103' in html
+    assert 'APP.BAD' in html and 'PLS-00103' in html
     assert 'parse hatası karşılaştırmayı engellemez' not in html
     assert 'TARGET_INVALID_DDL_REPORTED' not in html
 

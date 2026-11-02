@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator planının kaynak ve hedef nesnelerini tutar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
@@ -16,7 +22,6 @@ class PlanningContext:
     target_objects: object = field(init=False,repr=False)
     _source_lookup: object = field(init=False,repr=False,compare=False)
     _target_lookup: object = field(init=False,repr=False,compare=False)
-    _sequence_consumers: object = field(default=None,init=False,repr=False,compare=False)
     evidence: tuple = field(init=False,repr=False)
     policy_evidence: object = field(init=False,repr=False)
 
@@ -42,21 +47,6 @@ class PlanningContext:
     def lookup(self,owner,kind,name,*,desired=True):
         lookup = self._source_lookup if desired else self._target_lookup
         return lookup.get((owner,kind,name))
-
-    def existing_sequence_consumers(self,owner,name):
-        """Index all existing raw source consumers once for this plan context."""
-        if self._sequence_consumers is None:
-            from ..parsing.dependencies import references
-            consumers={}
-            # Report filtering must not hide a consumer's existing-data risk.
-            for obj in self.source.objects:
-                if obj.object_key not in self.target_objects:
-                    continue
-                sequences={(ref.owner,ref.name) for ref in references(obj) if ref.object_type=='SEQUENCE'}
-                for sequence in sequences:
-                    consumers.setdefault(sequence,[]).append(obj)
-            object.__setattr__(self,'_sequence_consumers',MappingProxyType({key:tuple(values) for key,values in consumers.items()}))
-        return self._sequence_consumers.get((owner,name),())
 
     def new_table(self,owner,name):
         return self.lookup(owner,'TABLE',name) is not None and self.lookup(owner,'TABLE',name,desired=False) is None

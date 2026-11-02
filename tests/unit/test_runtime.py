@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator çalışma sonuçlarının tutarlılığını sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 import json
 from pathlib import Path
 
@@ -51,7 +57,7 @@ def test_aggregate_rejects_result_status_that_disagrees_with_plan(tmp_path):
     desired=source('CREATE TABLE APP.T(ID NUMBER NOT NULL);');observed=actual('CREATE TABLE APP.T(ID NUMBER);')
     root=tmp_path/'run';folder=root/'targets'/'DEMO-TEST'
     written=offline_plan(desired,observed,profile(),folder)
-    result={'id':'DEMO-TEST','status':'READY','difference_count':1,'plan_id':written['plan_id'],
+    result={'id':'DEMO-TEST','status':'REVIEW_REQUIRED','difference_count':1,'plan_id':written['plan_id'],
             'plan_path':'targets/DEMO-TEST/plan.json','captured_at':None,'error_code':None,'publication':'NOT_REQUESTED'}
     (folder.parent/'DEMO-TEST.result.json').write_text(json.dumps(result),encoding='utf-8')
     with pytest.raises(ValueError,match='RUN_RESULT_PLAN_MISMATCH'): aggregate_run(root)

@@ -114,7 +114,7 @@ def test_mail_reason_stays_in_the_object_cell():
                 self.rows.append(self.row);self.row=None
     parser=Rows();parser.feed(html)
     row=next(row for row in parser.rows if row and 'APP.ORDERS.PRICE' in row[0])
-    assert len(row)==4
+    assert len(row)==3
     assert 'hedefte bulunamadı' in row[0]
     assert all('hedefte bulunamadı' not in cell for cell in row[1:])
 

@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator raporundaki SQL dosyalarını sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 import hashlib
 import json
 import re
@@ -16,10 +22,9 @@ def test_nested_object_sql_readme_review_and_exact_include_order(tmp_path):
     root = tmp_path/'bundle'
     document = json.loads((root/'plan.json').read_bytes())
     sql_ops = [op for op in document['operations'] if op['sql']]
-    assert sql_ops and all(re.fullmatch(r'objects/APP/TABLE/NEW_T/op-[a-f0-9]{64}\.sql', op['sql']['path']) for op in sql_ops)
+    assert len(sql_ops)==2 and all(re.fullmatch(r'objects/APP/TABLE/(?:T|NEW_T)/op-[a-f0-9]{64}\.sql', op['sql']['path']) for op in sql_ops)
     assert (root/'objects/APP/TABLE/NEW_T/README.md').is_file()
-    assert list((root/'review').glob('*.json'))
-    includes = [line[2:] for line in (root/'partial-ready.sql').read_text().splitlines() if line.startswith('@@')]
+    includes = [line[2:] for line in (root/'migration.sql').read_text().splitlines() if line.startswith('@@')]
     assert includes == [op['sql']['path'] for op in sql_ops]
     assert 'Nesne' in (root/'README.md').read_text(encoding='utf-8')
     assert verify_bundle(root)['status'] == 'VERIFIED'

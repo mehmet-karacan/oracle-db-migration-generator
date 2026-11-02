@@ -1,4 +1,10 @@
-"""Presentation-only formatting; numeric contracts and SQL stay untouched."""
+"""Oracle DB Migration Generator raporunda sayıları ve metinleri düzenler.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
+import re
 
 
 def format_count(value):
@@ -10,9 +16,18 @@ def difference_counts(plan):
     return {'confirmed':len(plan['differences'])-unverified,'unverified':unverified}
 
 
+def human_text(value):
+    """Teknik ayrıntıyı değiştirmeden görünen açıklamadaki ayraçları sadeleştirir."""
+    text=str(value).replace('→',' ile ').replace('—',', ').replace('–','-')
+    text=text.replace('; ','. ').replace(';','.')
+    text=re.sub(r':\s*',' ',text)
+    return re.sub(r'\s+',' ',text).strip()
+
+
 def warning_text(value):
     code,separator,detail=value.partition(': ')
-    labels={'TARGET_INVALID_OBJECT':'INVALID nesne','TARGET_INVALID_REFERENCE':'INVALID dış referans',
-            'PHYSICAL_STORAGE_PRESERVED':'Depolama uyarısı',
-            'BACKING_INDEX_CREATED_BY_CONSTRAINT':'PK/UK indeksi'}
-    return labels.get(code,code)+separator+detail
+    labels={'TARGET_INVALID_OBJECT':'Derleme hatası olan nesne',
+            'TARGET_INVALID_REFERENCE':'Doğrulanamayan dış bağlantı',
+            'PHYSICAL_STORAGE_PRESERVED':'Korunan depolama ayarı',
+            'BACKING_INDEX_CREATED_BY_CONSTRAINT':'Anahtarla oluşan indeks'}
+    return human_text(labels.get(code,code.replace('_',' ').capitalize())+' '+detail if separator else value)

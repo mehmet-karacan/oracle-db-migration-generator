@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator kolon tipi DDL üretimini sentetik olarak sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
 
 import pytest
@@ -7,6 +13,7 @@ from tests.factories import source, actual, profile
 from oracle_db_migration_generator.compare.snapshots import compare_snapshots
 from oracle_db_migration_generator.model.snapshot import KnownValue
 from oracle_db_migration_generator.planning.rules import PlanningContext, plan_target
+from oracle_db_migration_generator.artifacts.bundle import write_bundle, verify_bundle
 
 
 @pytest.mark.parametrize(('old','new'), [(50,255),(255,255)])
@@ -17,10 +24,32 @@ def test_varchar_byte_to_char_is_ready_when_character_and_byte_capacity_expand(o
     assert f'VARCHAR2({new} CHAR)'.encode() in ready[0].intent.statement
 
 
-@pytest.mark.parametrize(('old','new'), [('300 BYTE','200 CHAR'),('50 BYTE','2000 CHAR'),('255 CHAR','500 BYTE')])
-def test_semantics_change_with_possible_capacity_loss_stays_held(old,new):
+@pytest.mark.parametrize(('old','new'), [('300 BYTE','200 CHAR'),('255 CHAR','500 BYTE')])
+def test_semantics_change_writes_source_column_ddl(old,new):
     result=plan(f'CREATE TABLE APP.T(C VARCHAR2({new}));',f'CREATE TABLE APP.T(C VARCHAR2({old}));')
-    assert result.operations and not any(o.decision=='READY' for o in result.operations)
+    assert any(o.decision=='READY' and o.intent and f'VARCHAR2({new})'.encode() in o.intent.statement
+               for o in result.operations)
+
+
+def test_column_length_above_database_limit_remains_unemitted():
+    result=plan('CREATE TABLE APP.T(C VARCHAR2(2000 CHAR));',
+                'CREATE TABLE APP.T(C VARCHAR2(50 BYTE));')
+    assert not any(o.decision=='READY' for o in result.operations)
+
+
+def test_column_change_writes_ddl_without_data_scan(tmp_path):
+    result=plan('CREATE TABLE APP.T(C VARCHAR2(500 BYTE));',
+                'CREATE TABLE APP.T(C VARCHAR2(255 CHAR));')
+    changed=next(op for op in result.operations if op.kind=='MODIFY_COLUMN')
+    assert changed.decision=='READY'
+    assert changed.intent.statement==b'ALTER TABLE "APP"."T" MODIFY ("C" VARCHAR2(500 BYTE));'
+
+    folder=tmp_path/'bundle'
+    write_bundle(result,folder)
+    verify_bundle(folder)
+    emitted=folder/'objects'/'APP'/'TABLE'/'T'/(changed.operation_id+'.sql')
+    assert changed.intent.statement in emitted.read_bytes()
+    assert (folder/'migration.sql').is_file()
 
 
 def nullable_plan(*,primary=False,missing=False,missing_nn_column=False,default_on_null=False):

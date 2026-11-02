@@ -1,4 +1,8 @@
-"""Portable object paths and escaped Markdown; database names are never paths."""
+"""Oracle DB Migration Generator arşiv yollarını ve nesne bağlantılarını kurar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
 import hashlib
 import re
 from ..reporting.labels import object_label
@@ -25,7 +29,8 @@ def markdown(value):
     return ''.join(c if c.isalnum() or c in ' ._-' else f'&#{ord(c)};' for c in str(value))
 
 
-def navigation(document):
+def navigation(document,*,source_paths=None):
+    source_paths=source_paths or {}
     result = {}
     groups = {}
     for op in document['operations']:
@@ -42,6 +47,8 @@ def navigation(document):
     if any(op['sql'] for op in document['operations']):
         aggregate = 'migration.sql' if document['status'] == 'READY' else 'partial-ready.sql'
         lines += [f'[Genel DDL]({aggregate})', '']
+    if source_paths:
+        lines += ['[İncelenen kaynak DDL dosyaları](source-ddl/index.json)', '']
     lines += ['## Nesne dosyaları', '']
     for folder, ops in sorted(groups.items()):
         obj = ops[0]['object']
@@ -56,6 +63,8 @@ def navigation(document):
             if op['sql']:
                 body += [f"[Nesne DDL]({op['id']}.sql)", '']
             elif op['decision'] in {'BLOCKED', 'REVIEW_REQUIRED'}:
+                if op['id'] in source_paths:
+                    body += [f"[Kaynak DDL](../../../../{source_paths[op['id']]})", '']
                 body += [f"[İnceleme kanıtı](../../../../review/{op['id']}.json)", '']
         body += ['[Plan JSON](../../../../plan.json)', '']
         result[folder + '/README.md'] = '\n'.join(body).encode('utf-8')

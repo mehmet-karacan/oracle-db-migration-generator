@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator tablo ve kolon farklarından DDL üretir.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens
 from .._vendor.analyzer_core.oracle.table import constraint_properties
 from ..compare.projection_adapter import canonical_fields, table_columns
@@ -12,6 +18,21 @@ from .backing_index import backing_reference
 def _value(fields,key):
     value = fields.get(key)
     return value.value if value is not None and value.state=='KNOWN' else None
+
+
+def _collation_consumed_by_type(before,after,operations,name):
+    """Hazır sayı veya tarih tipi değişimiyle yok olan karakter kolasyonunu ayırır."""
+    target_type=str(_value(before,'data_type') or '').upper()
+    source_type=str(_value(after,'data_type') or '').upper()
+    if (not target_type.startswith(('CHAR','VARCHAR','NCHAR','NVARCHAR'))
+            or source_type not in {'NUMBER','FLOAT','DATE','TIMESTAMP','BINARY_FLOAT','BINARY_DOUBLE'}
+            or _value(before,'collation')!='USING_NLS_COMP'
+            or _value(after,'collation') is not None):
+        return False
+    return any(item.decision=='READY' and item.kind=='MODIFY_COLUMN' and item.intent is not None
+               and name in item.intent.affected_columns
+               and set(item.reason_codes)&{'MODIFY_COLUMN_TO_SOURCE','SAFE_TYPE_WIDENING'}
+               for item in operations)
 
 
 def _collation_capability(context):
@@ -53,6 +74,22 @@ def _safety_proven(actual,name):
     # A domain index can depend on arbitrary expressions; absent complete
     # dependency proof, conservatively hold widening on the entire table.
     return not any('DOMAIN' in str(row.get('index_type','')) for row in indexes.value)
+
+
+def _target_type_supported(context,fields):
+    """Kaynak tipinin hedef Oracle uzunluk sınırını aşmadığını doğrular."""
+    kind=_value(fields,'data_type')
+    if kind not in {'VARCHAR2','VARCHAR','NVARCHAR2','RAW','CHAR','NCHAR'}:
+        return True
+    length=_value(fields,'length')
+    semantics=_value(fields,'length_semantics')
+    if not isinstance(length,int) or length<1:
+        return False
+    maximum=context.target.capabilities.get('max_varchar2_bytes')
+    factor=context.target.capabilities.get('max_bytes_per_character')
+    ceiling=2000 if kind=='RAW' else maximum.value if maximum and maximum.state=='KNOWN' else None
+    width=1 if semantics=='BYTE' or kind=='RAW' else 6 if kind in {'NVARCHAR2','NCHAR'} else factor.value if factor and factor.state=='KNOWN' else None
+    return isinstance(ceiling,int) and isinstance(width,int) and length*width<=ceiling
 
 
 def _fk_reference(definition,owner):
@@ -190,9 +227,9 @@ def change_table(context,desired,actual,changes):
             complex_column = (not detail or detail.get('identity') or detail.get('virtual_expression')
                               or any(token.upper in {'CONSTRAINT','PRIMARY','UNIQUE','CHECK','REFERENCES'}
                                      for token in code_tokens(detail.get('definition','')) or ()))
-            if _value(after,'nullable') is not True or complex_column or _value(after,'default') is not None:
-                result.append(operation(context,desired,column_changes,'REVIEW','REVIEW_REQUIRED','NEW_COLUMN_REQUIRES_DATA_REVIEW',
-                                        'Mevcut tabloya bu kolonun eklenmesi veri/constraint etkisi incelemesi gerektiriyor.',tag='column:'+name))
+            if complex_column:
+                result.append(operation(context,desired,column_changes,'REVIEW','BLOCKED','NEW_COLUMN_DEFINITION_UNVERIFIED',
+                                        'Yeni kolonun identity, virtual veya satır içi kural tanımı ayrı DDL gerektiriyor.',tag='column:'+name))
             else:
                 collation_enabled,capability_ids=_collation_capability(context)
                 try:
@@ -203,7 +240,7 @@ def change_table(context,desired,actual,changes):
                                             tag='column:'+name,extra_evidence_ids=capability_ids))
                     continue
                 result.append(operation(context,desired,column_changes,'ADD_COLUMN','READY','ADD_MISSING_NULLABLE_COLUMN',
-                                        'Yalnız eksik nullable kolon eklenecek; mevcut veriler taşınmayacak.',
+                                        'Eksik kolon kaynak tanımıyla eklenecek. SQL uygulanmadı.',
                                         statement=f'ALTER TABLE {qualified(desired.identity)} ADD ({raw});'.encode(),
                                         phase=25,tag='column:'+name,feature_scope='COLUMN',extra_evidence_ids=capability_ids,affected_columns=(name,)))
             continue
@@ -230,46 +267,56 @@ def change_table(context,desired,actual,changes):
                 left,right,scale = _value(before,'precision'),_value(after,'precision'),_value(after,'scale')
                 widening = (isinstance(left,int) and isinstance(right,int) and 1<=left<right<=38
                             and isinstance(scale,int) and scale==_value(before,'scale'))
-            if widening and _safety_proven(actual,name):
-                datatype = datatype_sql(after)
-                result.append(operation(context,desired,typed,'MODIFY_COLUMN','READY','SAFE_TYPE_WIDENING',
-                                        'Aynı tip ve semantikte, sınırları ve bağımlılık engelleri doğrulanmış genişletme.',
-                                        statement=f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} {datatype});'.encode(),
-                                        phase=30,tag='type:'+name,feature_scope='COLUMN'))
+            try:
+                datatype=datatype_sql(after)
+            except (ValueError,TypeError):
+                datatype=None
+            if datatype is None or not _target_type_supported(context,after):
+                result.append(operation(context,desired,typed,'REVIEW','BLOCKED','COLUMN_TYPE_DDL_UNSUPPORTED',
+                                        name+': kaynak veri tipi veya hedef Oracle uzunluk sınırı doğrulanamadı.',tag='type:'+name))
+            elif not _safety_proven(actual,name):
+                result.append(operation(context,desired,typed,'REVIEW','BLOCKED','COLUMN_MODIFY_STRUCTURE_UNVERIFIED',
+                                        name+': partition anahtarı veya domain index bağımlılığı doğrulanamadı.',tag='type:'+name))
             else:
-                from .review_reasons import type_review
-                result.append(operation(context,desired,typed,'REVIEW','REVIEW_REQUIRED' if not widening else 'BLOCKED',
-                                        'TYPE_CHANGE_REQUIRES_REVIEW' if not widening else 'TYPE_SAFETY_METADATA_UNVERIFIED',
-                                        type_review(name,before,after)+(' Partition anahtarı veya domain index güvenlik kanıtı eksik.' if widening else ''),tag='type:'+name))
+                result.append(operation(context,desired,typed,'MODIFY_COLUMN','READY',
+                                        'SAFE_TYPE_WIDENING' if widening else 'MODIFY_COLUMN_TO_SOURCE',
+                                        'Kolon veri tipi kaynak tanımına göre yazıldı. SQL uygulanmadı.',
+                                        statement=f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} {datatype});'.encode(),
+                                        phase=30,tag='type:'+name,feature_scope='COLUMN',affected_columns=(name,)))
         for diff in remaining:
             field = diff.property_path.rsplit('/',1)[-1]
             if diff.kind=='INFORMATIONAL' or field=='position':
                 decision,code,description = 'INFORMATIONAL','COLUMN_ORDER_PRESERVED','Kolon sırası raporlanır; tablo yeniden oluşturulmaz.'
+            elif (field=='collation' and diff.after.state=='KNOWN'
+                  and _collation_consumed_by_type(before,after,result,name)):
+                decision,code,description = ('INFORMATIONAL','COLUMN_COLLATION_FOLLOWS_TYPE_CHANGE',
+                    'Kaynak sayı veya tarih veri tipine geçiş DDL’i, hedef karakter kolasyonunu kaldırır.')
             elif field in {'identity','virtual_expression'}:
                 decision,code,description = 'BLOCKED','EXISTING_GENERATED_COLUMN_CHANGE_UNSUPPORTED','Mevcut identity veya virtual kolon değişimi V1 kapsamında üretilemez.'
             else:
-                decision,code,description = 'REVIEW_REQUIRED','COLUMN_CHANGE_REQUIRES_REVIEW','Kolon özelliği veri veya operasyon koşulu incelemesi gerektiriyor.'
+                decision,code,description = 'REVIEW_REQUIRED','COLUMN_CHANGE_REQUIRES_REVIEW','Bu kolon özelliği için DDL dönüşümü henüz tanımlı değil.'
             statement = None
             if field=='default' and _value(after,'default_on_null') is False and _value(before,'default_on_null') is False:
                 projection = source_projection(desired)
                 raw_default = projection.properties['columns'][name].get('default') if projection else None
                 tokens = code_tokens(raw_default or 'NULL') or ()
                 if tokens and not any(token.upper in {'SELECT','NEXTVAL','CASE'} or token.text=='(' for token in tokens):
-                    decision,code,description = 'READY','SET_VERIFIED_COLUMN_DEFAULT','Yalnız gelecekteki kayıtların default tanımı değiştirilecek; backfill yok.'
+                    decision,code,description = 'READY','SET_VERIFIED_COLUMN_DEFAULT','Kaynak DEFAULT tanımı DDL olarak yazıldı.'
                     statement = f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} DEFAULT {raw_default or "NULL"});'.encode()
             proof=()
             if field=='nullable':
                 from .column_safety import not_null_relaxation_evidence
                 proof=not_null_relaxation_evidence(actual,name,before,after)
                 if proof:
-                    decision,code,description='READY','RELAX_VERIFIED_NOT_NULL','Kaynakta nullable olan kolonun açık NOT NULL koşulu, PK olmadığı doğrulanarak gevşetilecek; veri güncellenmez.'
+                    decision,code,description='READY','RELAX_VERIFIED_NOT_NULL','Kaynakta nullable olan kolonun açık NOT NULL koşulu, PK olmadığı doğrulanarak gevşetilecek.'
                     statement=f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} NULL);'.encode()
                 elif _value(after,'nullable') is False:
-                    description=name+': kaynak NOT NULL istiyor. Mevcut veride NULL bulunmadığı ve kısıt etkisi doğrulanmalı.'
+                    decision,code,description='READY','SET_SOURCE_NOT_NULL',name+': kaynak NOT NULL tanımı yazıldı. SQL uygulanmadı.'
+                    statement=f'ALTER TABLE {qualified(desired.identity)} MODIFY ({quote_identifier(name)} NOT NULL);'.encode()
                 else:
                     description=name+': NULL kabulü isteniyor. Açık NOT NULL tanımı ve PK/kısıt envanteri birlikte doğrulanamadı.'
             elif field=='collation':
-                description=name+': collation hedefte '+str(diff.before.value)+', kaynakta '+str(diff.after.value)+'. Tip/karakter karşılaştırma etkisi ayrıca incelenmeli.'
+                description=name+': collation hedefte '+str(diff.before.value)+', kaynakta '+str(diff.after.value)+'. DDL dönüşümü henüz tanımlı değil.'
             result.append(operation(context,desired,(diff,),'MODIFY_COLUMN' if decision=='READY' else 'PRESERVE' if decision=='INFORMATIONAL' else 'REVIEW',
                                     decision,code,description,statement=statement,tag=field+':'+name,feature_scope='COLUMN',extra_evidence_ids=proof or ()))
     if other:
@@ -310,11 +357,28 @@ def change_table(context,desired,actual,changes):
                                     f'{name} hedef constraint tanımı korunuyor; kaynak yokluğu doğrulanmadı.' if source_unknown
                                     else f'{name} hedef constraint tanımı korunuyor; otomatik silme yok.',
                                     tag='constraint-change:'+name,feature_scope='CONSTRAINT'))
+        elif (name in source_constraints and all(diff.before.state=='ABSENT' and diff.after.state=='KNOWN'
+                                                 for diff in constraint_changes)):
+            definition=source_constraints[name]
+            try:
+                details=constraint_properties(definition)
+                refs=(_fk_reference(definition,desired.identity.owner.effective_name),) if details['kind']=='FOREIGN KEY' else ()
+                backing=backing_reference(context,desired,definition)
+                if backing is not None:refs=refs+(backing,)
+            except (ValueError,KeyError,TypeError,StopIteration):
+                result.append(operation(context,desired,constraint_changes,'REVIEW','BLOCKED','CONSTRAINT_DEFINITION_UNVERIFIED',
+                                        name+': kaynak kural tanımı veya bağımlılığı doğrulanamadı.',tag='constraint-change:'+name))
+                continue
+            result.append(operation(context,desired,constraint_changes,'ADD_CONSTRAINT','READY','ADD_MISSING_CONSTRAINT',
+                                    name+': eksik kural kaynak tanımıyla eklenecek. SQL uygulanmadı.',
+                                    statement=f'ALTER TABLE {qualified(desired.identity)} ADD {definition};'.encode(),
+                                    phase=50 if details['kind']=='FOREIGN KEY' else 40,tag='constraint-change:'+name,
+                                    references=refs,feature_scope='CONSTRAINT'))
         else:
             result.append(operation(context,desired,constraint_changes,'REVIEW',
                                     'BLOCKED' if any(diff.kind=='UNKNOWN' for diff in constraint_changes) else 'REVIEW_REQUIRED',
                                     'TABLE_COMPONENT_CHANGE_REQUIRES_REVIEW',
-                                    f'{name} constraint tanımı veri veya operasyon koşulu incelemesi gerektiriyor.',
+                                    f'{name} kural değişikliği için DDL dönüşümü henüz tanımlı değil.',
                                     tag='constraint-change:'+name,feature_scope='CONSTRAINT'))
     constraint_change_ids={diff.difference_id for group in constraints.values() for diff in group}
     other=[diff for diff in other if diff.difference_id not in constraint_change_ids]

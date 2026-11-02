@@ -1,4 +1,10 @@
-"""Bounded, data-only reader for the SQL*Plus portable transport."""
+"""Şema Karşılaştırma taşınabilir metadata dosyalarını sınırlarla okur.
+
+İçe aktarma yalnız veri çözer. SQL veya Oracle bağlantısı çalıştırmaz.
+
+Author: Mehmet KARACAN
+Date: 2026-10-26
+"""
 import base64
 from dataclasses import dataclass
 from datetime import datetime
@@ -8,6 +14,8 @@ import json
 import re
 
 from ..oracle.queries import CAPTURE_QUERIES, DDL_TYPES
+from ..oracle.sequence_proof import sequence_definition
+from ..model.serialization import digest
 from .builder import query_contract
 from .selection import CaptureFilter
 
@@ -239,3 +247,104 @@ def read_capture(data):
         else:_fail('UNKNOWN_RECORD')
     if footer is None:_fail('FOOTER_MISSING')
     return PortableCapture(hashlib.sha256(data).hexdigest(),header,scope,schemas,footer['status'])
+
+
+ROUTINE_COLUMN_COUNTS = {
+    'identity': 1, 'object': 4, 'dependencies': 7, 'errors': 4,
+    'settings': 8, 'procedures': 11, 'arguments': 22, 'columns': 15,
+    'synonym': 3, 'local_shadow': 2, 'privileges': 2, 'ddl': 1,
+    'ddl_resolved': 1, 'compiler_objects': 2, 'compiler_source': 3,
+}
+
+
+def read_routine_capture(data, request, target):
+    """Kapalı sorgu sırasını denetleyip hedef derleyici kaydını oluşturur."""
+    if target.side != 'TARGET' or target.semantic_digest != request.target_snapshot_digest:
+        _fail('ROUTINE_TARGET_CHANGED')
+    messages = _messages(data)
+    try: header = next(messages)
+    except StopIteration: _fail('ROUTINE_HEADER_MISSING')
+    _keys(header, ('kind', 'schema_version', 'request_sha256', 'session_user',
+                   'database_version', 'captured_at'))
+    if (header['kind'] != 'header' or header['schema_version'] != 'routine-capture/1.0'
+            or header['request_sha256'] != request.sha256
+            or header['session_user'] != request.root_owner
+            or not isinstance(header['database_version'], str)
+            or not re.fullmatch(r'(?:19|2[0-9])\.\d+(?:\.\d+)*', header['database_version'])):
+        _fail('ROUTINE_HEADER_INVALID')
+    try:
+        captured_at = datetime.fromisoformat(header['captured_at'].replace('Z', '+00:00'))
+        if captured_at.tzinfo is None: _fail('ROUTINE_DATE_INVALID')
+    except (TypeError, ValueError): _fail('ROUTINE_DATE_INVALID')
+    records = {key: {'owner': key[0], 'name': key[1], 'kind': key[2]}
+               for key in request.record_keys}
+    collected = {}
+    for index, (query_key, record_key, field) in enumerate(request.queries):
+        try: message = next(messages)
+        except StopIteration: _fail('ROUTINE_QUERY_MISSING')
+        _keys(message, ('kind', 'index', 'state', 'rows'), ('error_code',))
+        if (message['kind'] != 'query' or message['index'] != index
+                or message['state'] not in {'KNOWN', 'UNKNOWN'}
+                or not isinstance(message['rows'], list)
+                or len(message['rows']) > 50000):
+            _fail('ROUTINE_QUERY_INVALID')
+        if message['state'] == 'UNKNOWN':
+            if message['rows'] or not isinstance(message.get('error_code'), str) or not re.fullmatch(r'ORA-\d{5}', message['error_code']):
+                _fail('ROUTINE_ERROR_INVALID')
+            result = {'state': 'UNKNOWN', 'error_code': message['error_code']}
+        else:
+            if 'error_code' in message: _fail('ROUTINE_ERROR_INVALID')
+            width = ROUTINE_COLUMN_COUNTS[query_key]
+            if any(not isinstance(row, list) or len(row) != width for row in message['rows']):
+                _fail('ROUTINE_COLUMNS_INVALID')
+            result = {'state': 'KNOWN', 'rows': [[_value(v) for v in row]
+                                                 for row in message['rows']]}
+        if record_key is None: collected[field] = result
+        elif field == 'ddl':
+            values = result.get('rows', ())
+            proof = ({'state': 'KNOWN', 'sha256': hashlib.sha256(values[0][0].encode()).hexdigest()}
+                     if result['state'] == 'KNOWN' and len(values) == 1
+                     and isinstance(values[0][0], str) and values[0][0]
+                     else {'state': 'UNKNOWN', 'error_code': result.get('error_code', 'DDL_EMPTY')})
+            if proof['state'] == 'KNOWN' and record_key[2] == 'SEQUENCE':
+                declaration = sequence_definition(values[0][0].encode())
+                if declaration is not None:
+                    proof['sequence_definition'] = declaration
+            records[record_key]['ddl'] = proof
+            records[record_key]['dependency_ddl'] = dict(proof)
+        else: records[record_key][field] = result
+    concrete_kinds = {'TABLE', 'VIEW', 'PACKAGE', 'PACKAGE BODY', 'TYPE',
+                      'TYPE BODY', 'PROCEDURE', 'FUNCTION', 'SEQUENCE'}
+    for key, record in records.items():
+        if 'ddl' not in record:
+            continue
+        before = record.get('before', {})
+        concrete = [row[0] for row in before.get('rows', ())
+                    if row[0] in concrete_kinds]
+        kind = key[2] if key[2] != 'RESOLVED' else (
+            concrete[0] if len(concrete) == 1 else None)
+        if kind not in concrete:
+            record.pop('ddl')
+            record.pop('dependency_ddl')
+    try: footer = next(messages)
+    except StopIteration: _fail('ROUTINE_FOOTER_MISSING')
+    _keys(footer, ('kind', 'queries', 'messages'))
+    if footer != {'kind': 'footer', 'queries': len(request.queries),
+                  'messages': len(request.queries) + 2}:
+        _fail('ROUTINE_FOOTER_INVALID')
+    try: next(messages)
+    except StopIteration: pass
+    else: _fail('ROUTINE_TRAILING_RECORD')
+    compiler = {}
+    if request.include_compiler_runtime:
+        source = collected['compiler_source']
+        compiler = {'objects': collected['compiler_objects'],
+                    'source_sha256': digest(source) if source['state'] == 'KNOWN'
+                    and source['rows'] else None}
+    return {'identity': collected['identity'],
+            'oracle_version': header['database_version'],
+            'selected_units': request.selected_units,
+            'records': [records[key] for key in request.record_keys],
+            'compiler_runtime': compiler,
+            'query_count': len(request.queries),
+            'execution_status': 'NOT_EXECUTED'}

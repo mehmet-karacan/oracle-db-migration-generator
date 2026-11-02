@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator anahtar bağımlılıklarını sentetik olarak sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
 
 import pytest
@@ -26,7 +32,7 @@ def key_plan(source_key='NUMBER(10)',target_key='NUMBER(10)',target_pk=True):
 def test_unrelated_unknown_column_cannot_hold_a_proven_existing_foreign_key_parent():
     plan=key_plan()
     warning=next(op for op in plan.operations if 'COLUMN_COMPARISON_INCOMPLETE_PRESERVED' in op.reason_codes)
-    fk=next(op for op in plan.operations if op.kind=='ADD_CONSTRAINT')
+    fk=next(op for op in plan.operations if op.kind=='ADD_CONSTRAINT' and op.identity.name.effective_name=='CHILD')
     assert warning.decision=='INFORMATIONAL'
     assert fk.decision=='READY' and fk.intent is not None
     assert b'REFERENCES APP.P(ID)' in fk.intent.statement
@@ -39,7 +45,7 @@ def test_unrelated_unknown_column_cannot_hold_a_proven_existing_foreign_key_pare
 ])
 def test_changed_key_shape_or_unproven_existing_unique_key_remains_held(source_key,target_key,target_pk):
     plan=key_plan(source_key,target_key,target_pk)
-    fk=next(op for op in plan.operations if op.kind=='ADD_CONSTRAINT')
+    fk=next(op for op in plan.operations if op.kind=='ADD_CONSTRAINT' and op.identity.name.effective_name=='CHILD')
     assert fk.decision=='BLOCKED' and fk.intent is None
 
 

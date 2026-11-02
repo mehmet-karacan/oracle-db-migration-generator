@@ -59,10 +59,10 @@ def test_small_reports_keep_complete_fields_and_first_five_summary():
     for op in plan['operations']:
         op.update(reason_tr='Eksiksiz açıklama',depends_on=['dep-a','dep-b'],evidence_ids=['ev-a','ev-b'],reason_codes=['CODE_A','CODE_B'])
     pages=html_pages(render_reports(plan,{}))
-    assert len(re.findall(r'<article>',pages['index.html']))==5
-    assert len(re.findall(r'<article>',pages['changes/page-0001.html']))==6
+    assert len(re.findall(r'<article class="report-item">',pages['index.html']))==5
+    assert len(re.findall(r'<article class="report-item">',pages['changes/page-0001.html']))==6
     assert 'dep-a, dep-b' in pages['index.html'] and 'ev-a, ev-b' in pages['index.html']
-    assert 'CODE_A · CODE_B' in pages['index.html'] and 'Eksiksiz açıklama' in pages['index.html']
+    assert 'CODE_A, CODE_B' in pages['index.html'] and 'Eksiksiz açıklama' in pages['index.html']
     assert not re.search(r'\d+ ek bağımlılık',pages['index.html'])
 
 

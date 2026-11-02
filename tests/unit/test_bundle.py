@@ -1,4 +1,11 @@
+"""Oracle DB Migration Generator SQL paketinin bütünlüğünü sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
+import json
 from pathlib import Path
 
 import pytest
@@ -30,11 +37,28 @@ def test_bundle_is_deterministic_complete_and_tamper_evident(tmp_path):
 
 
 def test_partial_bundle_never_looks_like_deployment(tmp_path):
-    plan=make_plan('CREATE TABLE APP.T (ID NUMBER NOT NULL); CREATE TABLE APP.NEW_T (ID NUMBER);','CREATE TABLE APP.T (ID NUMBER);')
+    plan=make_plan('CREATE TABLE APP.T (ID NUMBER, C APP.UNKNOWN_TYPE); CREATE TABLE APP.NEW_T (ID NUMBER);','CREATE TABLE APP.T (ID NUMBER);')
     write_bundle(plan,tmp_path/'partial')
     assert not (tmp_path/'partial'/'migration.sql').exists()
     assert (tmp_path/'partial'/'partial-ready.sql').is_file()
-    assert 'REVIEW_REQUIRED' in (tmp_path/'partial'/'plan.json').read_text()
+    assert 'BLOCKED' in (tmp_path/'partial'/'plan.json').read_text()
+
+
+def test_held_difference_keeps_source_ddl_in_report(tmp_path):
+    selected=profile()
+    desired=source('CREATE TABLE APP.T(C DATE);',selected)
+    observed=actual('CREATE TABLE APP.T(C NUMBER);',selected)
+    plan=plan_target(compare_snapshots(desired,observed,selected.policy),
+                     PlanningContext(desired,observed,selected,'Sentetik hedef'))
+    assert any(op.decision=='BLOCKED' for op in plan.operations)
+    root=tmp_path/'bundle'
+    write_bundle(plan,root,source=desired)
+    index=json.loads((root/'source-ddl/index.json').read_bytes())
+    assert len(index['objects'])==1
+    item=index['objects'][0]
+    assert (root/item['path']).read_bytes()==b'CREATE TABLE APP.T(C DATE);'
+    assert b'Kaynak DDL' in (root/'changes/page-0001.html').read_bytes()
+    assert verify_bundle(root)['status']=='VERIFIED'
 
 
 def test_secret_or_invalid_emission_is_not_published(tmp_path):
@@ -79,7 +103,12 @@ def test_report_bounds_and_escaping(tmp_path):
     plan=make_plan("CREATE TABLE APP.T (ID NUMBER); COMMENT ON TABLE APP.T IS '<script>alert(1)</script>';" )
     write_bundle(plan,tmp_path/'html')
     html=(tmp_path/'html'/'index.html').read_text(encoding='utf-8')
-    assert '<script>' not in html and '&lt;script&gt;' in html
+    assert '<script>' not in html
+    from oracle_db_migration_generator.reporting.render import render_reports
+    document=plan.to_dict()
+    document['operations'][0]['reason_tr']='<script>alert(1)</script>'
+    escaped=render_reports(document,{})['index.html'].decode('utf-8')
+    assert '<script>' not in escaped and '&lt;script&gt;' in escaped
     assert len(html.encode())<=200*1024
 
 

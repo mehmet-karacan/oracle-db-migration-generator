@@ -1,3 +1,11 @@
+"""Şema Karşılaştırma raporundaki gerekçe ve mail görünümünü sınar.
+
+Testler örnek planlar kullanır, gerçek Oracle bağlantısı açmaz.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from oracle_db_migration_generator.reporting.render import render_email
 from oracle_db_migration_generator.reporting.view import build_run_view
 from tests.unit.test_bundle import make_plan
@@ -9,11 +17,11 @@ def test_general_mail_keeps_object_details_readable_without_redundant_counts():
     run,plans=inputs(2)
     html=render_email(build_run_view(run,plans)).decode()
     assert 'işlem /' not in html
-    assert 'Oluşturma' in html and 'TARGET-000' in html and 'TARGET-001' in html
+    assert 'Oluşturma' not in html and 'TARGET-000' in html and 'TARGET-001' in html
     header=next(row for row in re.findall(r'<thead>(.*?)</thead>',html,re.S) if 'Nesne / Fark' in row)
     widths=[int(value) for value in re.findall(r'<th\b[^>]*\bwidth="(\d+)%"',header)]
-    assert len(widths)==4 and sum(widths)==100
-    assert widths[0]>=55 and all(width<=20 for width in widths[1:])
+    assert len(widths)==3 and sum(widths)==100
+    assert widths[0]>=55 and widths[1]>=20
     logo=re.search(r'<img\b[^>]*\balt="İnnova"[^>]*>',html).group()
     width=int(re.search(r'\bwidth="(\d+)"',logo).group(1))
     height=int(re.search(r'\bheight="(\d+)"',logo).group(1))

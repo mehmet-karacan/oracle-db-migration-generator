@@ -1,6 +1,13 @@
-"""Generate a credential-free SQL*Plus/SQLcl capture package offline."""
+"""Şema Karşılaştırma için parolasız SQLcl toplama paketi hazırlar.
+
+Paket hazırlığı Oracle bağlantısı açmaz ve kaynak dosyalara yazmaz.
+
+Author: Mehmet KARACAN
+Date: 2026-10-26
+"""
 import json
 import hashlib
+from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
 import shutil
@@ -9,6 +16,9 @@ from ..oracle.queries import CAPTURE_QUERIES,CAPTURE_INVENTORY,COLLATION_PARAMET
 from ..oracle.catalog_reader import _STATEMENTS
 from .selection import CaptureFilter
 from ..model.atomic import rename_new_directory
+from ..planning.routine_proof import _metadata
+from ..oracle.routine_metadata import UNIT_KINDS, QUERIES as ROUTINE_QUERIES
+from ..model.serialization import digest
 
 PORTABLE_INVENTORY=CAPTURE_INVENTORY.replace('WHERE owner = :owner','WHERE owner = :owner AND subobject_name IS NULL')
 DEPENDENCY_OBJECTS='''SELECT
@@ -25,6 +35,138 @@ WHERE o.subobject_name IS NULL
             AND d.referenced_name = o.object_name
     )
 ORDER BY o.owner, o.object_name, o.object_type'''
+
+
+@dataclass(frozen=True)
+class RoutineCaptureRequest:
+    """Kaynak kanıtındaki birim ve bağımlılıkları hedef gözlemine bağlar.
+
+    Author: Mehmet KARACAN
+    Date: 2026-11-01
+    """
+
+    selected_units: tuple[tuple[str, str], ...]
+    record_keys: tuple[tuple[str, str, str], ...]
+    target_snapshot_digest: str
+    root_owner: str
+    include_compiler_runtime: bool
+
+    @property
+    def queries(self):
+        rows = [('identity', None, 'identity')]
+        units = {(self.root_owner, name, kind) for kind, name in self.selected_units}
+        for key in self.record_keys:
+            rows.append(('object', key, 'before'))
+            if key in units:
+                rows.extend((name, key, name) for name in ('dependencies', 'errors', 'settings'))
+            if key[2] == 'SYNONYM':
+                rows.extend((name, key, name) for name in ('synonym', 'local_shadow'))
+            else:
+                rows.extend((name, key, name) for name in ('columns', 'procedures', 'arguments', 'privileges'))
+                if key[2] in UNIT_KINDS | {'TYPE', 'TABLE', 'VIEW', 'SEQUENCE', 'RESOLVED'}:
+                    rows.append(('ddl_resolved' if key[2] == 'RESOLVED' else 'ddl', key, 'ddl'))
+            rows.append(('object', key, 'after'))
+            if key in units:
+                rows.append(('dependencies', key, 'dependencies_after'))
+        if self.include_compiler_runtime:
+            rows.extend((name, None, name) for name in ('compiler_objects', 'compiler_source'))
+        return tuple(rows)
+
+    @property
+    def sha256(self):
+        return digest({'selected_units': self.selected_units, 'record_keys': self.record_keys,
+                       'target_snapshot_digest': self.target_snapshot_digest,
+                       'root_owner': self.root_owner,
+                       'include_compiler_runtime': self.include_compiler_runtime,
+                       'queries': self.queries})
+
+
+def routine_capture_request(source, target):
+    """Doğrulanmış kaynak derleyici kaydından kapalı hedef isteği çıkarır."""
+    if source.side != 'SOURCE' or target.side != 'TARGET':
+        raise ValueError('ROUTINE_CAPTURE_SIDES_INVALID')
+    data, records, _ = _metadata(source)
+    units = tuple(tuple(item) for item in data.get('selected_units', ()))
+    if not units or len(units) > 64 or len(records) > 256:
+        raise ValueError('ROUTINE_CAPTURE_SCOPE_INVALID')
+    owners = set(source.schemas) & set(target.schemas)
+    if len(owners) != 1 or source.profile_id != target.profile_id:
+        raise ValueError('ROUTINE_CAPTURE_OWNER_INVALID')
+    owner = next(iter(owners))
+    if any(kind not in UNIT_KINDS or not isinstance(name, str) or not name
+           or (owner, name, kind) not in records for kind, name in units):
+        raise ValueError('ROUTINE_CAPTURE_SCOPE_INVALID')
+    if any(len(key) != 3 or any(not isinstance(value, str) or not value
+           or len(value.encode('utf-8')) > 128 or any(ord(ch) < 32 for ch in value)
+           for value in key) for key in records):
+        raise ValueError('ROUTINE_CAPTURE_SCOPE_INVALID')
+    return RoutineCaptureRequest(units, tuple(sorted(records)), target.semantic_digest,
+                                 owner, bool(data.get('compiler_runtime')))
+
+
+RESOLVED_DDL = '''SELECT
+    DBMS_METADATA.GET_DDL(
+        CASE object_type WHEN 'PACKAGE' THEN 'PACKAGE_SPEC'
+            WHEN 'TYPE' THEN 'TYPE_SPEC' ELSE object_type END,
+        :name, :owner)
+FROM all_objects
+WHERE owner = :owner AND object_name = :name
+    AND subobject_name IS NULL
+    AND object_type IN ('TABLE','VIEW','PACKAGE','TYPE','SEQUENCE','PROCEDURE','FUNCTION')'''
+
+
+def routine_capture_script(request):
+    """Kapalı SELECT listesini SQLcl ve SQL*Plus için çalıştırma dosyasına yazar."""
+    root = files('oracle_db_migration_generator').joinpath('portable/templates')
+    script = root.joinpath('collect-routine.sql').read_text(encoding='utf-8')
+    calls = []
+    for index, (query, key, _field) in enumerate(request.queries):
+        sql = RESOLVED_DDL if query == 'ddl_resolved' else ROUTINE_QUERIES[query]
+        owner, name, kind = key if key is not None else (None, None, None)
+        ddl_type = {'PACKAGE': 'PACKAGE_SPEC', 'PACKAGE BODY': 'PACKAGE_BODY',
+                    'TYPE': 'TYPE_SPEC', 'TYPE BODY': 'TYPE_BODY'}.get(kind, kind)
+        args = [str(index), _literal(sql), *(_literal(v) if v is not None else 'NULL'
+                                           for v in (owner, name, kind, ddl_type))]
+        calls.append('    capture_query(' + ','.join(args) + ');')
+    return (script.replace('@@ROOT_OWNER@@', _literal(request.root_owner))
+                  .replace('@@REQUEST_SHA@@', request.sha256)
+                  .replace('@@QUERY_COUNT@@', str(len(request.queries)))
+                  .replace('@@QUERY_CALLS@@', '\n'.join(calls)))
+
+
+def prepare_routine_capture(output, source, target):
+    """Kaynak kanıtına bağlı hedef SQLcl paketi oluşturur ve mevcut dizini korur."""
+    request = routine_capture_request(source, target)
+    output = Path(output).resolve()
+    if output.exists():
+        raise ValueError('CAPTURE_OUTPUT_ALREADY_EXISTS')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.routine-capture-', dir=output.parent))
+    try:
+        (staging / 'run_routine.sql').write_text(routine_capture_script(request),
+                                                  encoding='utf-8', newline='\n')
+        description = {
+            'schema_version': 'routine-request/1.0', 'sha256': request.sha256,
+            'root_owner': request.root_owner, 'target_snapshot_digest': request.target_snapshot_digest,
+            'selected_units': request.selected_units, 'record_keys': request.record_keys,
+            'query_count': len(request.queries),
+        }
+        (staging / 'request.json').write_text(json.dumps(description, ensure_ascii=False,
+                                                         indent=2) + '\n', encoding='utf-8', newline='\n')
+        (staging / 'README.md').write_text(
+            '# Şema Karşılaştırma derleyici kanıtı\n\n'
+            'Author: Mehmet KARACAN\nDate: 2026-11-01\n\n'
+            'Bu paket seçili program birimleri için salt okunur metadata toplar. '
+            'Veri tabanında nesne çalıştırmaz veya değiştirmez.\n\n'
+            'Mevcut SQLcl veya SQL*Plus oturumunda `@run_routine.sql` çalıştırın. '
+            '`routine.odmg.jsonl` dosyasını aynı hedef snapshot ile içe aktarın. '
+            'Ayrı ve temiz bir oturum kullanın, betik sonunda oturum kapanır.\n',
+            encoding='utf-8', newline='\n')
+        rename_new_directory(staging, output)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return output
 
 
 def query_contract():

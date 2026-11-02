@@ -1,7 +1,12 @@
-"""Object-specific decisions. Only verified source statements become intents."""
+"""Oracle DB Migration Generator nesne farklarından kaynak DDL çıkarır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
 import re
 
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens, identifier, enclosed
+from .._vendor.analyzer_core.oracle.table import constraint_properties
 from ..model.plan import DependencyReference
 from .builder import operation
 from .table_ddl import qualified, source_projection
@@ -21,6 +26,29 @@ def replace_header(raw):
     if tokens[1].upper!='OR':
         text = text[:tokens[0].end]+' OR REPLACE'+text[tokens[0].end:]
     return text.encode('utf-8')
+
+
+def review_source_statement(obj):
+    """Kaynak birimin kimliği korunuyorsa değişim SQL önerisini hazırlar."""
+    try:
+        statement=replace_header(obj.raw_ddl)
+        from ..parsing.adapter import parse_ddl
+        parsed=parse_ddl(statement,obj.identity)
+        if parsed.sidecars and obj.identity.object_type=='TRIGGER' and len(parsed.sidecars)==1:
+            sidecar=parsed.sidecars[0]
+            expected='ALTER TRIGGER '+qualified(obj.identity)+' ENABLE'
+            if (sidecar.get('kind')=='ALTER_TRIGGER'
+                    and sidecar.get('text','').strip().rstrip(';').upper()==expected.upper()):
+                statement=statement[:sidecar['start_char']].rstrip()
+                parsed=parse_ddl(statement,obj.identity)
+        if parsed.diagnostics or parsed.sidecars or len(parsed.objects)!=1:
+            return None
+        candidate=parsed.objects[0]
+        if candidate.identity.key!=obj.identity.key or not candidate.parse_ok:
+            return None
+        return statement
+    except (ValueError,TypeError,UnicodeError,AttributeError,IndexError):
+        return None
 
 
 def _verified_unusable_index_sql(context,obj,projection):
@@ -163,7 +191,6 @@ def _index(context,obj,changes):
         if context.new_table(owner,name) and unique and not expression:
             table_projection = source_projection(table)
             for constraint_name,definition in (table_projection.properties.get('constraints',{}) if table_projection else {}).items():
-                from .._vendor.analyzer_core.oracle.table import constraint_properties
                 details = constraint_properties(definition)
                 named_columns=[identifier(t)[0] for t in code_tokens(details['columns'] or '') if t.text!=',']
                 from .backing_index import explicit_association
@@ -180,12 +207,28 @@ def _index(context,obj,changes):
             if proof:
                 return operation(context,obj,changes,'PRESERVE','INFORMATIONAL','EXISTING_BACKING_INDEX_PRESERVED',
                                  'Eşdeğer PK/UK indeksi hedefte mevcut.',extra_evidence_ids=proof)
+            observed=context.lookup(owner,'TABLE',name,desired=False)
+            observed_projection=source_projection(observed) if observed else None
+            observed_constraints=observed_projection.properties.get('constraints',{}) if observed_projection else {}
+            observed_indexes=observed.properties.get('dictionary.indexes') if observed else None
+            competing=bool(observed_constraints or observed_indexes and observed_indexes.state=='KNOWN' and observed_indexes.value)
+            table_projection=source_projection(table)
+            for constraint_name,definition in (table_projection.properties.get('constraints',{}) if table_projection else {}).items():
+                details=constraint_properties(definition)
+                if details['kind'] not in {'PRIMARY KEY','UNIQUE'}:continue
+                associated=details.get('index_association') or ''
+                if obj.identity.name.effective_name!=constraint_name and obj.identity.name.effective_name not in associated:
+                    continue
+                try: key_columns=tuple(identifier(t)[0] for t in code_tokens(details['columns'] or '') if t.text!=',')
+                except (ValueError,TypeError): key_columns=()
+                if competing and key_columns==tuple(columns):
+                    return operation(context,obj,changes,'REVIEW','REVIEW_REQUIRED','BACKING_INDEX_ASSOCIATION_UNVERIFIED',
+                                     'PK veya UK indeksinin mevcut hedef anahtarıyla ilişkisi doğrulanamadı.')
         if obj.identity.name.effective_name.startswith(('SYS_','ISEQ$$_','BIN$')):
             return operation(context,obj,changes,'REVIEW','BLOCKED','RESERVED_INTERNAL_OBJECT',
                              'Oracle iç indeksinin PK/UK ilişkisi doğrulanamadı.')
-        decision = 'REVIEW_REQUIRED' if unique and not context.new_table(owner,name) else 'READY'
-        return operation(context,obj,changes,'CREATE_INDEX',decision,'UNIQUE_INDEX_REQUIRES_DATA_REVIEW' if decision!='READY' else 'CREATE_VERIFIED_INDEX',
-                         'Index tanımı ve tablo bağımlılığı korunur; mevcut veride unique doğrulaması ayrıca gerekir.' if unique else 'Doğrulanan tablo üzerinde normal index oluşturulacak.',
+        return operation(context,obj,changes,'CREATE_INDEX','READY','CREATE_VERIFIED_INDEX',
+                         'İndeks kaynak tanımıyla oluşturulacak. SQL uygulanmadı.',
                          statement=obj.raw_ddl,phase=35,references=(DependencyReference(owner,'TABLE',name,'INDEX_TABLE',tuple(columns)),),extra_evidence_ids=index_evidence)
     except (ValueError,KeyError,TypeError,StopIteration) as error:
         if str(error).startswith('INDEX_EXPRESSION_'):
@@ -206,25 +249,25 @@ def object_change(context,obj,actual,changes):
         conflicts=namespace_conflicts(context,obj.identity)
         if conflicts:
             return [operation(context,obj,changes,'REVIEW','BLOCKED','TARGET_NAMESPACE_CONFLICT',
-                conflict_description(obj.identity,conflicts),extra_evidence_ids=tuple(key for item in conflicts for key in item.evidence_ids))]
+                conflict_description(obj.identity,conflicts),statement=review_source_statement(obj),
+                statement_kind='PLSQL' if kind in {'FUNCTION','PROCEDURE','PACKAGE_SPEC','PACKAGE_BODY','TYPE_SPEC','TYPE_BODY','TRIGGER'} else 'SQL',
+                extra_evidence_ids=tuple(key for item in conflicts for key in item.evidence_ids))]
     if kind=='INDEX':
         return [_index(context,obj,changes)] if missing else decide('REVIEW_REQUIRED','EXISTING_INDEX_CHANGE_REQUIRES_REVIEW','Mevcut index DROP/CREATE ile değiştirilmez.')
     if kind=='SEQUENCE':
         if not missing and all(d.kind=='INFORMATIONAL' for d in changes):
             return decide('INFORMATIONAL','SEQUENCE_COUNTER_PRESERVED','Hedef sequence sayacı korunur.',op_kind='PRESERVE')
         if missing:
-            sequence_owner,sequence_name=obj.identity.owner.effective_name,obj.identity.name.effective_name
-            existing_consumers=context.existing_sequence_consumers(sequence_owner,sequence_name)
-            if existing_consumers:
-                return decide('REVIEW_REQUIRED','SEQUENCE_EXISTING_DATA_COLLISION_UNKNOWN','Yeni sequence mevcut tüketicilerde kullanılacak; başlangıcın mevcut verilerle uyumu bilinmiyor.')
             from ..compare.projection_adapter import canonical_fields
             fields = canonical_fields(obj,context.source,context.profile.policy)
             increment = fields.get('/sequence/increment_by')
             if increment and increment.value=='0':
                 return decide('BLOCKED','INVALID_SEQUENCE_INCREMENT','Sequence increment sıfır olamaz.')
             return decide('READY','CREATE_MISSING_SEQUENCE','Hedefte bulunmayan sequence kaynak tanımıyla oluşturulacak.',statement=obj.raw_ddl,op_kind='CREATE',phase=10)
-        from .review_reasons import sequence_review
-        return decide('REVIEW_REQUIRED','SEQUENCE_STATE_PRESERVED',sequence_review(changes))
+        from .review_reasons import sequence_review,sequence_alter_statement
+        proposal=sequence_alter_statement(qualified(obj.identity),changes)
+        return decide('REVIEW_REQUIRED','SEQUENCE_STATE_PRESERVED',sequence_review(changes,proposal is not None),
+                      statement=proposal)
     if kind in {'COMMENT','GRANT'}:
         parent = context.source_objects.get(obj.identity.parent_key) or context.target_objects.get(obj.identity.parent_key)
         if parent is None:
@@ -270,9 +313,11 @@ def object_change(context,obj,actual,changes):
         from .review_reasons import routine_inventory
         if has_dynamic_sql(obj):
             return decide('REVIEW_REQUIRED','DYNAMIC_SQL_DEPENDENCY_REQUIRES_REVIEW',
-                          'Dinamik SQL içindeki nesne ve çalışma zamanı etkileri ayrıca incelenmeli.'+routine_inventory(obj))
+                          'Dinamik SQL içindeki nesne bağımlılıkları doğrulanamadı.'+routine_inventory(obj),
+                          statement=review_source_statement(obj),plsql=kind!='VIEW')
         if kind=='TYPE_BODY' and not declared_complete:
-            return decide('REVIEW_REQUIRED','TYPE_BODY_DEPENDENCY_INVENTORY_REQUIRED','Type body parametre ve çağrı bağımlılık envanteri doğrulanmalı.')
+            return decide('REVIEW_REQUIRED','TYPE_BODY_DEPENDENCY_INVENTORY_REQUIRED','Type body parametre ve çağrı bağımlılık envanteri doğrulanmalı.',
+                          statement=review_source_statement(obj),plsql=True)
         # Qualified declarations, %TYPE/%ROWTYPE and code references not covered
         # by a complete exporter inventory remain a review requirement. The
         # CREATE owner.name itself is the first dot and is not a dependency.
@@ -289,26 +334,26 @@ def object_change(context,obj,actual,changes):
             compiled=compiled_static_inventory(context,obj)
             if compiled is not None and not compiled.approved:
                 return decide('REVIEW_REQUIRED','COMPILED_DEPENDENCY_PROOF_INCOMPLETE',
-                              ' '.join(compiled.issues)+'.',proof=compiled)
+                              ' '.join(compiled.issues)+'.',proof=compiled,
+                              statement=review_source_statement(obj),plsql=True)
             if compiled:declared_complete=True
         if kind in {'PROCEDURE','FUNCTION','PACKAGE_SPEC','PACKAGE_BODY'} and not declared_complete and qualified_uses>int(own_qualified):
-            return decide('REVIEW_REQUIRED','QUALIFIED_REFERENCE_INVENTORY_REQUIRED','Nitelikli çağrı, tip veya değişken referanslarının tam bağımlılık envanteri doğrulanmalı.'+routine_inventory(obj))
+            return decide('REVIEW_REQUIRED','QUALIFIED_REFERENCE_INVENTORY_REQUIRED','Nitelikli çağrı, tip veya değişken referanslarının tam bağımlılık envanteri doğrulanmalı.'+routine_inventory(obj),
+                          statement=review_source_statement(obj),plsql=True)
         if kind in {'PACKAGE_SPEC','PACKAGE_BODY','PROCEDURE','FUNCTION'} and (any(word in words for word in ('SELECT','INSERT','UPDATE','DELETE','MERGE','EXECUTE'))
                              and not declared_complete):
-            return decide('REVIEW_REQUIRED','ROUTINE_DEPENDENCY_INVENTORY_REQUIRED','SQL içeren birimin statik bağımlılık ve çağrı envanteri doğrulanmalı.'+routine_inventory(obj))
+            return decide('REVIEW_REQUIRED','ROUTINE_DEPENDENCY_INVENTORY_REQUIRED','SQL içeren birimin statik bağımlılık ve çağrı envanteri doğrulanmalı.'+routine_inventory(obj),
+                          statement=review_source_statement(obj),plsql=True)
         if kind.startswith('TYPE') and not missing:
             return decide('BLOCKED','EXISTING_TYPE_EVOLUTION_UNSUPPORTED','Mevcut type evrimi otomatik üretilmez.')
-        if not missing and kind=='PACKAGE_SPEC':
-            return decide('REVIEW_REQUIRED','PUBLIC_PACKAGE_CONTRACT_REQUIRES_REVIEW','Package spec değişimi çağıranların sözleşme incelemesini gerektiriyor.')
         if kind=='TRIGGER':
-            if not missing:
-                return decide('REVIEW_REQUIRED','TRIGGER_RUNTIME_EFFECT_REQUIRES_REVIEW','Mevcut trigger değişimi veri etkisi incelemesi gerektiriyor.')
             from ..parsing.statements import qualified_parts
             try:
                 at=words.index('ON')+1;finish=at+3 if at+1<len(tokens) and tokens[at+1].text=='.' else at+1
                 names=qualified_parts(tokens[at:finish]);owner,name=(obj.identity.owner.effective_name,names[0]) if len(names)==1 else names
-                if not context.new_table(owner,name) or 'COMPOUND' in words or 'SCHEMA' in words or 'DATABASE' in words:
-                    raise ValueError('TRIGGER_EMPTY_TABLE_NOT_PROVEN')
+                if (context.lookup(owner,'TABLE',name) is None or 'COMPOUND' in words
+                        or 'SCHEMA' in words or 'DATABASE' in words):
+                    raise ValueError('TRIGGER_PARENT_OR_FORM_UNVERIFIED')
                 projection=source_projection(obj);state=projection.properties.get('enabled_state') if projection else None
                 if state not in {None,'ENABLE','DISABLE','ENABLED','DISABLED'}: raise ValueError('TRIGGER_STATE_UNKNOWN')
                 statement=replace_header(obj.raw_ddl)
@@ -328,11 +373,13 @@ def object_change(context,obj,actual,changes):
                     if any(token.upper in {'ENABLE','DISABLE'} for token in code_tokens(header)):
                         raise ValueError('TRIGGER_HEADER_STATE_REQUIRES_REVIEW')
                     statement=(text[:body.start]+'DISABLE '+text[body.start:]).encode()
-                return decide('READY','CREATE_TRIGGER_ON_NEW_EMPTY_TABLE','Yeni boş tablonun trigger tanımı ve enabled durumu korunur.',
-                              statement=statement,op_kind='CREATE',phase=70,
+                return decide('READY','CREATE_VERIFIED_TRIGGER' if missing else 'REPLACE_VERIFIED_TRIGGER',
+                              'Kaynak trigger tanımı ve enabled durumu DDL olarak korunur.',
+                              statement=statement,op_kind='CREATE' if missing else 'REPLACE',phase=70,
                               refs=(DependencyReference(owner,'TABLE',name,'TRIGGER_TABLE'),),plsql=True)
             except (ValueError,StopIteration,TypeError):
-                return decide('REVIEW_REQUIRED','TRIGGER_RUNTIME_EFFECT_REQUIRES_REVIEW','Trigger parent, enabled durumu veya veri etkisi inceleme gerektiriyor.')
+                return decide('REVIEW_REQUIRED','TRIGGER_DEFINITION_UNVERIFIED','Trigger parent, enabled durumu veya kod bağımlılığı doğrulanamadı.',
+                              statement=review_source_statement(obj),plsql=True)
         refs = []
         if kind in {'PROCEDURE','FUNCTION'} and not compiled:
             projection=source_projection(obj)

@@ -39,7 +39,7 @@ def test_comparison_duration_remains_primary_after_a_short_presentation_refresh(
     assert view['comparison_finished_label'] == '21.10.2026 09:15:09'
     for raw in (render_email(view), render_run_reports(view)['index.html']):
         html=raw.decode()
-        assert 'Karşılaştırma süresi' in html and '75 dk 9 sn' in html
+        assert 'Karşılaştırma 75 dk 9 sn sürdü.' in html
         assert 'Rapor yenileme süresi' not in html and '1 dk 5 sn' not in html
         assert html.index('75 dk 9 sn') < html.index('class="metric"')
 
@@ -62,5 +62,5 @@ def test_jenkins_mail_reads_original_comparison_timing_from_archive(tmp_path):
         'build_number':29,'source_commit':run['source_commit'],'started_at':'2026-10-21T05:00:00Z',
         'finished_at':'2026-10-21T06:15:09Z'}),encoding='utf-8')
     html=write_notification(tmp_path,run,url+'31/',url).read_text(encoding='utf-8')
-    assert 'Karşılaştırma süresi: 75 dk 9 sn' in html
+    assert 'Karşılaştırma 75 dk 9 sn sürdü.' in html
     assert 'Rapor yenileme süresi' not in html and '1 dk 5 sn' not in html

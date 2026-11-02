@@ -1,4 +1,8 @@
-"""Local configuration validation and read-only readiness commands."""
+"""Şema Karşılaştırma yerel toplama ve plan komutlarını çalıştırır.
+
+Author: Mehmet KARACAN
+Date: 2026-10-20
+"""
 import argparse
 import json
 from pathlib import Path
@@ -30,6 +34,15 @@ def main(argv=None):
     imported.add_argument('--side',choices=('SOURCE','TARGET'),required=True)
     imported.add_argument('--connection-id',required=True)
     imported.add_argument('--output',type=Path,required=True)
+    routine=commands.add_parser('prepare-routine-capture',help='SQLcl derleyici kanıtı paketini hazırla')
+    routine.add_argument('--source-snapshot',type=Path,required=True)
+    routine.add_argument('--target-snapshot',type=Path,required=True)
+    routine.add_argument('--output',type=Path,required=True)
+    routine_import=commands.add_parser('import-routine-capture',help='SQLcl derleyici kanıtını hedef snapshot dosyasına bağla')
+    routine_import.add_argument('--source-snapshot',type=Path,required=True)
+    routine_import.add_argument('--target-snapshot',type=Path,required=True)
+    routine_import.add_argument('--input',type=Path,required=True)
+    routine_import.add_argument('--output',type=Path,required=True)
     validate = commands.add_parser('validate-config', help='Bağlantı açmadan yapılandırmayı doğrula')
     validate.add_argument('--source-profile', type=Path, required=True)
     validate.add_argument('--targets', type=Path, required=True)
@@ -64,6 +77,19 @@ def main(argv=None):
     archive.add_argument('--build-number',type=int)
     args = parser.parse_args(argv)
     try:
+        if args.command in {'prepare-routine-capture','import-routine-capture'}:
+            from .model.snapshot_io import load_snapshot
+            source=load_snapshot(args.source_snapshot,require_ddl=True)
+            target=load_snapshot(args.target_snapshot,require_ddl=True)
+            if args.command=='prepare-routine-capture':
+                from .portable.builder import prepare_routine_capture
+                folder=prepare_routine_capture(args.output,source,target)
+                print(json.dumps({'status':'PREPARED','output':str(folder),'database_connections':0}));return 0
+            from .portable.routine_capture import import_routine_capture
+            from .portable.stream import MAX_PACKET_BYTES
+            if args.input.stat().st_size>MAX_PACKET_BYTES:raise ValueError('CAPTURE_FILE_SIZE')
+            folder=import_routine_capture(source,target,args.input.read_bytes(),args.output)
+            print(json.dumps({'status':'IMPORTED','output':str(folder),'database_connections':0}));return 0
         if args.command=='prepare-capture':
             from .portable.builder import prepare_capture
             values={'schemas':args.schema,'object_names':args.object_name,'table_names':args.table_name,

@@ -24,6 +24,30 @@ kimliği `.local/targets.json` içinden seçilir. Parolalar argv'ye girmez.
 Başlangıç/bitiş envanteri değişirse bir kez yeniden okur, hâlâ değişiyorsa
 `INCONSISTENT`, fark sayısı null ve `target-error.json` üretir.
 
+## SQLcl derleyici kanıtını tamamlama
+
+Kaynak snapshot'ta doğrulanmış PL/SQL bağımlılık kanıtı varsa, taşınabilir
+hedef snapshot için ayrı ve salt okunur kanıt paketi hazırlanabilir. Aşağıdaki
+komutlar mevcut snapshot'ları değiştirmez. Çıktı klasörleri yeni olmalıdır.
+
+```powershell
+python -m oracle_db_migration_generator prepare-routine-capture --source-snapshot <kaynak>/source-snapshot.json --target-snapshot <hedef>/target-snapshot.json --output <yeni-paket>
+```
+
+Paketi hedef Oracle hesabıyla ayrı bir SQLcl veya SQL*Plus oturumunda açın ve
+`@run_routine.sql` çalıştırın. Betik `routine.odmg.jsonl` üretir ve oturumu
+kapatır. Kaynak nesnelerin kodunu çalıştırmaz. Dosyayı aynı hedef snapshot'a
+bağlayın ve yeni hedef dosyasıyla planı yeniden üretin.
+
+```powershell
+python -m oracle_db_migration_generator import-routine-capture --source-snapshot <kaynak>/source-snapshot.json --target-snapshot <hedef>/target-snapshot.json --input <yeni-paket>/routine.odmg.jsonl --output <yeni-hedef>
+python -m oracle_db_migration_generator plan-offline --source-snapshot <kaynak>/source-snapshot.json --target-snapshot <yeni-hedef>/target-snapshot.json --source-profile <profil>.json --output <yeni-plan>
+```
+
+Kanıt aynı hedef snapshot'ın hash değerine bağlıdır. Arada hedef nesne tanımı
+değişirse ilgili işlem incelemede kalır. Dosya Git veya e-posta ile
+yayımlanmadan önce kurumun metadata erişim kurallarına göre ele alınmalıdır.
+
 Target paketi `targets/<id>/`, ham metadata yerel `observations/<id>/` altında,
 `index.html` koşu girişidir. Ham metadata da Git dışında tutulmalıdır.
 Plan tamamı READY ise `migration.sql`, aksi halde yalnız hazır işlemler varsa

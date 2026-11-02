@@ -1,3 +1,9 @@
+"""Şema Karşılaştırma SQL dosyalarını işlem kararına göre oluşturur.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 import hashlib
 
 from ..parsing.adapter import parse_ddl
@@ -26,6 +32,33 @@ def render_statement(operation,plan_id):
     if not text.endswith(';'): text+=';'
     suffix='\n/\n' if intent.statement_kind=='PLSQL' else '\n'
     return (f'-- plan_id: {plan_id}\n-- operation_id: {operation.operation_id}\n'+text+suffix).encode('utf-8')
+
+
+def render_review_proposal(operation,plan_id):
+    """İnceleme veya engel taşıyan SQL'i toplu betikten ayrı gösterir.
+
+    Author: Mehmet KARACAN
+    Date: 2026-11-02
+    """
+    intent=operation.proposal
+    if operation.decision not in {'REVIEW_REQUIRED','BLOCKED'} or intent is None:
+        raise ValueError('REVIEW_PROPOSAL_INTENT_REQUIRED')
+    if hashlib.sha256(intent.statement).hexdigest()!=intent.verification_sha256:
+        raise ValueError('REVIEW_PROPOSAL_INTEGRITY_MISMATCH')
+    text=intent.statement.decode('utf-8').rstrip()
+    if text.endswith('\n/'):
+        text=text[:-2].rstrip()
+    if not text.endswith(';'):
+        text+=';'
+    from ..reporting.formatting import human_text
+    reason=('Kaynakta FUNCTION, hedefte aynı adlı TABLE var. Nesne türleri farklı.'
+            if 'TARGET_NAMESPACE_CONFLICT' in operation.reason_codes and operation.identity.object_type=='FUNCTION'
+            else 'Kaynak sequence ayarları için değişim DDL önerildi. Hedef sayaç değeri korunur.'
+            if 'SEQUENCE_STATE_PRESERVED' in operation.reason_codes else human_text(operation.reason_tr))
+    suffix='\n/\n' if intent.statement_kind=='PLSQL' else '\n'
+    return (f'-- Plan {plan_id}\n-- İşlem {operation.operation_id}\n'
+            '-- Bu SQL önerisidir. Hazır toplu DDL dosyasına eklenmez.\n'
+            +text+suffix+'-- Gerekçe '+reason+'\n').encode('utf-8')
 
 
 def aggregate_sql(paths,plan_id,*,partial=False,source_commit=None,target_id=None,source_origin=None):

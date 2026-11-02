@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator DDL kararlarını sentetik şemalarda sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
 
 from oracle_db_migration_generator.compare.snapshots import compare_snapshots
@@ -42,17 +48,16 @@ def test_safe_varchar_widening_emits_modify():
     assert b'VARCHAR2(80 CHAR)' in ready[0].intent.statement
 
 
-def test_numeric_scale_or_shrink_requires_review():
+def test_numeric_scale_or_shrink_writes_source_ddl():
     result = plan('CREATE TABLE APP.T (AMOUNT NUMBER(8,3));','CREATE TABLE APP.T (AMOUNT NUMBER(10,2));')
-    assert result.status=='REVIEW_REQUIRED'
-    assert any(op.decision=='REVIEW_REQUIRED' for op in result.operations)
-    assert not any(op.decision=='READY' for op in result.operations)
+    assert any(op.decision=='READY' and op.intent and b'NUMBER(8,3)' in op.intent.statement
+               for op in result.operations)
 
 
-def test_not_null_on_existing_table_requires_review():
+def test_not_null_on_existing_table_writes_source_ddl():
     result = plan('CREATE TABLE APP.T (ID NUMBER NOT NULL);','CREATE TABLE APP.T (ID NUMBER);')
-    assert any(op.decision=='REVIEW_REQUIRED' for op in result.operations)
-    assert not any(op.decision=='READY' for op in result.operations)
+    assert any(op.decision=='READY' and op.intent and b'MODIFY ("ID" NOT NULL)' in op.intent.statement
+               for op in result.operations)
 
 
 def test_package_body_change_does_not_recreate_spec():
@@ -65,10 +70,11 @@ def test_package_body_change_does_not_recreate_spec():
     assert b'NULL; NULL;' in ready[0].intent.statement
 
 
-def test_unique_index_on_populated_unknown_table_review():
+def test_unique_index_on_existing_table_writes_ddl():
     table = 'CREATE TABLE APP.T (ID NUMBER);'
     result = plan(table+' CREATE UNIQUE INDEX APP.I ON APP.T(ID);',table)
-    assert any(op.identity.object_type=='INDEX' and op.decision=='REVIEW_REQUIRED' for op in result.operations)
+    assert any(op.identity.object_type=='INDEX' and op.decision=='READY' and op.intent
+               for op in result.operations)
 
 
 def test_backing_index_not_emitted_twice():
@@ -111,12 +117,12 @@ def test_schema_remap_is_not_global_replace():
         compare_snapshots(desired,observed,selected.policy)
 
 
-def test_changed_body_cannot_bypass_review_of_new_spec():
+def test_changed_package_spec_and_body_keep_dependency_order():
     before='CREATE PACKAGE APP.P AS PROCEDURE R; END P;\n/\nCREATE PACKAGE BODY APP.P AS PROCEDURE R IS BEGIN NULL; END; END P;\n/\n'
     after='CREATE PACKAGE APP.P AS PROCEDURE R; PROCEDURE S; END P;\n/\nCREATE PACKAGE BODY APP.P AS PROCEDURE R IS BEGIN NULL; END; PROCEDURE S IS BEGIN NULL; END; END P;\n/\n'
     result=plan(after,before)
-    assert any(op.identity.object_type=='PACKAGE_SPEC' and op.decision=='REVIEW_REQUIRED' for op in result.operations)
-    assert all(op.decision=='BLOCKED' for op in result.operations if op.identity.object_type=='PACKAGE_BODY')
+    assert any(op.identity.object_type=='PACKAGE_SPEC' and op.decision=='READY' for op in result.operations)
+    assert any(op.identity.object_type=='PACKAGE_BODY' and op.decision=='READY' for op in result.operations)
 
 
 def test_transitive_view_failure_cannot_bypass_existing_target_definition():
@@ -140,10 +146,11 @@ def test_context_column_does_not_lose_inline_constraint():
     assert not any(op.decision=='READY' for op in result.operations)
 
 
-def test_new_sequence_with_existing_consumer_requires_review():
+def test_new_sequence_with_existing_consumer_writes_ddl():
     table='CREATE TABLE APP.T(ID NUMBER DEFAULT APP.S.NEXTVAL);'
     result=plan('CREATE SEQUENCE APP.S START WITH 1 NOCACHE; '+table,table)
-    assert any(op.identity.object_type=='SEQUENCE' and op.decision=='REVIEW_REQUIRED' for op in result.operations)
+    assert any(op.identity.object_type=='SEQUENCE' and op.decision=='READY' and op.intent
+               for op in result.operations)
 
 
 def test_verified_private_synonym_and_empty_table_trigger_are_generated():

@@ -90,7 +90,9 @@ Aşağıdaki test adları aktif görevde uygulanacaktır. Her satır gerçek ass
 
 ## Gerçek Oracle Kabulü
 
-İzole ve ayrıca yetkilendirilmiş Oracle test şemasında: fixture source/target kur → Generator'ı salt okumayla çalıştır → üretilen READY SQL'i yalnız test harness/DBA uygulasın → yeniden snapshot/compare → beklenen yönetilen farklar sıfır. Aynı test mevcut veri için kayıp olmadığını ayrıca ölçer. DDL implicit commit nedeniyle cleanup/rollback varsayımı yapılmaz, test şeması açıkça atılabilir olmalıdır.
+Gerçek Oracle kabulünde kaynak ve hedef şema metadata kayıtları salt okunur alınır. Farklar ve kaynak DDL'den üretilen SQL karşılaştırılır. Üretilen SQL'in parse, nesne kimliği, sıra ve bütünlük kontrolleri yapılır. İş satırları okunmaz. DDL uygulanmaz. Veri uyumu ve veri kaybı ölçümü ürün kabulüne dahil değildir.
+Hazır dönüşüm SQL'i olmayan kaynak nesneler için `source-ddl/index.json` ve
+ilgili kaynak DDL dosyasının rapordan açıldığı ayrıca doğrulanır.
 
 Oracle 19c ilk canlı kabul hedefidir, 11g, 12c, 21c, 23ai/26ai aynı ürünün otomatik sertifikalı kapsamı ilan edilmez. Thin/Thick, dictionary kolonları ve kullanılan syntax sürüme göre doğrulanır. Kurum Oracle sürümü bilinmiyorsa capability probe kısıt kaydı üretir. Gerçek sürüm test edilmemişse NOT_RUN.
 

@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator tablo DDL sınırlarını sentetik olarak sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
 
 from oracle_db_migration_generator.compare.projection_adapter import canonical_fields
@@ -177,9 +183,9 @@ def test_nullability_change_is_reviewed_independently_of_unknown_collation():
     result = _column_plan('CREATE TABLE APP.T(C VARCHAR2(20 BYTE) NOT NULL);',
         'CREATE TABLE APP.T(C VARCHAR2(20 BYTE) COLLATE USING_NLS_COMP);')
 
-    assert sorted(op.decision for op in result.operations) == ['INFORMATIONAL', 'REVIEW_REQUIRED']
-    review = next(op for op in result.operations if op.decision == 'REVIEW_REQUIRED')
-    assert review.intent is None
+    assert sorted(op.decision for op in result.operations) == ['INFORMATIONAL', 'READY']
+    review = next(op for op in result.operations if op.decision == 'READY')
+    assert review.intent is not None
     assert {diff.property_path for diff in result.differences if diff.difference_id in review.change_ids} == {
         '/columns/C/nullable'}
     assert any(diff.kind == 'UNKNOWN' for diff in result.differences)

@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator DDL karar açıklamalarını sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from test_rules import plan
 
 
@@ -9,13 +15,13 @@ def test_proven_shared_namespace_conflict_is_not_hidden_by_dependency_review():
     assert 'TABLE' in function.reason_tr and 'APP.COLLISION' in function.reason_tr
 
 
-def test_type_review_names_column_and_both_sizes():
+def test_type_change_writes_source_size():
     result=plan('CREATE TABLE APP.T(C VARCHAR2(5 BYTE));','CREATE TABLE APP.T(C VARCHAR2(50 BYTE));')
-    held=next(o for o in result.operations if o.decision=='REVIEW_REQUIRED')
-    assert 'C' in held.reason_tr and 'VARCHAR2(50 BYTE)' in held.reason_tr and 'VARCHAR2(5 BYTE)' in held.reason_tr
+    ready=next(o for o in result.operations if o.kind=='MODIFY_COLUMN' and o.decision=='READY')
+    assert b'"C" VARCHAR2(5 BYTE)' in ready.intent.statement
 
 
-def test_not_null_tightening_explains_required_data_check():
+def test_not_null_tightening_writes_source_ddl():
     result=plan('CREATE TABLE APP.T(C NUMBER NOT NULL);','CREATE TABLE APP.T(C NUMBER);')
-    held=next(o for o in result.operations if o.decision=='REVIEW_REQUIRED')
-    assert 'C' in held.reason_tr and 'NULL' in held.reason_tr and 'veri' in held.reason_tr.lower()
+    ready=next(o for o in result.operations if o.kind=='MODIFY_COLUMN' and o.decision=='READY')
+    assert b'"C" NOT NULL' in ready.intent.statement

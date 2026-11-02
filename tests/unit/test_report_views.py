@@ -92,7 +92,7 @@ def test_duration_is_visible_in_email_and_web_without_guessing(started,finished,
     assert view['duration_label']==expected
     for html in [render_email(view).decode(),render_run_reports(view)['index.html'].decode()]:
         displayed={'Bilinmiyor':'Ölçülemedi','1 sa 2 dk 3 sn':'62 dk 3 sn'}.get(expected,expected)
-        assert 'Karşılaştırma süresi' in html and displayed in html
+        assert ('Karşılaştırma süresi ölçülemedi.' if expected == 'Bilinmiyor' else f'Karşılaştırma {displayed} sürdü.') in html
 
 
 def test_email_link_must_match_the_current_run_commit_and_retention_check():

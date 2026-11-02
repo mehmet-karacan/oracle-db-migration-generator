@@ -1,4 +1,8 @@
-"""Compiler evidence must never bypass source, privilege or target-shape proof."""
+"""Şema Karşılaştırma derleyici kanıtının güvenli kararlarını sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-10-26
+"""
 from copy import deepcopy
 from dataclasses import replace
 import hashlib
@@ -70,6 +74,41 @@ def test_fresh_valid_static_unit_emits_original_body_after_dependency_check():
     assert op.intent.statement==b'CREATE OR REPLACE PROCEDURE APP.P IS N NUMBER; BEGIN SELECT MAX(ID) INTO N FROM APP.T; END;'
     assert 'COMPILED_STATIC' in op.reason_codes[0]
     assert len(op.evidence_ids)>=3
+
+
+def test_advanced_sequence_counter_keeps_compiled_unit_ready():
+    from oracle_db_migration_generator.oracle.sequence_proof import sequence_definition
+    sequence_sql='CREATE SEQUENCE APP.S INCREMENT BY 1 START WITH 100 CACHE 20 NOCYCLE;'
+    routine_sql='CREATE PROCEDURE APP.P IS N NUMBER; BEGIN N := APP.S.NEXTVAL; END;'
+    desired=source(sequence_sql+' '+routine_sql)
+    desired=replace(desired,source_commit=None,
+                    source_origin={'kind':'ORACLE','connection_id':'source-db','snapshot_id':'1'*64})
+    desired=replace(desired,objects=tuple(replace(obj,properties={**obj.properties,
+        'object_status':KnownValue('KNOWN','VALID',obj.evidence_ids)})
+        if obj.identity.object_type=='PROCEDURE' else obj for obj in desired.objects))
+    target=actual(sequence_sql)
+    objects={(o.identity.object_type,o.identity.name.effective_name):o for o in desired.objects}
+    unit=record('APP','P','PROCEDURE',objects[('PROCEDURE','P')].ddl_sha256)
+    dependency=['P','PROCEDURE','APP','S','SEQUENCE',None,'HARD']
+    unit.update(dependencies=known([dependency]),dependencies_after=known([dependency]),
+                errors=known([]),settings=known([['PROCEDURE',2,'INTERPRETED','FALSE',
+                    'DISABLE:ALL','BYTE',None,'IDENTIFIERS:NONE']]),
+                procedures=known([[None,1,None,'PROCEDURE','DEFINER','NO','NO','NO','NO','NO','NO']]))
+    old=objects[('SEQUENCE','S')]
+    source_sequence=record('APP','S','SEQUENCE',old.ddl_sha256)
+    target_sequence=deepcopy(source_sequence)
+    current=sequence_sql.replace('START WITH 100','START WITH 120').encode()
+    target_sequence['dependency_ddl']={
+        'state':'KNOWN','sha256':hashlib.sha256(current).hexdigest(),
+        'sequence_definition':sequence_definition(current)}
+    target_unit=record('APP','P','PROCEDURE',objects[('PROCEDURE','P')].ddl_sha256)
+    target_unit.update(before=known([]),after=known([]))
+    result=planned(desired,target,[
+        {'identity':known([['APP']]),'records':[unit,source_sequence]},
+        {'identity':known([['APP']]),'records':[target_unit,target_sequence]},
+    ])
+    operation=next(op for op in result.operations if op.identity.name.effective_name=='P')
+    assert operation.decision=='READY', operation.reason_tr
 
 
 def test_missing_local_relation_is_created_before_certified_program_unit():

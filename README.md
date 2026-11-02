@@ -2,6 +2,13 @@
 
 Kaynak Git DDL durumu veya salt okunur Oracle kaynağı ile Oracle hedefleri arasındaki farklardan SQL/JSON/HTML üreten Python CLI ve isteğe bağlı ortak UI.
 
+Ürün yalnız DDL farklarını gösterir ve kaynak tanımına göre DDL üretir.
+İş verisi taraması, satır uygunluğu denetimi, veri taşıma ve SQL uygulama
+kapsam dışıdır. DDL üretilmesi, SQL'in hedefte çalıştırıldığı anlamına gelmez.
+Kaynakta bulunan ancak hedefe dönüşüm SQL'i henüz doğrulanmayan nesnelerin
+özgün DDL metni de hedef paketindeki `source-ddl/` arşivine konur ve HTML
+raporundan açılır. Bu metin mevcut hedef nesne için otomatik `ALTER` değildir.
+
 **24 Ekim UI uygulaması:** Git/Oracle kaynak seçimi, bağlantı/profil yönetimi,
 gerçek çalışma takibi/DDL ayrıntısı ve doğrulanan ayar ekranları eklendi.
 Yerel geliştirme doğrulandı, kurumsal SSO/Jenkins UI kurulumu ve gerçek
@@ -59,7 +66,7 @@ Python CLI ve kütüphane, varsayılan Python 3.12, destek hedefi 3.11–3.13. K
 
 ## Kullanım Sözleşmesi
 
-Uygulanan komutlar: `validate-config`, `preflight`, `prepare-source`, `plan-offline`, `plan-target`, `aggregate`, `verify-bundle`. Yerel komut örnekleri [Yerel başlangıç](docs/YEREL_BASLANGIC.md) içindedir. `apply`, `deploy`, `rollback` ve `publish` komutu yoktur. Source ve target daima salt okunur kalır.
+Uygulanan komutlar: `validate-config`, `preflight`, `prepare-source`, `plan-offline`, `plan-target`, `aggregate`, `verify-bundle`, `prepare-routine-capture`, `import-routine-capture`. Yerel komut örnekleri [Yerel başlangıç](docs/YEREL_BASLANGIC.md) içindedir. `apply`, `deploy`, `rollback` ve `publish` komutu yoktur. Source ve target daima salt okunur kalır.
 
 Üretilen SQL bir **uygulama önerisidir**. `READY` etiketi desteklenen kurallarla üretildiğini belirtir, DBA onayı, gerçek Oracle kabul testi veya deployment kaydı değildir.
 

@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator hedef snapshot'ını salt okunur karşılaştırır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,7 +27,7 @@ def offline_plan(source,target,profile,output,*,name=None,secret_values=()):
     differences=compare_snapshots(source,target,profile.policy)
     plan=plan_target(differences,PlanningContext(source,target,profile,name or target.target_id))
     from ..reporting.inventory import build_scan_summary
-    return write_bundle(plan,output,secret_values=secret_values,
+    return write_bundle(plan,output,secret_values=secret_values,source=source,
                         scan_summary=build_scan_summary(source,target,profile.policy,plan))
 
 

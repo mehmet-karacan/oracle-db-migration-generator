@@ -1,3 +1,9 @@
+"""Oracle DB Migration Generator kaynak ve hedef farklarını sentetik olarak sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 import hashlib
 from dataclasses import replace
 from pathlib import Path
@@ -173,8 +179,8 @@ def test_character_to_number_change_has_no_unknown_source_collation():
     assert datatype.before.value=='VARCHAR2' and datatype.after.value=='NUMBER'
     collation=next(diff for diff in changes.differences if diff.property_path.endswith('/collation'))
     assert collation.after.state=='KNOWN' and collation.after.value is None
-    # A real type conversion stays subject to review despite complete metadata.
+    # Missing structural proof still blocks a type change.
     from oracle_db_migration_generator.planning.rules import plan_target,PlanningContext
     plan=plan_target(changes,PlanningContext(desired,actual,PROFILE,'Tip değişimi'))
     assert not any(op.decision=='READY' for op in plan.operations)
-    assert any('TYPE_CHANGE_REQUIRES_REVIEW' in op.reason_codes for op in plan.operations)
+    assert any('COLUMN_MODIFY_STRUCTURE_UNVERIFIED' in op.reason_codes for op in plan.operations)

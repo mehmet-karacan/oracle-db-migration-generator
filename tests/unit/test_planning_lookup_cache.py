@@ -1,11 +1,15 @@
-from collections import Counter
+"""Oracle DB Migration Generator planının nesne aramalarını sentetik olarak sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from dataclasses import replace
 
 from oracle_db_migration_generator.compare.snapshots import compare_snapshots
 from oracle_db_migration_generator.model.difference import Difference
 from oracle_db_migration_generator.model.identity import Identifier
 from oracle_db_migration_generator.model.snapshot import KnownValue
-from oracle_db_migration_generator.parsing import dependencies
 from oracle_db_migration_generator.planning.context import PlanningContext
 from oracle_db_migration_generator.planning.object_rules import object_change
 from oracle_db_migration_generator.planning.rules import plan_target
@@ -31,30 +35,16 @@ def missing_sequence_change(context, obj):
     return object_change(context, obj, None, (change,))[0]
 
 
-def test_missing_sequences_analyze_each_existing_source_consumer_once(monkeypatch):
+def test_missing_sequences_emit_source_ddl_with_existing_consumers():
     context = sequence_fixture()
-    calls = Counter()
-    original = dependencies.references
-
-    def counted(obj):
-        calls[obj.object_key] += 1
-        return original(obj)
-
-    monkeypatch.setattr(dependencies, 'references', counted)
     sequences = [obj for obj in context.source.objects if obj.identity.object_type == 'SEQUENCE']
     decisions = [missing_sequence_change(context, obj) for obj in sequences]
     assert len(decisions) == 4
-    assert all(op.decision == 'REVIEW_REQUIRED' and op.intent is None for op in decisions)
-    assert all('SEQUENCE_EXISTING_DATA_COLLISION_UNKNOWN' in op.reason_codes for op in decisions)
-    existing = {obj.object_key for obj in context.source.objects if obj.object_key in context.target_objects}
-    assert len(existing) == 3
-    assert calls == Counter({key: 1 for key in existing})
-    for obj in sequences:
-        assert missing_sequence_change(context, obj).decision == 'REVIEW_REQUIRED'
-    assert calls == Counter({key: 1 for key in existing})
+    assert all(op.decision == 'READY' and op.intent for op in decisions)
+    assert all(op.intent.statement==obj.raw_ddl for op,obj in zip(decisions,sequences))
 
 
-def test_existing_consumer_outside_filtered_report_scope_still_prevents_ready_sequence():
+def test_filtered_existing_consumer_does_not_hide_missing_sequence_ddl():
     selected = profile()
     selected = replace(selected, policy=replace(selected.policy, exclude_system_generated=True))
     consumer = 'CREATE TABLE APP.C$_CONSUMER(ID NUMBER DEFAULT APP.S.NEXTVAL);'
@@ -65,51 +55,7 @@ def test_existing_consumer_outside_filtered_report_scope_still_prevents_ready_se
     context = PlanningContext(desired, observed, selected, 'Sentetik hedef')
     plan = plan_target(differences, context)
     sequence = next(op for op in plan.operations if op.identity.object_type == 'SEQUENCE')
-    assert sequence.decision == 'REVIEW_REQUIRED' and sequence.intent is None
-    assert 'SEQUENCE_EXISTING_DATA_COLLISION_UNKNOWN' in sequence.reason_codes
-
-
-def test_sequence_consumer_cache_is_isolated_by_target_and_source_context(monkeypatch):
-    first = sequence_fixture(sequence_count=1, consumer_count=1)
-    sequence = next(obj for obj in first.source.objects if obj.identity.object_type == 'SEQUENCE')
-    without_existing = PlanningContext(first.source, actual(), first.profile, 'Boş hedef')
-    consumer = next(obj for obj in first.source.objects if obj.identity.object_type == 'TABLE')
-    replacement = source('CREATE TABLE APP.T0(ID NUMBER);').objects[0]
-    changed_source = replace(first.source, objects=tuple(replacement if obj.object_key == consumer.object_key else obj
-                                                        for obj in first.source.objects))
-    changed = PlanningContext(changed_source, first.target, first.profile, 'Başka kaynak')
-    calls = Counter()
-    original = dependencies.references
-
-    def counted(obj):
-        calls[obj.object_key] += 1
-        return original(obj)
-
-    monkeypatch.setattr(dependencies, 'references', counted)
-    assert missing_sequence_change(first, sequence).decision == 'REVIEW_REQUIRED'
-    assert missing_sequence_change(without_existing, sequence).decision == 'READY'
-    assert missing_sequence_change(changed, sequence).decision == 'READY'
-    assert missing_sequence_change(first, sequence).decision == 'REVIEW_REQUIRED'
-    assert calls == Counter({consumer.object_key: 2})
-
-
-def test_new_consumers_do_not_get_treated_as_existing_or_analyzed_for_collision(monkeypatch):
-    context = sequence_fixture(sequence_count=2, consumer_count=2)
-    context = PlanningContext(context.source, actual(), context.profile, 'Boş hedef')
-    calls = []
-    original = dependencies.references
-
-    def counted(obj):
-        calls.append(obj.object_key)
-        return original(obj)
-
-    monkeypatch.setattr(dependencies, 'references', counted)
-    for obj in context.source.objects:
-        if obj.identity.object_type == 'SEQUENCE':
-            op = missing_sequence_change(context, obj)
-            assert op.decision == 'READY' and op.intent is not None
-            assert op.intent.statement == obj.raw_ddl
-    assert calls == []
+    assert sequence.decision == 'READY' and sequence.intent is not None
 
 
 def test_indexed_lookup_preserves_side_type_case_parent_and_first_match():
@@ -137,19 +83,3 @@ def test_indexed_lookup_preserves_side_type_case_parent_and_first_match():
     assert context.lookup('MISSING', 'TABLE', 'T') is None
     assert not context.new_table('APP', 'T')
     assert context.new_table('APP', 't')
-
-
-def test_consumer_index_preserves_raw_source_order_and_deduplicates_reference_roles():
-    context = sequence_fixture(sequence_count=1, consumer_count=3)
-    consumers = [obj for obj in context.source.objects if obj.identity.object_type == 'TABLE']
-    # A declared edge and a token NEXTVAL edge to the same sequence are one consumer.
-    repeated = replace(consumers[0], properties={**consumers[0].properties,
-        'dependencies': KnownValue('KNOWN', [{'owner': 'APP', 'type': 'SEQUENCE', 'name': 'S0'}],
-                                   consumers[0].evidence_ids)})
-    expected = (consumers[2], repeated, consumers[1])
-    sequences = tuple(obj for obj in context.source.objects if obj.identity.object_type == 'SEQUENCE')
-    desired = replace(context.source, objects=(*expected, *sequences))
-    context = PlanningContext(desired, context.target, context.profile, 'Sentetik hedef')
-    assert context.existing_sequence_consumers('APP', 'S0') == expected
-    assert context.existing_sequence_consumers('APP', 's0') == ()
-    assert context.existing_sequence_consumers('OTHER', 'S0') == ()

@@ -1,3 +1,11 @@
+"""Şema Karşılaştırma süre etiketinin raporlarda doğru yerini sınar.
+
+Testler örnek çalışma verileriyle HTML üretir, veritabanına bağlanmaz.
+
+Author: Mehmet KARACAN
+Date: 2026-11-02
+"""
+
 from copy import deepcopy
 import re
 
@@ -24,10 +32,10 @@ def test_original_duration_is_visible_before_summary_metrics_without_refresh_clo
     view = timing_view()
     before = deepcopy(view)
     html = rendered(view, profile)
-    assert 'Karşılaştırma süresi: 75 dk 9 sn' in html
-    assert html.count('Karşılaştırma süresi:') == 1
-    assert html.index('Karşılaştırma süresi:') < html.index('class="metric"')
-    assert html.index('Karşılaştırma süresi:') < html.index('Tarama Kapsamı')
+    assert 'Karşılaştırma 75 dk 9 sn sürdü.' in html
+    assert html.count('Karşılaştırma 75 dk 9 sn sürdü.') == 1
+    assert html.index('Karşılaştırma 75 dk 9 sn sürdü.') < html.index('class="metric"')
+    assert html.index('Karşılaştırma 75 dk 9 sn sürdü.') < html.index('Tarama Kapsamı')
     assert 'Başlangıç' not in html and 'Bitiş' not in html and 'TSİ' not in html
     assert 'Rapor yenileme süresi' not in html and '1 dk 6 sn' not in html
     assert view == before
@@ -41,7 +49,7 @@ def test_unknown_original_duration_does_not_show_refresh_time_as_comparison(prof
     run.update(started_at='2026-10-21T07:00:00Z',finished_at='2026-10-21T07:01:06Z')
     view=build_run_view(run,plans,comparison_timing={'started_at':started,'finished_at':finished})
     html=rendered(view,profile)
-    assert 'Karşılaştırma süresi: Ölçülemedi' in html
+    assert 'Karşılaştırma süresi ölçülemedi.' in html
     assert '1 dk 6 sn' not in html
 
 
@@ -55,7 +63,7 @@ def test_duration_note_escapes_content_and_keeps_readable_small_text(profile):
     assert len(html.encode())<=200*1024
     if profile=='email':
         assert 'class="timing-summary"' in html and 'font-size:14px' in html
-        assert re.findall(r'<th width="(\d+%)"',html)==['60%','12%','12%','16%']
+        assert re.findall(r'<th width="(\d+%)"',html)==['58%','25%','17%']
         assert html.count('class="metric"')==5
     else:
         css=render_run_reports(view)['assets/report.css'].decode()
