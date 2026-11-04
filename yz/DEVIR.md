@@ -2623,3 +2623,31 @@ ilgili 35 test yeniden çalıştırılarak geçti. Son değişiklikten sonra
 tam test paketi yeniden çalıştırılmadı. Canlı Oracle NOT_RUN.
 Jenkins release kurulumu NOT_RUN. Eposta gönderilmedi.
 Sonraki adım güncel release'i Jenkins'e kurup tek alıcılı maili sınamaktır.
+# 4 Kasım 2026 - Mail dağıtımı ve canlı sonuç
+
+Author: Mehmet KARACAN
+Date: 2026-11-04
+
+Eski mailin nedeni Jenkins'in sabit eski release SHA kullanmasıydı.
+Güncel kod uzak `main` dalında `3e1718699062d1c2ef85b04365f29bf90fa5aa05`
+commit'iyle zaten bulunuyordu. Yeni wheel oluşturuldu. Mevcut Linux
+bağımlılık paketi korunarak release ZIP yeniden üretildi. SHA
+`9d6d468addcb0d2d9e0dceb18451e7a4bc1fcc86a09601b87847be96b08908c6`.
+Yerel paket `tools.jenkins_bootstrap.unpack_release` ile doğrulandı.
+Yerel `ENVIRONMENT_CHECK` sonucu `ENVIRONMENT_VERIFIED`.
+
+Jenkins Pipeline üç release yolunda yeni SHA kullanıyor. Alıcı alanı
+yalnız `mkaracan@innova.com.tr`. #67 ortam kontrolü SUCCESS.
+#68 manuel INNOVA_ODI karşılaştırması UNSTABLE. Süre 9 dk 13 sn.
+Jenkins çıktısı `Sending email to: mkaracan@innova.com.tr` satırını
+gösterdi. Gönderilen dosya `report-email.jenkins.html` olarak okundu.
+Arşivdeki HTML başlığı `Şema karşılaştırması`. Kaynakta 565 nesne,
+1.856 fark, 131 üretilen DDL ve 446 eksik DDL dosyası raporlandı.
+5.157 kayıt eksik bilgi nedeniyle karşılaştırılamadı. Kaynak metadata
+eşleştirmesinde `CONNECTION_OR_METADATA_ERROR` alındı. Oracle'a SQL
+uygulanmadı. Eposta istemcisindeki teslim ve görünüm ayrıca
+doğrulanmadı.
+
+Değişen dosyalar `yz/GELISTIRME_DURUMU.md` ve `yz/DEVIR.md`.
+Sonraki adım kaynak metadata erişimini salt okunur tanılamak ve
+eksik DDL sayısını giderdikten sonra yeni canlı kabul yapmaktır.

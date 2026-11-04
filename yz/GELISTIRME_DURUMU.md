@@ -2266,3 +2266,29 @@ Yeni dal oluşturulmadı. `.local` dosyaları Git'e eklenmedi.
 Bu testler üç sütunlu mail düzenine uyarlandı. İlgili 35 test PASS.
 Son iki test düzenlemesinden sonra tam paket yeniden çalıştırılmadı.
 Jenkins dağıtımı ve eposta gönderimi NOT_RUN.
+# 4 Kasım 2026 - Jenkins mail sürümü
+
+Author: Mehmet KARACAN
+Date: 2026-11-04
+
+Jenkins işinin eski sürüm paketine bağlı kaldığı doğrulandı. Güncel
+Generator wheel dosyası, mevcut doğrulanmış çalışma paketindeki wheel
+ile değiştirildi. Yeni release SHA değeri
+`9d6d468addcb0d2d9e0dceb18451e7a4bc1fcc86a09601b87847be96b08908c6`.
+Jenkins Pipeline bu SHA ile kaydedildi. Tek mail alıcısı
+`mkaracan@innova.com.tr` olarak korundu.
+
+#67 ortam kontrolü SUCCESS oldu. Python 3.12.15 ve yeni paket doğrulandı.
+Bu kontrolde veritabanı bağlantısı açılmadı ve mail gönderilmedi.
+#68 manuel INNOVA_ODI karşılaştırması 9 dk 13 sn sonunda UNSTABLE bitti.
+Jenkins çıktısı mailin yalnız izinli alıcıya gönderildiğini gösteriyor.
+Arşivlenen mail başlığı `Şema karşılaştırması`. Mailde kaynak envanteri
+565 nesne olarak görünüyor. Kaynak metadata eşleştirmesi
+`CONNECTION_OR_METADATA_ERROR` nedeniyle kullanılamadı. 446 fark için
+DDL dosyası eksik ve 5.157 kayıt karşılaştırılamadı. Bu çalışma tam
+kabul sonucu değildir. SQL veritabanına uygulanmadı.
+
+Değişen ürün kaynağı yok. Bu aşamada yalnız Jenkins iş yapılandırması
+ve bu devir belgeleri güncellendi. Sonraki somut adım kaynak metadata
+erişim hatasını salt okunur tanılamak, ardından tam raporu yeniden
+üretmektir.
