@@ -2673,7 +2673,14 @@ ayarları 4 Kasım sürümünden geri yüklendi. Yeni release SHA
 `cbda08ddde7ac16f521da09f5948f8f5371858ceebbb2da213cdc8345fdcadff`
 Pipeline içinde kaydedildi. Alıcı yalnız `mkaracan@innova.com.tr`.
 #73 ortam kontrolü SUCCESS, Oracle bağlantısı sıfır, mail yok.
-#74 canlı TTBP karşılaştırması sürüyor. Oracle DDL/DML NOT_RUN.
+#74 canlı TTBP karşılaştırması 29 dakikada UNSTABLE bitti. Kaynak
+envanteri 3.805 nesne, 12.389 fark, 1.933 üretilen DDL ve 238 eksik
+DDL dosyası raporlandı. HTML ve mail dosyası artifact arşivinde.
+Jenkins çıktısında tek alıcı `mkaracan@innova.com.tr`. Önceki
+`SOURCE_DDL_INTEGRITY_MISMATCH` hatası tekrarlanmadı. Kaynak kapsamı
+PARTIAL ve hedef BLOCKED olduğu için tam kabul sonucu değildir.
+Oracle DDL/DML NOT_RUN.
 
-Sonraki somut adım #74 sonucunu, HTML artifact arşivini ve mail kaydını
-doğrulamak. Ardından değişiklikleri uzak `main` dalına göndermek.
+Kod düzeltmesi `ab3cd0867d537fc4107e5ce2eca0c685663c43f1` ile uzak
+`main` dalına gönderildi. Sonraki somut adım 238 eksik DDL dosyasının
+gerekçelerini incelemek. Mail istemcisindeki teslim ayrıca doğrulanmadı.

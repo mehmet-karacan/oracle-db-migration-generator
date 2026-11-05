@@ -2320,6 +2320,11 @@ alıcısı yeniden doğrulandı.
 
 #73 ortam kontrolü SUCCESS oldu. Yeni paket Jenkins üzerinde açıldı,
 Python 3.12.15 doğrulandı. Oracle bağlantısı ve mail gönderimi yoktu.
-#74 TTBP canlı karşılaştırması başlatıldı, sonucu henüz bekleniyor.
-Veritabanına DDL uygulanmadı. Sonraki adım #74 raporunu ve tek alıcılı
-mail kaydını doğrulamak.
+#74 TTBP canlı karşılaştırması 29 dakikada UNSTABLE bitti. Önceki
+arşiv bütünlüğü hatası tekrarlanmadı. `index.html` ve
+`report-email.jenkins.html` artifact arşivine yazıldı. Jenkins kaydı
+mailin yalnız `mkaracan@innova.com.tr` adresine gönderildiğini gösteriyor.
+Raporda kaynak envanteri 3.805 nesne, 12.389 fark, 1.933 üretilen DDL
+ve 238 eksik DDL dosyası görünüyor. Kaynak kapsamı PARTIAL ve hedef
+BLOCKED. Bu çalışma tam kabul değildir. Veritabanına DDL uygulanmadı.
+Sonraki adım 238 eksik DDL gerekçesini ayrı incelemek.
