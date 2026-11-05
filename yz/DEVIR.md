@@ -2651,3 +2651,29 @@ doğrulanmadı.
 Değişen dosyalar `yz/GELISTIRME_DURUMU.md` ve `yz/DEVIR.md`.
 Sonraki adım kaynak metadata erişimini salt okunur tanılamak ve
 eksik DDL sayısını giderdikten sonra yeni canlı kabul yapmaktır.
+
+## 5 Kasım 2026 - #69 arşiv çakışması ve yeni sürüm
+
+Author: Mehmet KARACAN
+Date: 2026-11-05
+
+#69 günlük TTBP karşılaştırması hedef snapshot toplandıktan sonra
+`SOURCE_DDL_INTEGRITY_MISMATCH` nedeniyle raporsuz bitti. Çevrimdışı
+Jenkins #72 tanısı hatanın `artifacts/bundle.py` içinde olduğunu gösterdi.
+Kaynakta iki ayrı `TTBP.ISLEM_BRK_VIEW` COMMENT kaydı aynı arşiv yolunu
+paylaşıyordu. DDL dosya yoluna nesne anahtarı eklendi.
+
+Değişen dosyalar `src/oracle_db_migration_generator/artifacts/layout.py`,
+`src/oracle_db_migration_generator/artifacts/bundle.py`,
+`tests/unit/test_bundle.py` ve iki devir belgesi. Tam test sonucu
+1.262 PASS. Gerçek #69 kaynak envanterindeki yeni arşiv yolları benzersiz.
+
+Jenkins işinin parametre, günlük 08:00 zamanlama ve 20 çalışma saklama
+ayarları 4 Kasım sürümünden geri yüklendi. Yeni release SHA
+`cbda08ddde7ac16f521da09f5948f8f5371858ceebbb2da213cdc8345fdcadff`
+Pipeline içinde kaydedildi. Alıcı yalnız `mkaracan@innova.com.tr`.
+#73 ortam kontrolü SUCCESS, Oracle bağlantısı sıfır, mail yok.
+#74 canlı TTBP karşılaştırması sürüyor. Oracle DDL/DML NOT_RUN.
+
+Sonraki somut adım #74 sonucunu, HTML artifact arşivini ve mail kaydını
+doğrulamak. Ardından değişiklikleri uzak `main` dalına göndermek.

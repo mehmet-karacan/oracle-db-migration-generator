@@ -11,9 +11,20 @@ from pathlib import Path
 import pytest
 
 from oracle_db_migration_generator.artifacts.bundle import write_bundle, verify_bundle
+from oracle_db_migration_generator.artifacts.layout import source_ddl_path
 from oracle_db_migration_generator.compare.snapshots import compare_snapshots
+from oracle_db_migration_generator.model.identity import Identifier, ObjectIdentity
 from oracle_db_migration_generator.planning.rules import PlanningContext, plan_target
 from tests.factories import actual, profile, source
+
+
+def test_source_ddl_paths_keep_same_named_comments_separate():
+    owner=Identifier.parse('TTBP')
+    name=Identifier.parse('"ISLEM_BRK_VIEW"')
+    table_comment=ObjectIdentity('sky-db',owner,'COMMENT',name,'a'*64)
+    view_comment=ObjectIdentity('sky-db',owner,'COMMENT',name,'b'*64)
+    assert source_ddl_path(table_comment)!=source_ddl_path(view_comment)
+    assert source_ddl_path(table_comment).startswith('source-ddl/TTBP/COMMENT/')
 
 
 def make_plan(sql,observed=''):

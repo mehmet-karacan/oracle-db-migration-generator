@@ -20,7 +20,7 @@ from ..model.serialization import canonical_bytes, thaw
 from ..model.snapshot_io import safe_path
 from ..reporting.render import render_reports
 from .validation import validate_plan
-from .layout import component, object_sql_path, navigation
+from .layout import component, object_sql_path, navigation, source_ddl_path
 
 
 def _scan(payloads,secret_values):
@@ -48,8 +48,7 @@ def write_bundle(plan,output,*,secret_values=(),scan_summary=None,source=None):
             obj=objects.get(op.identity.key)
             key=op.identity.key
             if key not in archive:
-                path=('source-ddl/'+component(op.identity.owner.effective_name)+'/'
-                      +component(op.identity.object_type)+'/'+component(op.identity.name.effective_name)+'.sql')
+                path=source_ddl_path(op.identity)
                 raw=obj.raw_ddl if obj else None
                 archive[key]={'object_key':key,'path':path if raw else None,
                               'sha256':hashlib.sha256(raw).hexdigest() if raw else None,

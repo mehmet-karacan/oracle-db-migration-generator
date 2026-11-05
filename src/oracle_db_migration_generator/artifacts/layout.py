@@ -24,6 +24,13 @@ def object_sql_path(operation):
     return object_folder(operation.to_dict()['object']) + '/' + operation.operation_id + '.sql'
 
 
+def source_ddl_path(identity):
+    """Aynı adlı kaynak nesneleri ayrı DDL dosyalarında tutar."""
+    return ('source-ddl/' + '/'.join(component(value) for value in
+            (identity.owner.effective_name,identity.object_type,identity.name.effective_name))
+            + '/' + identity.key + '.sql')
+
+
 def markdown(value):
     # HTML entities also protect pipes, backticks and link syntax in Markdown.
     return ''.join(c if c.isalnum() or c in ' ._-' else f'&#{ord(c)};' for c in str(value))

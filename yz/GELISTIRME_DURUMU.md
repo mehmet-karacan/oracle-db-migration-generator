@@ -2292,3 +2292,34 @@ Değişen ürün kaynağı yok. Bu aşamada yalnız Jenkins iş yapılandırmas�
 ve bu devir belgeleri güncellendi. Sonraki somut adım kaynak metadata
 erişim hatasını salt okunur tanılamak, ardından tam raporu yeniden
 üretmektir.
+
+## 5 Kasım 2026 - Jenkins kaynak DDL arşivi
+
+Author: Mehmet KARACAN
+Date: 2026-11-05
+
+Günlük #69 çalışması rapor üretmeden FAILURE bitti. Jenkins çalışma
+alanındaki kaynak ve hedef snapshot dosyalarıyla çevrimdışı tanı yapıldı.
+#72 tanısı `SOURCE_DDL_INTEGRITY_MISMATCH` hatasını gösterdi. Kaynakta
+`TTBP.ISLEM_BRK_VIEW` için iki COMMENT nesnesi aynı DDL arşiv yoluna
+yazılıyordu. Nesne anahtarları ve DDL içerikleri farklıydı.
+
+`artifacts/layout.py` arşiv yoluna nesne anahtarını ekliyor.
+`artifacts/bundle.py` bu yolu kullanıyor. `tests/unit/test_bundle.py`
+aynı adlı COMMENT nesnelerinin yollarını ayrı doğruluyor. Gerçek #69
+kaynağındaki 8.867 nesnede yeni yol ile çakışma sayısı sıfır.
+`python -m pytest -q --tb=short` sonucu 1.262 PASS.
+
+Yeni release ZIP SHA değeri
+`cbda08ddde7ac16f521da09f5948f8f5371858ceebbb2da213cdc8345fdcadff`.
+Jenkins Replay tanısı işin parametrelerini ve zamanlamasını kaldırdığı için
+4 Kasım yapılandırması Job Config History üzerinden geri yüklendi. Yeni
+release SHA Pipeline içindeki üç yerde kaydedildi. Günlük 08:00 tetiklemesi,
+parametreler, eşzamanlı çalışma engeli, 20 çalışma saklama ve tek mail
+alıcısı yeniden doğrulandı.
+
+#73 ortam kontrolü SUCCESS oldu. Yeni paket Jenkins üzerinde açıldı,
+Python 3.12.15 doğrulandı. Oracle bağlantısı ve mail gönderimi yoktu.
+#74 TTBP canlı karşılaştırması başlatıldı, sonucu henüz bekleniyor.
+Veritabanına DDL uygulanmadı. Sonraki adım #74 raporunu ve tek alıcılı
+mail kaydını doğrulamak.
