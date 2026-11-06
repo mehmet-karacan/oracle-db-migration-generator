@@ -1,9 +1,0 @@
-{# Şema Karşılaştırma mailinde proje ile kaynak ve hedef şemalarını gösterir.
-Author: Mehmet KARACAN
-Date: 2026-11-06 #}
-<tr><td class="pad" style="padding:0 34px 22px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#F3F6F8"><tr>
-<td width="25%" valign="top" style="padding:14px 16px;border:0"><div style="font-size:12px;color:#68778B">Proje</div><strong style="font-size:16px;color:#17243A">{{ view.project_name }}</strong></td>
-<td width="35%" valign="top" style="padding:14px 16px;border:0"><div style="font-size:12px;color:#68778B">Kaynak şema</div><strong style="font-size:16px;color:#17243A">{{ view.source_schemas|join(', ') if view.source_schemas else 'Kaydedilmedi' }}</strong></td>
-<td width="40%" valign="top" style="padding:14px 16px;border:0"><div style="font-size:12px;color:#68778B">Hedef ortam ve şema</div><strong style="font-size:16px;color:#17243A">{{ view.target_schema_labels[:5]|join(', ') if view.target_schema_labels else 'Kaydedilmedi' }}</strong>{% if view.target_schema_labels|length > 5 %}<div style="font-size:12px;color:#68778B">{{ view.target_schema_labels|length - 5 }} hedef daha var</div>{% endif %}</td>
-</tr></table></td></tr>

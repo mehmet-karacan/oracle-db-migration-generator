@@ -17,7 +17,7 @@ from ..reporting.render import render_run_reports
 from ..artifacts.layout import markdown
 
 
-def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,build_url=None,source_origin=None,project_name=None):
+def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,build_url=None,source_origin=None):
     root=Path(root).resolve();results=[];commits=set();synthetic=False;plans={};proposal_ids={}
     for path in sorted((root/'targets').glob('*')):
         if not path.is_dir(): continue
@@ -58,7 +58,6 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
     document={'schema_version':'run/1.0','synthetic':synthetic,'run_id':str(uuid4()),'started_at':started_at or now,'finished_at':now,
               'source_commit':commits.pop(),'status':'FAILED' if failed else 'PARTIAL' if partial else 'COMPLETE',
               'exit_code':code,'build_url':build_url,'targets':results}
-    if project_name is not None:document['project_name']=project_name
     if build_number is not None: document['build_number']=build_number
     if source_origin:document['source_origin']=source_origin
     validate_document(document,'run.schema.json')

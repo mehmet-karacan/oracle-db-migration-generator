@@ -1,8 +1,4 @@
-"""Şema Karşılaştırma çalışmalarını proje kapsamında yürütür ve SQL'i yalnız dosyaya yazar.
-
-Author: Mehmet KARACAN
-Date: 2026-11-06
-"""
+"""Real engine orchestration. All SQL is emitted offline, never applied."""
 from dataclasses import replace
 import json
 import os
@@ -243,8 +239,7 @@ def execute_run(store,id,*,source_collector=collect_source,target_collector=coll
                 results.append(result);store.update_run(id,targets=results)
             stage('REPORT')
             summary=aggregate_run(root,source_commit=source.source_commit,
-                source_origin=dict(source.source_origin) if source.source_origin else None,
-                started_at=store.run(id)['started_at'],project_name=spec['project']['name'])
+                source_origin=dict(source.source_origin) if source.source_origin else None,started_at=store.run(id)['started_at'])
             store.update_run(id,status=summary['status'],stage='FINISHED',finished_at=now(),targets=results,
                 source_performance=performance,source_origin=summary.get('source_origin'),source_commit=summary['source_commit'],
                 report_available=True,notification_status='NOT_SENT_LOCAL_DEVELOPMENT')
