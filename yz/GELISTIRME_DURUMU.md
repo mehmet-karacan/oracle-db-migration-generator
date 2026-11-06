@@ -2381,3 +2381,17 @@ hedefi henüz doğrulanmadı. Oracle, Jenkins ve SMTP NOT_RUN.
 
 Son tam test 1.278 PASS, 224,34 saniye. PYTHONPATH=src kullanıldı.
 Kanıt `.local/performance-tests-final.xml`. Jenkins kayıt erişimi HTTP 403.
+
+## 6 Kasım 2026 - Yerel canlı performans incelemesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Tarayıcı eklentisiyle Jenkins erişimi sağlandı. e390fbab ana dala gönderildi,
+paket kuruldu ve 78 ortam kontrolü geçti. 79 kullanıcı talimatıyla iptal edildi.
+Yerel teşhis, uzun ilk dosya yüzünden boş kalan parser çalışanlarını gösterdi.
+Kaynak kuyruğu tamamlanma sırasıyla ilerleyecek şekilde düzeltildi.
+Dosya sonuçlarının birleştirme sırası ve Oracle toplama yolu korunuyor.
+Tam test 1.279 PASS. Yerel UI canlı çalışması
+a1b9a9c08bd1435aa3bed5457bbcd2eb başladı. Beş dakika hedefi henüz doğrulanmadı.
+Canlı toplam süre ve rapor sonucu bekleniyor. Yerel modda SMTP NOT_RUN.

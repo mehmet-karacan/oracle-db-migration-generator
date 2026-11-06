@@ -4,7 +4,9 @@ Author: Mehmet KARACAN
 Date: 2026-11-06
 """
 from contextvars import ContextVar
+from contextlib import contextmanager
 import time
+import threading
 
 import pytest
 
@@ -39,6 +41,20 @@ def test_parallel_order_context_and_failure_cleanup(monkeypatch):
         assert list(results) == [(value, 'runtime-settings') for value in range(6)]
 
 
+def test_completed_jobs_refill_pool_while_first_job_is_blocked():
+    reached_later_job = threading.Event()
+    def action(value):
+        if value == 0:
+            assert reached_later_job.wait(3), 'First job blocked new submissions'
+        if value == 10:
+            reached_later_job.set()
+        return value
+    with client.parallel_parser_map(action, range(20), workers=2, ordered=False) as results:
+        values = list(results)
+    assert sorted(values) == list(range(20))
+    assert values[0] != 0
+
+
 def test_timeout_only_discards_its_own_worker(monkeypatch):
     original = client.ParserClient.request
     children = []
@@ -68,18 +84,34 @@ def test_source_snapshot_bytes_match_across_worker_counts(monkeypatch):
     from oracle_db_migration_generator.parsing.adapter import parse_source
     from oracle_db_migration_generator.source.models import SourceArtifact, SourceInput, SourceRevision
     from tests.factories import profile
+    from oracle_db_migration_generator.parsing import adapter
     selected = profile()
     artifacts = []
     for i in range(8):
         raw = f'CREATE TABLE APP.T{i}(ID NUMBER);'.encode()
         artifacts.append(SourceArtifact(f'app/t{i}.sql', 'APP', 'DDL', 'TABLE', raw,
                                         hashlib.sha256(raw).hexdigest()))
+    for kind, raw in [('MANIFEST', b'{}'), ('DEPENDENCIES',
+            b'{"schema":"APP","object":{"name":"T0","type":"TABLE"},"depends_on":[]}')]:
+        artifacts.append(SourceArtifact(f'app/{kind}.json', 'APP', kind, None, raw,
+                                        hashlib.sha256(raw).hexdigest()))
     inputs = SourceInput(SourceRevision('a'*40, None), tuple(artifacts), 'b'*64)
     monkeypatch.setenv('GENERATOR_PARSER_WORKERS', '1')
     serial = canonical_bytes(parse_source(inputs, selected).to_dict())
     monkeypatch.setenv('GENERATOR_PARSER_WORKERS', '4')
-    parallel = canonical_bytes(parse_source(inputs, selected).to_dict())
+    original = adapter.parallel_parser_map
+    @contextmanager
+    def checked_map(function, items, **kwargs):
+        assert all(item.kind == 'DDL' for item in items)
+        assert kwargs['ordered'] is False
+        with original(function, items, **kwargs) as results:
+            yield results
+    monkeypatch.setattr(adapter, 'parallel_parser_map', checked_map)
+    progress = []
+    parallel = canonical_bytes(parse_source(inputs, selected,
+        progress=lambda count, total: progress.append((count, total))).to_dict())
     assert serial == parallel
+    assert progress == [(count, 10) for count in range(2, 11)]
 
 
 @pytest.mark.parametrize('value', ['0', '9', 'invalid'])

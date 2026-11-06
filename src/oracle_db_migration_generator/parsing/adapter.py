@@ -85,50 +85,59 @@ def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
     file_diagnostics = []
     inventory_records = []
     def parse_artifact(artifact):
-        if artifact.kind in {'MANIFEST', 'DEPENDENCIES'}:
-            return None
         hint = ObjectIdentity(profile.id, Identifier.parse(artifact.source_schema),
                               artifact.object_type_hint or 'TABLE', Identifier.parse('UNRESOLVED'))
-        return parse_ddl(artifact.raw, hint)
-    with parallel_parser_map(parse_artifact, inputs.artifacts) as results:
-        for index, (artifact, result) in enumerate(zip(inputs.artifacts, results)):
+        return artifact.path, parse_ddl(artifact.raw, hint)
+    parse_inputs = tuple(artifact for artifact in inputs.artifacts
+                         if artifact.kind not in {'MANIFEST', 'DEPENDENCIES'})
+    raw_results = {}
+    completed = len(inputs.artifacts) - len(parse_inputs)
+    if progress:
+        progress(completed, len(inputs.artifacts))
+    with parallel_parser_map(parse_artifact, parse_inputs, ordered=False) as results:
+        for path, result in results:
+            raw_results[path] = result
+            completed += 1
             if progress:
-                progress(index, len(inputs.artifacts))
-            if artifact.kind in {'MANIFEST', 'DEPENDENCIES'}:
+                progress(completed, len(inputs.artifacts))
+    # Birleşim sırası kanıt kimlikleri ve aynı nesnenin yinelenen tanımları için korunur.
+    for artifact in inputs.artifacts:
+        if artifact.kind in {'MANIFEST', 'DEPENDENCIES'}:
+            continue
+        result = raw_results.pop(artifact.path)
+        inventory = inspect_artifact(artifact, profile, result)
+        inventory_records.append(inventory)
+        original_missing = result.coverage != 'COMPLETE' and not result.objects
+        result = fallback_objects(artifact, profile, result, inventory, ParsedObject)
+        parsed_results[artifact.path] = result
+        if result.diagnostics:
+            file_diagnostics.append({'path':artifact.path,'codes':list(result.diagnostics),'coverage':result.coverage})
+        diagnostics.extend(result.diagnostics)
+        for parsed in result.objects:
+            if parsed.identity.object_type not in profile.object_types:
+                diagnostics.append('SOURCE_OBJECT_TYPE_OUTSIDE_PROFILE')
                 continue
-            inventory = inspect_artifact(artifact, profile, result)
-            inventory_records.append(inventory)
-            original_missing = result.coverage != 'COMPLETE' and not result.objects
-            result = fallback_objects(artifact, profile, result, inventory, ParsedObject)
-            parsed_results[artifact.path] = result
-            if result.diagnostics:
-                file_diagnostics.append({'path':artifact.path,'codes':list(result.diagnostics),'coverage':result.coverage})
-            diagnostics.extend(result.diagnostics)
-            for parsed in result.objects:
-                if parsed.identity.object_type not in profile.object_types:
-                    diagnostics.append('SOURCE_OBJECT_TYPE_OUTSIDE_PROFILE')
-                    continue
-                evidence_id = 'ev-' + digest([artifact.path, artifact.sha256, parsed.start_byte, parsed.end_byte])
-                evidence.append(Evidence(evidence_id, 'SOURCE_SPAN', 'SOURCE', artifact.path, artifact.sha256,
-                                         parsed.start_line, parsed.end_line, None, 'Kaynak DDL nesne aralığı.',
-                                         parsed.start_byte, parsed.end_byte))
-                ids = (evidence_id,)
-                known = parsed.parse_ok and not parsed.diagnostics
-                properties = {'projection': KnownValue('KNOWN' if known else 'UNKNOWN',
-                                                       thaw(parsed.projection.properties) if known else None, ids),
-                              'definition': KnownValue('KNOWN' if parsed.parse_ok else 'UNKNOWN',
-                                                       parsed.projection.properties.get('_generator_effective_definition',canonical_sql(parsed.raw_ddl.decode())) if parsed.parse_ok else None, ids)}
-                obj = SnapshotObject(parsed.identity, properties, artifact.path, hashlib.sha256(parsed.raw_ddl).hexdigest(),
-                                     Coverage('COMPLETE', 'COMPLETE' if known else 'PARTIAL', 'NOT_APPLICABLE', parsed.diagnostics),
-                                     ids, parsed.raw_ddl, parsed.projection)
-                previous = objects.get(obj.object_key)
-                if previous:
-                    conflict = canonical_sql(previous.raw_ddl.decode()) != canonical_sql(obj.raw_ddl.decode())
-                    coverage = Coverage('COMPLETE', 'PARTIAL', 'NOT_APPLICABLE', ('DUPLICATE_DEFINITION_CONFLICT',)) if conflict else previous.coverage
-                    obj = replace(previous, evidence_ids=previous.evidence_ids + ids, coverage=coverage)
-                objects[obj.object_key] = obj
-            if original_missing:
-                diagnostics.append('SOURCE_FILE_UNPARSED')
+            evidence_id = 'ev-' + digest([artifact.path, artifact.sha256, parsed.start_byte, parsed.end_byte])
+            evidence.append(Evidence(evidence_id, 'SOURCE_SPAN', 'SOURCE', artifact.path, artifact.sha256,
+                                     parsed.start_line, parsed.end_line, None, 'Kaynak DDL nesne aralığı.',
+                                     parsed.start_byte, parsed.end_byte))
+            ids = (evidence_id,)
+            known = parsed.parse_ok and not parsed.diagnostics
+            properties = {'projection': KnownValue('KNOWN' if known else 'UNKNOWN',
+                                                   thaw(parsed.projection.properties) if known else None, ids),
+                          'definition': KnownValue('KNOWN' if parsed.parse_ok else 'UNKNOWN',
+                                                   parsed.projection.properties.get('_generator_effective_definition',canonical_sql(parsed.raw_ddl.decode())) if parsed.parse_ok else None, ids)}
+            obj = SnapshotObject(parsed.identity, properties, artifact.path, hashlib.sha256(parsed.raw_ddl).hexdigest(),
+                                 Coverage('COMPLETE', 'COMPLETE' if known else 'PARTIAL', 'NOT_APPLICABLE', parsed.diagnostics),
+                                 ids, parsed.raw_ddl, parsed.projection)
+            previous = objects.get(obj.object_key)
+            if previous:
+                conflict = canonical_sql(previous.raw_ddl.decode()) != canonical_sql(obj.raw_ddl.decode())
+                coverage = Coverage('COMPLETE', 'PARTIAL', 'NOT_APPLICABLE', ('DUPLICATE_DEFINITION_CONFLICT',)) if conflict else previous.coverage
+                obj = replace(previous, evidence_ids=previous.evidence_ids + ids, coverage=coverage)
+            objects[obj.object_key] = obj
+        if original_missing:
+            diagnostics.append('SOURCE_FILE_UNPARSED')
     if not objects:
         diagnostics.append('SOURCE_SCOPE_EMPTY')
     partial = bool(diagnostics or any(obj.coverage.ddl != 'COMPLETE' for obj in objects.values()))

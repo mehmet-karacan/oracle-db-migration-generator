@@ -1,3 +1,30 @@
+## 6 Kasım 2026 - Jenkins iptali ve yerel performans teşhisi
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+e390fbab ana dala gönderildi ve Jenkins'e kuruldu. 78 ortam kontrolü PASS.
+79 kaynak hazırlığında uzadı. Kullanıcının son talimatıyla tarayıcı
+eklentisinden iptal edildi. ABORTED ve yalnız izinli alıcıya iptal maili
+doğrulandı. Yeni Jenkins karşılaştırması başlatılmadı.
+
+Yerelde aynı kaynak SHA ile dosya süreleri ölçüldü. Sıralı future beklemesi
+boş parser çalışanlarına iş gönderimini durduruyordu. client.py ve adapter.py
+tamamlanma sıralı kaynak çözümlemesine geçirildi. Birleştirme sırası korunur.
+test_parallel_parser.py kuyruk ilerlemesi, metadata atlama ve seri/paralel
+snapshot eşitliğini doğrular. Tam PYTHONPATH=src pytest sonucu 1.279 PASS.
+Kanıt .local/local-diagnostic-tests.xml. Grammar deneyleri ürün koduna alınmadı.
+
+Yerel UI 8800 portunda açıldı. Kullanıcı Git ve Oracle bilgilerini UI'de
+kaydetti. Oracle bağlantı testi PASS. TTBP Git ve Test eşleştirmesi ile
+TTBP Yerel Performans profili oluşturuldu. Çalıştırma yeri Bu Bilgisayar.
+Run a1b9a9c08bd1435aa3bed5457bbcd2eb, kaynak SHA
+442089852f615d0304debbb2b61fbafe2719f8f3. Tam canlı sonuç henüz bekleniyor.
+Kayıtlar .local/ui-state altında, SQL uygulanmaz ve yerel mod mail göndermez.
+Kullanıcı hedefin test ortamı olduğunu belirtti. Bağlantıdaki PROD adı
+üretim ortamı kanıtı değildir. Ayrıntı docs/PERFORMANS_20261106.md.
+Sonraki adım yerel çalışmanın kaynak, hedef ve rapor sürelerini okumak.
+
 ## 2 Kasım 2026 - Kaynak DDL arşivi
 
 Author: Mehmet KARACAN

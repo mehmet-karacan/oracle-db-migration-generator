@@ -6,7 +6,7 @@ Date: 2026-11-06
 import atexit
 import base64
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from contextlib import contextmanager
 from contextvars import copy_context
 import json
@@ -33,11 +33,12 @@ def parser_workers():
 
 
 @contextmanager
-def parallel_parser_map(function, items, *, workers=None):
-    """Bağımsız girdileri çözümler ve sonuçları girdi sırasında verir.
+def parallel_parser_map(function, items, *, workers=None, ordered=True):
+    """Bağımsız girdileri çözümler ve seçilen sırada sonuçları verir.
 
     Her iş parçacığı kendi parser sürecini kullanır. Bekleyen işler sınırlıdır.
-    Çıkışta bütün süreçler kapatılır. Oracle bağlantısı açılmaz.
+    Varsayılan girdi sırasıdır. Tamamlanma sırası uzun girdinin diğer
+    görevlerin başlamasını geciktirmesini önler. Çıkışta süreçler kapatılır.
     """
     count = parser_workers() if workers is None else workers
     if not isinstance(count, int) or not 1 <= count <= 8:
@@ -63,7 +64,7 @@ def parallel_parser_map(function, items, *, workers=None):
             return False
         pending.append(executor.submit(copy_context().run, function, item))
         return True
-    def ordered():
+    def ordered_results():
         for _ in range(count * 2):
             if not submit_one():
                 break
@@ -71,8 +72,19 @@ def parallel_parser_map(function, items, *, workers=None):
             result = pending.popleft().result()
             submit_one()
             yield result
+    def completed_results():
+        for _ in range(count * 2):
+            if not submit_one():
+                break
+        while pending:
+            completed, _ = wait(pending, return_when=FIRST_COMPLETED)
+            for future in completed:
+                pending.remove(future)
+                result = future.result()
+                submit_one()
+                yield result
     try:
-        yield ordered()
+        yield ordered_results() if ordered else completed_results()
     finally:
         for future in pending:
             future.cancel()

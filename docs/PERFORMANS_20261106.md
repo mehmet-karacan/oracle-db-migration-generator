@@ -64,3 +64,39 @@ Yeni canlı ölçümde kaynak hazırlığı, hedef receipt içindeki
 phase_timings_seconds ve observations altındaki performance.json birlikte
 incelenmelidir. Ağ, Git erişimi ve Oracle metadata süresi toplam ölçüme
 dahildir. Zaman aşımını azaltmak veya nesne atlamak hızlandırma sayılmaz.
+
+## Jenkins dağıtımı ve yerel teşhis
+
+e390fbabca77849f602b11e8c0882c42eda3cb3f ana dala gönderildi.
+Jenkins ortam kontrolü 78 başarılı oldu. Yeni paketin kurulduğu doğrulandı.
+79 numaralı karşılaştırma kaynak hazırlığında uzadı. Kullanıcının yerelde
+inceleme talebi üzerine iptal edildi. Durum ABORTED. Sonuç karşılaştırması
+tamamlanmış sayılmaz. İptal bildirimi yalnız mkaracan@innova.com.tr alıcısına gitti.
+
+Yerel teşhis aynı 442089852f615d0304debbb2b61fbafe2719f8f3 kaynak sürümünü
+ve 5.687 dosyalı TTBP kapsamını kullandı. İlk 88 saniyelik kayıtta dört
+çözümleyicinin toplam doluluğu yaklaşık yüzde 59 oldu. Sıradaki uzun işin
+sonucu beklenirken boş çalışanlara yeni dosya gönderilmiyordu. MANIFEST ve
+DEPENDENCIES dosyaları da sınırlı kuyruğun yerini tüketiyordu.
+
+Kaynak çözümlemesi artık tamamlanan işler geldikçe kuyruğu yeniliyor.
+Sonuçlar dosya yoluyla saklanıp özgün sırada birleştiriliyor. JSON yardımcı
+dosyaları parser havuzuna girmiyor. Oracle toplama yolu varsayılan sıralı
+çalışmayı koruyor. Sonuç sırası, kanıtlar ve SQL biçimi değişmiyor.
+
+BASEUTILS gövdesi 30 saniyelik, PCK_DUMMY gövdesi 240 saniyelik çözümleme
+sınırına ulaştı. PL/SQL grammar ölçümü maliyetin ifade tahmini içinde
+olduğunu gösterdi. Beş gerçek dosyada SLL önceliği aynı parser yanıtını
+verdi ancak tutarlı hızlanma sağlamadı. Dar bir argüman kontrolü BASEUTILS
+CPU süresini yalnız yüzde 4,2 azalttı. Bu iki deney ürüne alınmadı.
+
+Yeni tam test sonucu 1.279 PASS, 267,39 saniye. Kaynak çıktısının seri ve
+paralel kanonik byte eşitliği ve uzun ilk görev sırasında kuyruğun ilerlemesi
+ayrı testlerle doğrulandı. Kanıt .local/local-diagnostic-tests.xml.
+
+Yerel UI üzerinden TTBP Yerel Performans çalışması başlatıldı.
+Kayıt a1b9a9c08bd1435aa3bed5457bbcd2eb. Kullanıcı test ortamı olduğunu
+belirtti. Bağlantı adı PROD içerse de ortamın niteliği bu adla çıkarılmadı.
+Kaynak sürümü sabitlendi. Yerel UI akışı Jenkins'in ek kaynak metadata
+zenginleştirmesini çalıştırmadığı için iki akışın sonuç eşitliği varsayılmaz.
+Bu kayıt canlı süre ve hata teşhisi içindir. SQL uygulanmaz.
