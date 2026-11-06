@@ -1,4 +1,10 @@
+/**
+ * Şema Karşılaştırma ekranlarının Türkçe ve İngilizce metinlerini eşleştirir.
+ * @author Mehmet KARACAN
+ * Date: 2026-11-06
+ */
 export const english:Record<string,string>={
+  "dosya":"files",
   "Git depoları, Oracle bağlantıları ve metadata dosyaları tek yerde.":"Git repositories, Oracle connections and metadata files in one place.",
   "Toplama Amacı":"Capture Purpose",
   "Kaynak Yapı":"Source Structure",

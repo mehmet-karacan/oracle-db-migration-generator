@@ -119,3 +119,38 @@ def test_worker_count_rejects_invalid_configuration(monkeypatch, value):
     monkeypatch.setenv('GENERATOR_PARSER_WORKERS', value)
     with pytest.raises(ValueError, match='PARSER_WORKERS_INVALID'):
         client.parser_workers()
+
+
+def test_source_schedules_normal_files_before_packages_without_changing_snapshot(monkeypatch):
+    import hashlib
+    from oracle_db_migration_generator.model.serialization import canonical_bytes
+    from oracle_db_migration_generator.parsing import adapter
+    from oracle_db_migration_generator.source.models import SourceArtifact, SourceInput, SourceRevision
+    from tests.factories import profile
+    statements = [
+        ('large', 'PACKAGE_BODY', 'CREATE OR REPLACE PACKAGE BODY APP.PB IS PROCEDURE P IS BEGIN NULL; END; END;\n--'+'x'*100),
+        ('spec', 'PACKAGE_SPEC', 'CREATE OR REPLACE PACKAGE APP.PB IS PROCEDURE P; END;'),
+        ('table', 'TABLE', 'CREATE TABLE APP.T(ID NUMBER);'),
+        ('small', 'PACKAGE_BODY', 'CREATE OR REPLACE PACKAGE BODY APP.PA IS PROCEDURE P IS BEGIN NULL; END; END;'),
+        ('function', 'FUNCTION', 'CREATE FUNCTION APP.F RETURN NUMBER IS BEGIN RETURN 1; END;'),
+    ]
+    artifacts = tuple(SourceArtifact(f'app/{name}.sql', 'APP', 'DDL', kind, sql.encode(),
+        hashlib.sha256(sql.encode()).hexdigest()) for name, kind, sql in statements)
+    inputs = SourceInput(SourceRevision('a'*40, None), artifacts, 'b'*64)
+    original = adapter.parallel_parser_map
+    @contextmanager
+    def original_order(function, items, **kwargs):
+        with original(function, artifacts, **kwargs) as results:
+            yield results
+    monkeypatch.setattr(adapter, 'parallel_parser_map', original_order)
+    expected = canonical_bytes(adapter.parse_source(inputs, profile()).to_dict())
+    observed = []
+    @contextmanager
+    def scheduled(function, items, **kwargs):
+        observed.extend(item.path for item in items)
+        with original(function, items, **kwargs) as results:
+            yield results
+    monkeypatch.setattr(adapter, 'parallel_parser_map', scheduled)
+    actual = canonical_bytes(adapter.parse_source(inputs, profile()).to_dict())
+    assert observed == ['app/table.sql', 'app/function.sql', 'app/large.sql', 'app/small.sql', 'app/spec.sql']
+    assert actual == expected

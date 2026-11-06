@@ -2395,3 +2395,13 @@ Dosya sonuçlarının birleştirme sırası ve Oracle toplama yolu korunuyor.
 Tam test 1.279 PASS. Yerel UI canlı çalışması
 a1b9a9c08bd1435aa3bed5457bbcd2eb başladı. Beş dakika hedefi henüz doğrulanmadı.
 Canlı toplam süre ve rapor sonucu bekleniyor. Yerel modda SMTP NOT_RUN.
+
+Son kullanıcı yönlendirmesiyle yerel canlı çalışma durduruldu. Kaynak
+C:/innova/projeler/sky-db olarak değiştirildi. Normal dosyaları önce,
+paketleri en son işleyen sıra uygulandı. İlerleme birimi dosya olarak düzeltildi.
+Sekiz parser ölçümünde 4.788 paket dışı SQL dosyası 159,096 saniyede tamamlandı.
+Paket çözümlemesi ve parser kapanma zaman aşımı nedeniyle tam hazırlık
+tamamlanmadı. Beş dakika hedefi ve canlı kabul henüz sağlanmadı.
+Kapanma hatası için regresyon testi ve sınırlı tekrar uygulandı.
+Parser, lifecycle, kaynak ve cache grubu 52 PASS. UI ilerleme grubu 9 PASS.
+Bu son düzeltmeden sonra tam kaynak ve canlı Oracle kabulü NOT_RUN.

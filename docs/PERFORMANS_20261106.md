@@ -100,3 +100,47 @@ belirtti. Bağlantı adı PROD içerse de ortamın niteliği bu adla çıkarılm
 Kaynak sürümü sabitlendi. Yerel UI akışı Jenkins'in ek kaynak metadata
 zenginleştirmesini çalıştırmadığı için iki akışın sonuç eşitliği varsayılmaz.
 Bu kayıt canlı süre ve hata teşhisi içindir. SQL uygulanmaz.
+
+## Paket önceliği ve yerel depo ölçümü
+
+Kullanıcı uzun çalışmanın tamamlanmasını beklemek yerine önce hız sorununun
+giderilmesini istedi. a1b9a9c08bd1435aa3bed5457bbcd2eb durduruldu ve
+USER_STOPPED_FOR_PERFORMANCE kaydedildi. Tam Oracle karşılaştırması tamamlanmadı.
+Yeni kaynak C:/innova/projeler/sky-db olarak seçildi. Kaynak depo değiştirilmedi.
+Ölçüm 881ad00a06474bc737e022f2185bc9fce7307c6b commit'ini okudu.
+Çalışma ağacındaki dokuz değişmiş SQL dosyası bu commit ölçümüne dahil edilmedi.
+
+Normal SQL dosyaları artık küçükten büyüğe çözülüyor. Paketler sona alındı.
+Paket grubunda büyük gövdeler önce başlatılıyor. Amaç son büyük dosyanın
+bütün kısa işlerden sonra tek başına kalmasını önlemek. Sonuçların birleşimi
+özgün dosya sırasında kaldı. Kaynak ilerleme birimi dosya, Oracle ilerleme
+birimi nesne olarak Türkçe ve İngilizce test edildi.
+
+Sekiz parser ile yerel ölçümde 4.788 paket dışı SQL dosyası 159,096 saniyede
+tamamlandı. JSON yardımcı dosyaları dahil ilerleme yaklaşık 5.500 oldu.
+Bu sayı nesne sayısı değildir. Toplam kaynak 5.690 dosyadır. Paket aşamasında
+yedi kayıt zaman aşımına ulaştı. Bir parser süreci kapatılırken beş saniyelik
+process.wait sınırı aşıldı ve TimeoutExpired bütün hazırlığı durdurdu.
+Ölçüm tam kaynak sonucu veya canlı kabul sayılmaz. Kanıt
+.local/local-source-packages-last-console.log ve aynı adlı klasörde files.jsonl.
+
+BASEUTILS dosya ölçümünde ilk çözümleme 25,14 saniye, grammar aşaması
+24,66 saniye sürdü. Aynı parser sürecinde tekrar 6,12 saniye, grammar
+5,94 saniye oldu. Paket projection işlemi yaklaşık 0,05 saniyedir.
+Yavaşlık fark motorundan önceki PL/SQL grammar aşamasındadır.
+
+Kaynaklar için içerik özeti ve doğrulanmış önbellek yaklaşımı sürdürülür.
+Git diff iki metin arasındaki farkı gösterebilir, hedefin güncel envanteri ve
+kolon değişiminden DDL çıkarma işinin yerini almaz. Referanslar
+[Git diff](https://git-scm.com/docs/git-diff) ve
+[ANTLR PL/SQL grammar](https://github.com/antlr/grammars-v4/blob/master/sql/plsql/README.md).
+Paket gövdelerinin metin karşılaştırmasını ayrıntılı grammar analizinden
+ayırmak daha kapsamlı bir adaydır. Henüz uygulanmadı ve çıktı eşitliği
+doğrulanmış sayılmaz. Beş dakika toplam hedefi sağlanmadı.
+
+Parser kapanışında ilk beş saniyelik bekleme aşılırsa tek ek öldürme ve
+on saniyelik bekleme uygulanır. Kalıcı hata başarı sayılmaz. Bir slot
+kapanamazsa diğer slotların temizliği yine denenir. Çözümleme bütçeleri
+değişmedi. Parser, lifecycle, kaynak ve cache grubu 52 PASS, 60,03 saniye.
+RunDetail ilerleme birimi grubu 9 PASS. UI build PASS. Bu düzeltmeden sonra
+yeni tam kaynak veya canlı Oracle karşılaştırması başlatılmadı.

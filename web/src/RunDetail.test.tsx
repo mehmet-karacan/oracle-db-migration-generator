@@ -1,9 +1,25 @@
+/**
+ * Şema Karşılaştırma çalışma ekranındaki sonuçları ve ilerleme birimlerini sınar.
+ * @author Mehmet KARACAN
+ * Date: 2026-11-06
+ */
 import { render, screen, waitFor, cleanup } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { RunDetail } from './RunDetail'
+import { setPreferences } from './preferences'
 
-afterEach(()=>{cleanup();vi.unstubAllGlobals()})
+afterEach(()=>{cleanup();vi.unstubAllGlobals();setPreferences({locale:'tr'})})
 const run={id:'fixture',actor:'admin',status:'PARTIAL',stage:'FINISHED',created_at:'2026-10-24T10:00:00Z',targets:[],spec:{profile:{name:'Test comparison',source:{kind:'ORACLE'},target_ids:['target']},connections:{target:{name:'Test target'}}}}
+it.each([
+  ['SOURCE_PARSE','tr','dosya'], ['SOURCE_CAPTURE','tr','nesne'], ['TARGET_CAPTURE','tr','nesne'],
+  ['SOURCE_PARSE','en','files'], ['SOURCE_CAPTURE','en','objects'], ['TARGET_CAPTURE','en','objects'],
+] as const)('uses the correct progress unit for %s in %s',async(stage,locale,unit)=>{
+  setPreferences({locale})
+  const active={...run,status:'RUNNING',stage,progress:{processed:10,total:100}}
+  vi.stubGlobal('fetch',vi.fn(async(url:string)=>({ok:true,json:async()=>url.includes('/summary')?{source_total:1,counts:{},source_types:{}}:url.includes('/results/objects?')?{available:true,total:0,rows:[]}:active})))
+  render(<RunDetail id="fixture" back={()=>{}}/>)
+  expect(await screen.findByText(`10 / 100 ${unit}`)).toBeInTheDocument()
+})
 it('surfaces a failed API request instead of showing success',async()=>{
   vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline')))
   render(<RunDetail id="fixture" back={()=>{}}/>)

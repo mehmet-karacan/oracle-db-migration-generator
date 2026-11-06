@@ -89,12 +89,23 @@ def parallel_parser_map(function, items, *, workers=None, ordered=True):
         for future in pending:
             future.cancel()
         executor.shutdown(wait=True, cancel_futures=True)
+        cleanup_errors = []
         for slot in slots:
             if slot['client'] is not None:
-                slot['client'].close()
+                try:
+                    slot['client'].close()
+                except Exception as error:
+                    cleanup_errors.append(error)
+        if cleanup_errors:
+            raise cleanup_errors[0]
 
 
 class ParserClient:
+    """Bir parser alt sürecinin isteklerini ve kapanmasını yönetir.
+
+    Author: Mehmet KARACAN
+    Date: 2026-11-06
+    """
     def __init__(self):
         self.process = subprocess.Popen([sys.executable, '-m', 'oracle_db_migration_generator.parsing.worker'],
                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -109,7 +120,13 @@ class ParserClient:
     def close(self):
         if self.process.poll() is None:
             self.process.kill()
-        self.process.wait(timeout=5)
+        try:
+            self.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            # Windows süreç sonlandırmasını geç bildirebilir. Tek ek deneme yapılır.
+            if self.process.poll() is None:
+                self.process.kill()
+            self.process.wait(timeout=10)
         for stream in (self.process.stdin, self.process.stdout):
             if stream:
                 stream.close()

@@ -1,3 +1,34 @@
+## 6 Kasım 2026 - Paketleri sona alma ve yeni teşhis
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Kullanıcı önce performans sorununun düzeltilmesini istedi. Yerel canlı run
+a1b9a9c08bd1435aa3bed5457bbcd2eb durduruldu. Hedefin tam karşılaştırmasına
+geçilmedi. UI ve kayıtlı bağlantılar .local/ui-state içinde korunuyor.
+Kaynak olarak C:/innova/projeler/sky-db seçildi. Depo salt okunur tutuldu.
+
+adapter.py normal dosyaları küçükten büyüğe, paketleri en son çözümler.
+Paket grubunda büyük gövdeler önce başlar. Snapshot birleşim sırası aynı.
+RunDetail kaynak aşamasında dosya, Oracle aşamasında nesne gösterir.
+İlgili parser 9, parsing ve cache 38, UI 9 test geçti. UI build başarılı.
+
+Sekiz parser ve yerel 881ad00 commit ile 4.788 paket dışı SQL dosyası
+159,096 saniyede tamamlandı. Sonrasında paketler yavaşladı. Kapanan parser
+process.wait(5) çağrısında TimeoutExpired verdi ve hazırlık kesildi.
+Bu hata için sınırlı kapanma tekrarı ve bütün slotların temizlenmesi uygulandı.
+Tam ölçüm ve canlı kabul PASS değildir. Beş dakika hedefi sağlanmadı.
+Yerel kanıt .local/local-source-packages-last-console.log.
+
+Paket grammar iç yapısındaki hash, equality cache ve context interning
+deneyleri yeterli hız kazandırmadığı için ürüne alınmadı. Paket metin
+karşılaştırmasını ayrıntılı grammar analizinden ayırma adayı henüz uygulanmadı.
+Ayrıntılar docs/PERFORMANS_20261106.md içinde. Son testte parser, lifecycle,
+kaynak ve cache grubu 52 PASS, UI grubu 9 PASS. Kanıt
+.local/package-priority-tests.xml. Sonraki somut adım yeni paket çözümleme
+yaklaşımının çıktı eşitliğini değerlendirmektir. Yeni Jenkins çalışması,
+yeni tam Oracle karşılaştırması ve yeni mail yok.
+
 ## 6 Kasım 2026 - Jenkins iptali ve yerel performans teşhisi
 
 Author: Mehmet KARACAN

@@ -78,6 +78,18 @@ def parse_ddl(raw: bytes, identity_hint: ObjectIdentity | None,*,metadata=False)
     return ParseResult(tuple(objects), tuple(payload['sidecars']), diagnostics, 'PARTIAL' if partial else 'COMPLETE')
 
 
+def _source_parse_priority(artifact):
+    """Normal dosyaları küçükten büyüğe, paketleri en son çözümler.
+
+    Paket grubunda büyük gövdeler önce başlatılır. Böylece en pahalı
+    gövdenin bütün kısa paketlerden sonra tek başına kalması önlenir.
+    """
+    kind = artifact.object_type_hint
+    if kind in {'PACKAGE_SPEC', 'PACKAGE_BODY'}:
+        return 1, 0 if kind == 'PACKAGE_BODY' else 1, -len(artifact.raw), artifact.path
+    return 0, 0, len(artifact.raw), artifact.path
+
+
 def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
     from .inventory import inspect_artifact, fallback_objects, attach_inventory_proof
     objects, evidence, diagnostics = {}, [], []
@@ -88,8 +100,9 @@ def parse_source(inputs, profile, *, progress=None) -> SchemaSnapshot:
         hint = ObjectIdentity(profile.id, Identifier.parse(artifact.source_schema),
                               artifact.object_type_hint or 'TABLE', Identifier.parse('UNRESOLVED'))
         return artifact.path, parse_ddl(artifact.raw, hint)
-    parse_inputs = tuple(artifact for artifact in inputs.artifacts
-                         if artifact.kind not in {'MANIFEST', 'DEPENDENCIES'})
+    parse_inputs = tuple(sorted((artifact for artifact in inputs.artifacts
+                                 if artifact.kind not in {'MANIFEST', 'DEPENDENCIES'}),
+                                key=_source_parse_priority))
     raw_results = {}
     completed = len(inputs.artifacts) - len(parse_inputs)
     if progress:
