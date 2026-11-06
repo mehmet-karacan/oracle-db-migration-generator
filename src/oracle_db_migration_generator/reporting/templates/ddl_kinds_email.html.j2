@@ -1,0 +1,10 @@
+{# Şema Karşılaştırma mailinde üretilen DDL işlemlerini türlerine ayırır.
+Author: Mehmet KARACAN
+Date: 2026-11-06 #}
+<tr><td class="pad" style="padding:0 34px 24px">
+<h2 style="font-size:20px;line-height:27px;color:#131E30;margin:0 0 10px">Üretilen DDL türleri</h2>
+{% if view.ddl_kinds %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#F3F6F8">
+{% for group in view.ddl_kinds|batch(3) %}<tr>{% for row in group %}<td width="33%" valign="top" style="width:33%;padding:12px 15px;border:0;border-bottom:1px solid #E1E7ED"><span style="font-size:13px;color:#526278">{{ row.label }}</span><br><strong style="font-size:20px;color:#17243A">{{ row.count|count_tr }}</strong></td>{% endfor %}</tr>{% endfor %}
+</table>{% else %}<p style="font-size:14px;color:#68778B;margin:0">Üretilen DDL bulunmuyor.</p>{% endif %}
+<p style="font-size:12px;line-height:18px;color:#68778B;margin:8px 0 0">Sayılar üretilen DDL işlemlerini gösterir. Bir nesne için birden fazla işlem olabilir.</p>
+</td></tr>

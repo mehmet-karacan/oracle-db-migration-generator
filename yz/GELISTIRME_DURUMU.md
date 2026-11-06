@@ -2328,3 +2328,29 @@ Raporda kaynak envanteri 3.805 nesne, 12.389 fark, 1.933 üretilen DDL
 ve 238 eksik DDL dosyası görünüyor. Kaynak kapsamı PARTIAL ve hedef
 BLOCKED. Bu çalışma tam kabul değildir. Veritabanına DDL uygulanmadı.
 Sonraki adım 238 eksik DDL gerekçesini ayrı incelemek.
+
+## 6 Kasım 2026 - Karşılaştırma raporunda kapsam ve DDL türleri
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Mail ve çalışma HTML'inin üst bölümüne proje, kaynak şema ve hedef ortam
+ile şema bilgileri eklendi. Yerel UI çalışmasının proje adı `run.json`
+dosyasına kendi projesinden yazılıyor. Jenkins arşivindeki eski çalışma
+kayıtlarında proje adı iş klasörünün URL yolundan okunuyor. Bilgi
+bulunmazsa ad uydurulmuyor.
+
+Üretilen DDL işlemleri tablo, kolon, kural ve diğer nesne türleri altında
+sayılıyor. İnceleme veya engel kararı bulunan işlemler yalnız öneri DDL
+dosyası varsa dağılıma giriyor. Tür sayılarının toplamı üretilen DDL
+kartıyla aynı kayıtlardan hesaplanıyor. Kaynak envanteri dağılımı ayrı
+kalıyor. Yerel HTML ve mail önizlemesi görsel olarak kontrol edildi.
+
+Değişen kaynaklar `reporting/view.py`, `reporting/inventory.py`,
+`reporting/templates/email.html.j2`, `reporting/templates/run.html.j2`,
+iki yeni mail şablonu, `reporting/assets/report.css`,
+`runtime/aggregate.py`, `control/runner.py` ve iki `run.schema.json`
+kopyası. `tests/unit/test_report_scan_scope.py` yeni alanları ve DDL
+dağılımını doğruluyor. İlgili iki test grubu 54 ve 55 PASS.
+Tam test paketi 1.263 PASS ve 1 uyarı ile bitti. Canlı Oracle ve
+Jenkins kurulumu NOT_RUN.

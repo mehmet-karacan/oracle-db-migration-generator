@@ -1,4 +1,9 @@
 """Snapshot inventory counters, separate from differences and executable SQL."""
+"""Şema Karşılaştırma raporunda kaynak ve hedef nesne sayılarını hazırlar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import json
 import hashlib
 from collections import Counter
@@ -94,5 +99,6 @@ def scan_scope_view(plans, summaries, target_ids):
     elif expected_schemas - source_schemas.keys():
         notes.append('Bazı kaynak şemalarının tarama kapsamı bilgisi kaydedilmedi, toplam yalnız bilinen şemaları içerir.')
     return {'source_total': sum(sources.values()) if source_schemas else None,
+            'source_schemas': sorted(source_schemas),
             'rows': [{'label': type_label(kind), 'count': sources[kind]} for kind in kinds],
             'note': ' '.join(notes)}

@@ -4,6 +4,7 @@ Author: Mehmet KARACAN
 Date: 2026-11-02
 """
 import re
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
@@ -25,6 +26,22 @@ def schema_subtitle(name,schemas):
     """Hedef adında zaten bulunan şema adını ikinci kez yazmaz."""
     return ', '.join(schema for schema in schemas
                      if not re.search(r'(?<![A-Z0-9_])'+re.escape(schema.upper())+r'(?![A-Z0-9_])',name.upper()))
+
+
+def _ddl_category(op):
+    if op['object']['object_type']=='TABLE':
+        if op['kind'] in {'ADD_COLUMN','ALTER_COLUMN','MODIFY_COLUMN','DROP_COLUMN'}:
+            return 'Kolon'
+        if op['kind'] in {'ADD_CONSTRAINT','DROP_CONSTRAINT','ALTER_CONSTRAINT'}:
+            return 'Kural'
+    return type_label(op['object']['object_type'])
+
+
+def _project_name(run):
+    if run.get('project_name'):
+        return short(run['project_name'],100)
+    parts=[part for part in urlsplit(run.get('build_url') or '').path.split('/') if part]
+    return parts[1].upper() if len(parts)>=4 and parts[0]=='job' and parts[2]=='job' else 'Kaydedilmedi'
 
 
 def _duration_label(run):
@@ -68,7 +85,7 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
     catalog_known=proposal_ids is not None
     proposal_ids=proposal_ids or {}
     targets=[];unique={};counts={'ready_operations':0,'review_operations':0,'blocked_operations':0}
-    proposal_total=0;missing_ddl=0
+    proposal_total=0;missing_ddl=0;ddl_kinds=Counter()
     for target in run['targets']:
         plan=plans.get(target['id'])
         proposed=set(proposal_ids.get(target['id'],()))
@@ -103,6 +120,8 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
                 item['aggregate_path']=base+('/migration.sql' if plan['status']=='READY' else '/partial-ready.sql')
             for key in counts: counts[key]+=plan['counts'][key]
             for op in plan['operations']:
+                if op['decision']=='READY' or op['id'] in proposed:
+                    ddl_kinds[_ddl_category(op)]+=1
                 obj=op['object'];key=tuple(obj[k] for k in ('owner','object_type','name','parent_key'))
                 row=unique.setdefault(key,{'object':obj,'object_label':object_label(obj),'type_label':type_label(obj['object_type']),'evidence_path':target['plan_path'],
                                           'decision':op['decision'],'reason':operation_reason(op),'mail_reason':mail_operation_reason(op), 'targets':set(),'kinds':set(),'operation_count':0,'has_ddl':True})
@@ -130,6 +149,9 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
     if unknown>missing:notes.append('Kapsam eksik; ek farklar bulunabilir.')
     if missing:notes.append(f'{format_count(missing)} hedeften sonuç alınamadı.')
     scan_scope=scan_scope_view(plans,scan_summaries,[target['id'] for target in targets])
+    source_schemas=scan_scope['source_schemas']
+    target_schema_labels=[target['name']+(' ('+target['schema_subtitle']+')' if target['schema_subtitle'] else '')
+                          for target in targets]
     metrics=[{'label':'Hedef','value':format_count(len(targets))},{'label':'Bulunan fark','value':format_count(known) if known is not None else 'Sonuç alınamadı'},
              {'label':'Üretilen DDL','value':format_count(counts['ready_operations']+proposal_total)},
              {'label':'Taranan nesne' if catalog_known else 'İnceleme','value':format_count(scan_scope['source_total']) if catalog_known and scan_scope['source_total'] is not None else 'Bilinmiyor' if catalog_known else format_count(counts['review_operations'])},
@@ -150,6 +172,9 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
         checked=verified_archive(fallback.url,allowed_link_hosts,url_check,build_url=run['build_url'])
         if checked: link=checked.url;note=checked.note
     return {'scan_scope':scan_scope,
+            'project_name':_project_name(run),'source_schemas':source_schemas,
+            'target_schema_labels':target_schema_labels,
+            'ddl_kinds':[{'label':label,'count':count} for label,count in sorted(ddl_kinds.items(),key=lambda item:(-item[1],item[0]))],
             'run':run,'display_status':status_label(run.get('status')),'duration_label':_duration_label(run),**_timing_view(run,comparison_timing),'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
             'metrics':metrics,'important_objects':important,'unique_objects':len(unique),'unknown_targets':unknown,
             'confirmed_differences':known,'unverified_differences':unverified,'difference_note':' '.join(notes),

@@ -2684,3 +2684,25 @@ Oracle DDL/DML NOT_RUN.
 Kod düzeltmesi `ab3cd0867d537fc4107e5ce2eca0c685663c43f1` ile uzak
 `main` dalına gönderildi. Sonraki somut adım 238 eksik DDL dosyasının
 gerekçelerini incelemek. Mail istemcisindeki teslim ayrıca doğrulanmadı.
+
+## 6 Kasım 2026 - HTML rapor bağlamı
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Mail ve genel çalışma HTML'inde proje, kaynak şema ve hedef ortam ile
+şema ilk bölümde gösteriliyor. DDL tür dağılımı yalnız dosyası üretilen
+işlemleri sayıyor. Kolon ve kural işlemleri tablo sayısından ayrı.
+Yerel UI çalışmalarında proje adı çalışma kaydına yazılıyor. Jenkins
+raporunda kayıt yoksa iş klasörü adı kullanılıyor.
+
+Değişen dosyalar `src/oracle_db_migration_generator/reporting/` altındaki
+görünüm, envanter, mail ve genel rapor şablonları ile CSS dosyası,
+`src/oracle_db_migration_generator/runtime/aggregate.py`,
+`src/oracle_db_migration_generator/control/runner.py`, iki çalışma
+JSON şeması ve `tests/unit/test_report_scan_scope.py`.
+İlgili testler 109 PASS. Yerel mail ve genel rapor önizlendi.
+Tam test paketi 1.263 PASS ve 1 uyarı ile bitti. Canlı Oracle ve
+Jenkins NOT_RUN.
+Sonraki somut adım tam test sonucunu almak ve yeni raporu Jenkins
+paketine yerleştirmek.

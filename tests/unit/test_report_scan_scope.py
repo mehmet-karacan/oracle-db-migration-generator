@@ -1,3 +1,8 @@
+"""Şema Karşılaştırma raporunda tarama ve DDL sayılarının doğruluğunu sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import json
 from copy import deepcopy
 from dataclasses import replace
@@ -6,7 +11,7 @@ import pytest
 from tests.factories import actual, profile, source
 from oracle_db_migration_generator.runtime.worker import offline_plan
 from oracle_db_migration_generator.runtime.aggregate import aggregate_run
-from oracle_db_migration_generator.reporting.render import render_email
+from oracle_db_migration_generator.reporting.render import render_email, render_run_reports
 from oracle_db_migration_generator.reporting.view import build_run_view
 
 
@@ -42,6 +47,42 @@ def test_unchanged_objects_are_counted_in_web_and_mail(tmp_path):
         assert 'Hedefler' not in scope and 'kaynak nesneleri' in scope
         if 'Kaynak ve İzlenebilirlik' in html:
             assert html.index('Tarama Kapsamı') < html.index('Kaynak ve İzlenebilirlik')
+
+
+def test_report_names_project_schema_pair_and_generated_ddl_kinds(tmp_path):
+    root, destination = bundle(tmp_path)
+    run = aggregate_run(root)
+    run['build_url'] = 'http://jenkins.example.invalid/job/sky/job/generator/74/'
+    plan = json.loads((destination/'plan.json').read_bytes())
+    summary = json.loads((destination/'scan-summary.json').read_bytes())
+    from tests.unit.test_bundle import make_plan
+    base = make_plan('CREATE TABLE APP.X(ID NUMBER);').to_dict()['operations'][0]
+    table = deepcopy(base);table.update(id='op-table',decision='READY',kind='CREATE')
+    column = deepcopy(base);column.update(id='op-column',decision='READY',kind='ADD_COLUMN')
+    index = deepcopy(base);index.update(id='op-index',decision='BLOCKED',kind='CREATE_INDEX')
+    index['object']['object_type'] = 'INDEX'
+    plan['operations'] = [table,column,index]
+    plan['counts']['ready_operations'] = 2
+    plan['counts']['blocked_operations'] = 1
+    view = build_run_view(run,{plan['target']['id']:plan},
+                          scan_summaries={plan['target']['id']:summary},
+                          proposal_ids={plan['target']['id']:{'op-index'}})
+    assert view['project_name'] == 'SKY'
+    assert view['source_schemas'] == ['APP']
+    assert {row['label']:row['count'] for row in view['ddl_kinds']} == {
+        'Tablo':1, 'Kolon':1, 'İndeks':1}
+    assert sum(row['count'] for row in view['ddl_kinds']) == 3
+    for html in (render_email(view).decode('utf-8'),render_run_reports(view)['index.html'].decode('utf-8')):
+        assert 'SKY' in html and 'APP' in html and 'Üretilen DDL türleri' in html
+    mail = render_email(view).decode('utf-8')
+    assert 'Proje' in mail and 'SKY' in mail and 'Kaynak şema' in mail
+    assert 'Üretilen DDL türleri' in mail and 'Kolon' in mail
+    local_run = aggregate_run(root,project_name='Proje Ayrım Kontrolü')
+    assert local_run['project_name'] == 'Proje Ayrım Kontrolü'
+    local_view = build_run_view(local_run,{plan['target']['id']:plan},
+                                scan_summaries={plan['target']['id']:summary},
+                                proposal_ids={plan['target']['id']:{'op-index'}})
+    assert local_view['project_name'] == 'Proje Ayrım Kontrolü'
 
 
 def test_shared_source_is_counted_once_across_targets(tmp_path):
