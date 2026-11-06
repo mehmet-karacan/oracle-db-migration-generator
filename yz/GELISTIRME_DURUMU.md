@@ -2344,3 +2344,40 @@ bildirimini yalnız `mkaracan@innova.com.tr` adresine gönderdi.
 Jenkins işi HTML onayına kadar devre dışı. Sunucuda kurulu paket
 önceki HTML sürümüne henüz alınmadı. Yeniden etkinleştirmeden önce
 paket sürümü rapor koduyla eşitlenmeli.
+
+## 6 Kasım 2026 - Eposta HTML taslağı
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Kullanıcının onayladığı tasarım yalnız yerelde uygulandı. Eposta
+başlığındaki tekrar kaldırıldı. Kaynak ve hedef şema bilgileri ilk
+bölüme taşındı. Üretilen DDL işlemleri türlerine göre sayıldı.
+Tek hedefte yinelenen hedef tablosu gizlendi. Genel Özet kaldırıldı.
+Değişen dosyalar reporting/view.py, reporting/templates/email.html.j2,
+reporting/templates/ddl_types_email.html.j2 ve tests/unit/test_report_views.py.
+Rapor görünümü örnek veriden yerelde üretildi.
+Özet kartlarında ve dağılım başlıklarında sözcüklerin ilk harfleri
+büyük yazılacak şekilde taslak yenilendi.
+`python -m pytest tests/unit/test_report_views.py -q` sonucu 17 geçti.
+Geniş rapor testinde önceden var olan üç tarama kapsamı hatası sürüyor.
+Canlı Oracle, Jenkins ve SMTP NOT_RUN. Sonraki adım HTML görünümünün
+kullanıcı tarafından incelenmesi.
+
+## 6 Kasım 2026 - Beş dakika hedefi için performans geliştirmesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Kaynak parser havuzu, hedef DDL okumasıyla örtüşen projeksiyon, değişmez
+snapshot özeti önbelleği ve kısa SQL normalizasyonu önbelleği uygulandı.
+Paket doğrulamasındaki bir tekrar kaldırıldı. Aşama süreleri hedef gözlem
+klasörüne kaydediliyor. Değişen dosyalar ve test kapsamı yz/DEVIR.md
+son bölümünde. Ölçümler docs/PERFORMANS_20261106.md içinde.
+
+8.867 nesneli çevrimdışı yükte karşılaştırma ve planlama 37,35 saniyeden
+21,44 saniyeye indi. Fark ve tam plan aynı. Beş dakikalık canlı toplam
+hedefi henüz doğrulanmadı. Oracle, Jenkins ve SMTP NOT_RUN.
+
+Son tam test 1.278 PASS, 224,34 saniye. PYTHONPATH=src kullanıldı.
+Kanıt `.local/performance-tests-final.xml`. Jenkins kayıt erişimi HTTP 403.

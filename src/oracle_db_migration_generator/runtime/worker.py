@@ -6,6 +6,7 @@ Date: 2026-11-02
 
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 
 from ..artifacts.bundle import write_bundle
 from ..compare.snapshots import compare_snapshots
@@ -16,7 +17,8 @@ from ..oracle.collector import collect_target
 from ..planning.rules import PlanningContext, plan_target
 
 
-def offline_plan(source,target,profile,output,*,name=None,secret_values=()):
+def offline_plan(source,target,profile,output,*,name=None,secret_values=(),timings=None):
+    started=perf_counter()
     recorded=source.capabilities.get('source_profile_sha256')
     if recorded and (recorded.state!='KNOWN' or recorded.value!=digest(profile)):
         raise ValueError('SOURCE_PROFILE_FINGERPRINT_MISMATCH')
@@ -24,11 +26,19 @@ def offline_plan(source,target,profile,output,*,name=None,secret_values=()):
     from ..model.serialization import thaw
     selected=source.capabilities.get('comparison_filter')
     source,target=scope_comparison(source,target,thaw(selected.value) if selected and selected.state=='KNOWN' else None)
+    if timings is not None:timings['scope_seconds']=perf_counter()-started
+    started=perf_counter()
     differences=compare_snapshots(source,target,profile.policy)
+    if timings is not None:timings['compare_seconds']=perf_counter()-started
+    started=perf_counter()
     plan=plan_target(differences,PlanningContext(source,target,profile,name or target.target_id))
+    if timings is not None:timings['plan_seconds']=perf_counter()-started
+    started=perf_counter()
     from ..reporting.inventory import build_scan_summary
-    return write_bundle(plan,output,secret_values=secret_values,source=source,
+    result=write_bundle(plan,output,secret_values=secret_values,source=source,
                         scan_summary=build_scan_summary(source,target,profile.policy,plan))
+    if timings is not None:timings['bundle_seconds']=perf_counter()-started
+    return result
 
 
 def save_observation(observation,output):
@@ -61,8 +71,12 @@ def run_target(source,target,profile,credentials,output,*,collect=collect_target
         raise ValueError('SCHEMA_REMAP_NOT_SUPPORTED')
     if any(mapping.source_schema not in source.schemas for mapping in target.schema_mappings):
         raise ValueError('TARGET_SCHEMA_OUTSIDE_SOURCE_SCOPE')
+    started=perf_counter()
     observation=collect(target,credentials,profile,progress=progress,source=source)
+    timings={'capture_seconds':perf_counter()-started}
+    started=perf_counter()
     save_observation(observation,capture)
+    timings['save_observation_seconds']=perf_counter()-started
     result={'id':target.id,'status':'ERROR','difference_count':None,'plan_id':None,'plan_path':None,
             'captured_at':observation.receipt.get('finished_at'),'error_code':None,'publication':'NOT_REQUESTED'}
     if observation.snapshot is None:
@@ -75,7 +89,7 @@ def run_target(source,target,profile,credentials,output,*,collect=collect_target
     if credentials:
         passwords=[credentials(mapping.credential_id).password for mapping in target.schema_mappings]
     try:
-        written=offline_plan(source,observation.snapshot,profile,bundle,name=target.name,secret_values=passwords)
+        written=offline_plan(source,observation.snapshot,profile,bundle,name=target.name,secret_values=passwords,timings=timings)
     except ValueError as error:
         # Suspected credentials cannot enter normal plan/report artifacts.
         if str(error)!='SENSITIVE_CONTENT_DETECTED': raise
@@ -86,4 +100,5 @@ def run_target(source,target,profile,credentials,output,*,collect=collect_target
     result.update(status=written['decision'],plan_id=written['plan_id'],plan_path='targets/'+target.id+'/plan.json',
                   difference_count=written['counts']['observed_differences'] if written['comparison_complete'] else None)
     (bundle.parent/(target.id+'.result.json')).write_bytes(canonical_bytes(result)+b'\n')
+    (capture/'performance.json').write_bytes(canonical_bytes(timings)+b'\n')
     return result

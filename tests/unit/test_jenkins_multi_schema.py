@@ -1,4 +1,8 @@
-"""Allowlisted Jenkins owner/target configuration and isolated offline orchestration."""
+"""Şema Karşılaştırma Jenkins hedeflerini ve çevrimdışı arşiv doğrulamasını sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import json
 from dataclasses import replace
 
@@ -9,6 +13,19 @@ def settings():
     return {'schemas':['TTBP','INNOVA_ODI'],'target_ids':['LOCAL-TTBP','LOCAL-ODI'],
             'source_url':'https://example.invalid/scm/sky/sky-db.git','source_host':'example.invalid','source_ref':'master',
             'publish':False,'send_email':False,'apply_sql':False,'job_url':'https://jenkins.example/job/generator/'}
+
+
+def test_final_aggregation_rejects_changed_target_before_writing_run(tmp_path):
+    from oracle_db_migration_generator.runtime.worker import offline_plan
+    from oracle_db_migration_generator.runtime.aggregate import aggregate_run
+    from tests.factories import source, actual, profile
+    folder=tmp_path/'targets'/'DEMO-TEST'
+    offline_plan(source('CREATE TABLE APP.T(ID NUMBER);'),actual(),profile(),folder)
+    (folder/'index.html').write_text('changed after bundle creation',encoding='utf-8')
+    with pytest.raises(ValueError,match='BUNDLE_INTEGRITY_MISMATCH'):
+        aggregate_run(tmp_path)
+    assert not (tmp_path/'run.json').exists()
+    assert not (tmp_path/'index.html').exists()
 
 
 def test_settings_allow_two_owners_with_sorted_target_selection_and_legacy_support():
@@ -126,6 +143,13 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
     monkeypatch.setattr('oracle_db_migration_generator.runtime.worker.run_target',lambda *a,**kw:real_run_target(*a,**kw,collect=collect))
     import tools.jenkins_notification as notification
     monkeypatch.setattr(notification,'write_notification',lambda *a,**kw:None)
+    from oracle_db_migration_generator.artifacts.bundle import verify_bundle as real_verify
+    verified=[]
+    def verify(path):
+        verified.append(str(path))
+        return real_verify(path)
+    monkeypatch.setattr('oracle_db_migration_generator.artifacts.bundle.verify_bundle',verify)
+    monkeypatch.setattr('oracle_db_migration_generator.runtime.aggregate.verify_bundle',verify)
     output=tmp_path/'output/runs/build-42'
     arguments=['--release',str(config.parent),'--source-dir',str(tmp_path/'source'),
         '--source-commit','a'*40,'--output',str(output),'--mode','COMPARE']
@@ -134,6 +158,7 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
         assert phases==['prepare'] and not (output/'run.json').exists()
         return
     code=jenkins_run.main(arguments)
+    assert len(verified)==2
     run=json.loads((output/'run.json').read_bytes())
     assert phases==['prepare','source-INNOVA_ODI','source-TTBP','target-INNOVA_ODI','target-TTBP']
     assert code==10 and [(item['id'],item['status']) for item in run['targets']]==[('LOCAL-ODI','ERROR'),('LOCAL-TTBP','BLOCKED' if prepared_partial else 'NO_CHANGE')]

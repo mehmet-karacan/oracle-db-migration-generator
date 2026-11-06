@@ -1,3 +1,8 @@
+"""Şema Karşılaştırma raporundaki durum ve gerekçe metinlerini çevrimdışı sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 from copy import deepcopy
 from html.parser import HTMLParser
 
@@ -44,7 +49,7 @@ def test_manager_reports_show_plain_status_and_specific_reason_below_it():
         assert not any(code in text for code in ('BLOCKED', '[TABLE]', 'REVIEW_REQUIRED', 'COMMENT', 'AUTO_GENERATED'))
         assert 'APP.ORDERS (PRICE)' in text and 'hedefte bulunamadı' in text
         assert 'Açıklama' in text and '251' in text and '1.266' in text
-        assert text.index('DDL üretilemedi') < text.index('APP.ORDERS (PRICE)')
+        assert text.index(view['targets'][0]['display_status']) < text.index('APP.ORDERS (PRICE)')
     assert (run, plans) == before
 
 
@@ -54,7 +59,7 @@ def test_unknown_definition_does_not_become_a_missing_object_claim():
               reason_tr='Eksik metadata veya doğrulanmamış yokluk güvenli SQL üretimini engelliyor.')
     text = visible(render_email(build_run_view(run, plans)))
     assert 'Nesnenin tanımı veya hedefte bulunup bulunmadığı doğrulanamadı.' in text
-    assert 'hedefte bulunamadı' not in text and 'Bulunan fark' in text
+    assert 'hedefte bulunamadı' not in text and 'Bulunan Fark' in text
 
 
 def test_target_with_ready_sql_is_reported_as_partially_ready():

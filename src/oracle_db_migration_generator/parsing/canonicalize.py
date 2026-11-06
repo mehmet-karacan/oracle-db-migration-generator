@@ -1,6 +1,11 @@
-"""Token canonicalization keeps literal contents, quoted case and hints."""
+"""Şema Karşılaştırma SQL metnini literal, tırnak ve hint içeriğini koruyarak karşılaştırır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import json
 import re
+from functools import lru_cache
 
 from antlr4 import InputStream
 
@@ -11,6 +16,18 @@ RESERVED = frozenset('ACCESS ADD ALL ALTER AND ANY AS ASC AUDIT BETWEEN BY CHAR 
 
 
 def canonical_sql(text: str) -> str:
+    # Kısa ve yinelenen tanımlar tutulur. Büyük PL/SQL gövdeleri bellekte birikmez.
+    if len(text) <= 2048:
+        return _cached_canonical_sql(text)
+    return _canonical_sql(text)
+
+
+@lru_cache(maxsize=4096)
+def _cached_canonical_sql(text: str) -> str:
+    return _canonical_sql(text)
+
+
+def _canonical_sql(text: str) -> str:
     text = text.lstrip('\ufeff')
     text = re.sub(r'(?m)^\s*/\s*$', '', text)
     lexer = PlSqlLexer(InputStream(text))

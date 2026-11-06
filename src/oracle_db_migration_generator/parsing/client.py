@@ -1,5 +1,14 @@
+"""Şema Karşılaştırma çözümleyicilerini sınırlı süreçlerle çalıştırır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import atexit
 import base64
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from contextvars import copy_context
 import json
 import os
 import queue
@@ -9,6 +18,68 @@ import threading
 
 _client = None
 _lock = threading.RLock()
+_worker_local = threading.local()
+
+
+def parser_workers():
+    """Kaynak çözümlemesinde kullanılacak süreç sınırını okur."""
+    try:
+        count = int(os.environ.get('GENERATOR_PARSER_WORKERS', '4'))
+    except ValueError:
+        raise ValueError('PARSER_WORKERS_INVALID') from None
+    if not 1 <= count <= 8:
+        raise ValueError('PARSER_WORKERS_INVALID')
+    return count
+
+
+@contextmanager
+def parallel_parser_map(function, items, *, workers=None):
+    """Bağımsız girdileri çözümler ve sonuçları girdi sırasında verir.
+
+    Her iş parçacığı kendi parser sürecini kullanır. Bekleyen işler sınırlıdır.
+    Çıkışta bütün süreçler kapatılır. Oracle bağlantısı açılmaz.
+    """
+    count = parser_workers() if workers is None else workers
+    if not isinstance(count, int) or not 1 <= count <= 8:
+        raise ValueError('PARSER_WORKERS_INVALID')
+    if hasattr(items, '__len__'):
+        count = min(count, max(1, len(items)))
+    if count == 1:
+        yield map(function, items)
+        return
+    slots = []
+    def initialize():
+        slot = {'client': None}
+        _worker_local.slot = slot
+        with _lock:
+            slots.append(slot)
+    executor = ThreadPoolExecutor(max_workers=count, initializer=initialize)
+    pending = deque()
+    source = iter(items)
+    def submit_one():
+        try:
+            item = next(source)
+        except StopIteration:
+            return False
+        pending.append(executor.submit(copy_context().run, function, item))
+        return True
+    def ordered():
+        for _ in range(count * 2):
+            if not submit_one():
+                break
+        while pending:
+            result = pending.popleft().result()
+            submit_one()
+            yield result
+    try:
+        yield ordered()
+    finally:
+        for future in pending:
+            future.cancel()
+        executor.shutdown(wait=True, cancel_futures=True)
+        for slot in slots:
+            if slot['client'] is not None:
+                slot['client'].close()
 
 
 class ParserClient:
@@ -46,6 +117,9 @@ class ParserClient:
 
 def request_parse(raw: bytes, default_schema: str | None, timeout: float = 30,*,metadata=False):
     global _client
+    slot = getattr(_worker_local, 'slot', None)
+    if slot is not None:
+        return _isolated_request(slot, raw, default_schema, timeout, metadata)
     with _lock:
         cache = None
         if os.environ.get('GENERATOR_PARSER_CACHE_DIR'):
@@ -66,6 +140,28 @@ def request_parse(raw: bytes, default_schema: str | None, timeout: float = 30,*,
             _client.close()
             _client = None
             raise
+
+
+def _isolated_request(slot, raw, default_schema, timeout, metadata):
+    cache = None
+    if os.environ.get('GENERATOR_PARSER_CACHE_DIR'):
+        from .response_cache import configured_cache
+        cache = configured_cache(raw, default_schema, metadata)
+    if cache is not None:
+        cached = cache.load()
+        if cached is not None:
+            return cached
+    if slot['client'] is None or slot['client'].process.poll() is not None:
+        slot['client'] = ParserClient()
+    try:
+        result = slot['client'].request(raw, default_schema, timeout, metadata)
+        if cache is not None:
+            cache.store(result)
+        return result
+    except (TimeoutError, BrokenPipeError, RuntimeError):
+        slot['client'].close()
+        slot['client'] = None
+        raise
 
 
 @atexit.register

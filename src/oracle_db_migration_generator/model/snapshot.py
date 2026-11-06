@@ -1,3 +1,9 @@
+"""Şema Karşılaştırma nesne ve snapshot kayıtlarını değişmez olarak tutar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
+
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
@@ -40,6 +46,9 @@ class Coverage:
     dictionary: str
     diagnostics: tuple[str, ...] = ()
 
+    def __post_init__(self):
+        object.__setattr__(self, 'diagnostics', tuple(self.diagnostics))
+
 
 @dataclass(frozen=True, slots=True)
 class SnapshotObject:
@@ -69,8 +78,13 @@ class SnapshotObject:
                 'coverage': thaw(self.coverage), 'evidence_ids': list(self.evidence_ids)}
 
 
+class _SnapshotDigestCache:
+    # Alan dataclass kaydına katılmaz. Kanonik JSON ve replace sonucu korunur.
+    __slots__ = ('_semantic_digest_cache',)
+
+
 @dataclass(frozen=True, slots=True)
-class SchemaSnapshot:
+class SchemaSnapshot(_SnapshotDigestCache):
     schema_version: str
     synthetic: bool
     side: str
@@ -86,6 +100,10 @@ class SchemaSnapshot:
     source_origin: object = None
 
     def __post_init__(self):
+        object.__setattr__(self, '_semantic_digest_cache', None)
+        object.__setattr__(self, 'schemas', tuple(self.schemas))
+        object.__setattr__(self, 'objects', tuple(self.objects))
+        object.__setattr__(self, 'evidence', tuple(self.evidence))
         object.__setattr__(self, 'capabilities', MappingProxyType(dict(self.capabilities)))
         oracle=(self.source_origin is not None and self.source_origin.get('kind')=='ORACLE')
         if oracle:
@@ -109,6 +127,8 @@ class SchemaSnapshot:
 
     @property
     def semantic_digest(self):
+        if self._semantic_digest_cache is not None:
+            return self._semantic_digest_cache
         # Evidence spans/raw byte formatting and capture time are not semantics.
         state = {'profile_id': self.profile_id, 'schemas': self.schemas, 'coverage': thaw(self.completeness),
                  'capabilities': {k: {'state': v.state, 'value': thaw(v.value)} for k, v in self.capabilities.items()},
@@ -116,7 +136,9 @@ class SchemaSnapshot:
                               'properties': {k: {'state': v.state, 'value': thaw(v.value)}
                                              for k, v in obj.properties.items()}}
                              for obj in sorted(self.objects, key=lambda item: item.object_key)]}
-        return digest(state)
+        result = digest(state)
+        object.__setattr__(self, '_semantic_digest_cache', result)
+        return result
 
     def to_dict(self):
         document={'schema_version': self.schema_version, 'synthetic': self.synthetic, 'side': self.side,

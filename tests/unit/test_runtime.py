@@ -82,3 +82,22 @@ def test_aggregate_records_explicit_jenkins_build_context(tmp_path):
     run=aggregate_run(tmp_path,build_number=9,build_url=url)
     assert run['build_url']==url and run['build_number']==9
     assert json.loads((tmp_path/'run.json').read_bytes())['build_url']==url
+
+
+def test_stage_timings_do_not_change_plan_or_sql(tmp_path):
+    from oracle_db_migration_generator.runtime.worker import offline_plan
+    from tests.factories import profile
+    desired=source('CREATE TABLE APP.T(ID NUMBER);')
+    observed=actual()
+    baseline=tmp_path/'baseline'
+    measured=tmp_path/'measured'
+    timings={}
+    offline_plan(desired,observed,profile(),baseline)
+    offline_plan(desired,observed,profile(),measured,timings=timings)
+    assert set(timings)=={'scope_seconds','compare_seconds','plan_seconds','bundle_seconds'}
+    assert all(value>=0 for value in timings.values())
+    assert (baseline/'plan.json').read_bytes()==(measured/'plan.json').read_bytes()
+    sql=list(baseline.rglob('*.sql'))
+    assert sql
+    for path in sql:
+        assert path.read_bytes()==(measured/path.relative_to(baseline)).read_bytes()

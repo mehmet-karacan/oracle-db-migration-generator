@@ -1,4 +1,8 @@
-"""Full target metadata capture through a closed SELECT allowlist."""
+"""Şema Karşılaştırma hedef tanımlarını tek salt okunur oturumla toplar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import hashlib
 import re
 import time
@@ -10,6 +14,7 @@ from ..model.identity import Identifier, ObjectIdentity
 from ..model.serialization import digest, thaw
 from ..model.snapshot import Coverage, KnownValue, SchemaSnapshot, SnapshotObject
 from ..parsing.adapter import parse_ddl
+from ..parsing.client import parallel_parser_map
 from ..parsing.canonicalize import canonical_sql
 from ..parsing.statements import quote_identifier
 from ..source.models import SourceArtifact
@@ -200,45 +205,53 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
         mviews = {row[1] for row in before if row[0]=='MATERIALIZED VIEW'}
         log_tables = {row['log_table'] for row in groups['materialized_view_logs'] or []}
         managed = [row for row in managed if not (row[0]=='TABLE' and row[1] in mviews | log_tables)]
-        for index, (oracle_kind,name,status,stamp) in enumerate(managed):
-            if time.monotonic() > deadline:
-                raise CaptureError('TARGET_CAPTURE_TIMEOUT')
-            if progress:
-                progress(index,len(managed))
-            identity = ObjectIdentity(profile.id,Identifier(owner,owner,True),type_map[oracle_kind],Identifier(name,name,True))
-            path = 'target-ddl/'+identity.key+'.sql'
-            ev_id = 'ev-'+digest([target.id,owner,oracle_kind,name,stamp])
-            reasons, raw, projection = [], None, None
-            phase_started = time.monotonic()
-            try:
-                cursor.execute(SAMPLE_DDL,{'ddl_type':DDL_TYPES[oracle_kind],'name':name,'owner':owner})
-                row = cursor.fetchone()
-                if not row or row[0] is None:
-                    raise CaptureError('GET_DDL_RETURNED_EMPTY')
-                text = row[0].read() if hasattr(row[0],'read') else str(row[0])
-                if not text.strip(): raise CaptureError('GET_DDL_RETURNED_EMPTY')
-                raw = text.encode('utf-8')
-            except Exception as error:
-                reasons.append(safe_error_code(error))
-            timings['ddl_reads'] += time.monotonic()-phase_started
-            raw_hash = hashlib.sha256(raw).hexdigest() if raw else None
-            evidence.append(Evidence(ev_id,'TARGET_METADATA','TARGET',path if raw else None,raw_hash,
-                                     1 if raw else None,len(raw.decode().splitlines()) if raw else None,
-                                     'dbms_metadata.get_ddl','Hedef DDL ve envanter kaydı.',0 if raw else None,len(raw) if raw else None))
-            properties = {'projection':KnownValue('UNKNOWN',None,(ev_id,)),
-                          'definition':KnownValue('UNKNOWN',None,(ev_id,)),
-                          'object_status':KnownValue('KNOWN',status,(scope_id,))}
-            item = SnapshotObject(identity,properties,path if raw else None,raw_hash,
-                                  Coverage('COMPLETE','PARTIAL' if reasons else 'COMPLETE',
-                                           'PARTIAL' if failures else 'COMPLETE',tuple(sorted(set(reasons)))),(ev_id,),raw,projection)
-            if raw and not reasons:
+        def ddl_items():
+            for index, (oracle_kind,name,status,stamp) in enumerate(managed):
+                if time.monotonic() > deadline:
+                    raise CaptureError('TARGET_CAPTURE_TIMEOUT')
+                if progress:
+                    progress(index,len(managed))
+                identity = ObjectIdentity(profile.id,Identifier(owner,owner,True),type_map[oracle_kind],Identifier(name,name,True))
+                path = 'target-ddl/'+identity.key+'.sql'
+                ev_id = 'ev-'+digest([target.id,owner,oracle_kind,name,stamp])
+                reasons, raw, projection = [], None, None
                 phase_started = time.monotonic()
-                item,context_evidence=project_target_object(item)
+                try:
+                    cursor.execute(SAMPLE_DDL,{'ddl_type':DDL_TYPES[oracle_kind],'name':name,'owner':owner})
+                    row = cursor.fetchone()
+                    if not row or row[0] is None:
+                        raise CaptureError('GET_DDL_RETURNED_EMPTY')
+                    text = row[0].read() if hasattr(row[0],'read') else str(row[0])
+                    if not text.strip(): raise CaptureError('GET_DDL_RETURNED_EMPTY')
+                    raw = text.encode('utf-8')
+                except Exception as error:
+                    reasons.append(safe_error_code(error))
+                timings['ddl_reads'] += time.monotonic()-phase_started
+                raw_hash = hashlib.sha256(raw).hexdigest() if raw else None
+                ddl_evidence=Evidence(ev_id,'TARGET_METADATA','TARGET',path if raw else None,raw_hash,
+                                         1 if raw else None,len(raw.decode().splitlines()) if raw else None,
+                                         'dbms_metadata.get_ddl','Hedef DDL ve envanter kaydı.',0 if raw else None,len(raw) if raw else None)
+                properties = {'projection':KnownValue('UNKNOWN',None,(ev_id,)),
+                              'definition':KnownValue('UNKNOWN',None,(ev_id,)),
+                              'object_status':KnownValue('KNOWN',status,(scope_id,))}
+                item = SnapshotObject(identity,properties,path if raw else None,raw_hash,
+                                      Coverage('COMPLETE','PARTIAL' if reasons else 'COMPLETE',
+                                               'PARTIAL' if failures else 'COMPLETE',tuple(sorted(set(reasons)))),(ev_id,),raw,projection)
+                yield item,ddl_evidence,bool(raw and not reasons)
+        def project_item(record):
+            item,ddl_evidence,needs_projection=record
+            started=time.monotonic()
+            item,context_evidence=project_target_object(item) if needs_projection else (item,())
+            elapsed=time.monotonic()-started if needs_projection else 0.0
+            return item,ddl_evidence,context_evidence,elapsed
+        with parallel_parser_map(project_item,ddl_items()) as projected:
+            for item,ddl_evidence,context_evidence,elapsed in projected:
+                evidence.append(ddl_evidence)
                 evidence.extend(context_evidence)
-                timings['grammar_projection'] += time.monotonic()-phase_started
-            phase_started = time.monotonic()
-            objects.append(enrich_object(item,groups,group_evidence,row_index=row_index))
-            timings['dictionary_enrichment'] += time.monotonic()-phase_started
+                timings['grammar_projection'] += elapsed
+                phase_started = time.monotonic()
+                objects.append(enrich_object(item,groups,group_evidence,row_index=row_index))
+                timings['dictionary_enrichment'] += time.monotonic()-phase_started
         # A new transaction is essential: the final inventory must not reuse
         # the initial read-only transaction's older consistent read point.
         connection.rollback()
@@ -268,7 +281,8 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                                          if obj.identity.object_type in {'COMMENT','GRANT'} else obj for obj in snapshot.objects))
         timings['sidecar_merge'] += time.monotonic()-phase_started
         return snapshot, {'schema':mapping.source_schema,'status':'CAPTURED','dictionary_errors':failures,'capability_errors':capability_errors,
-                          'object_count':len(snapshot.objects),'inventory_count':len(before),'phase_timings_seconds':timings}, artifacts
+                          'object_count':len(snapshot.objects),'inventory_count':len(before),'phase_timings_seconds':timings,
+                          'grammar_projection_timing_basis':'SUM_OF_WORKER_DURATIONS'}, artifacts
     finally:
         # Close all handles, including after permission errors or retry.
         cleanup_failed = False

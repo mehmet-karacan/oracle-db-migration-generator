@@ -1,3 +1,8 @@
+"""Şema Karşılaştırma metadata indeksini ve paralel süre kaydını sahte Oracle ile sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 from oracle_db_migration_generator.model.identity import Identifier, ObjectIdentity
 from oracle_db_migration_generator.model.snapshot import Coverage, SnapshotObject
 from oracle_db_migration_generator.oracle.enrichment import enrich_object
@@ -73,7 +78,9 @@ def test_collector_indexes_metadata_rows_once_for_all_objects(monkeypatch):
     assert set(timings) == {'dictionary_group_reads', 'reference_metadata', 'ddl_reads',
                            'grammar_projection', 'dictionary_enrichment', 'sidecar_merge', 'total'}
     assert all(isinstance(value, float) and value >= 0 for value in timings.values())
-    assert timings['total'] >= sum(value for key, value in timings.items() if key != 'total')
+    assert result.receipt['schemas'][0]['grammar_projection_timing_basis']=='SUM_OF_WORKER_DURATIONS'
+    # Paralel parser süreleri örtüşür. Ana iş parçacığındaki aşamalar örtüşmez.
+    assert timings['total'] >= sum(value for key, value in timings.items() if key not in {'total','grammar_projection'})
     assert 'phase_timings_seconds' not in result.snapshot.to_dict()
     for obj in result.snapshot.objects:
         assert obj.properties['dictionary.columns'].value[0]['table_name'] == obj.identity.name.effective_name

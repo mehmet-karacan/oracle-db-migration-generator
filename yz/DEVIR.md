@@ -2696,3 +2696,61 @@ edildi. İş şu anda devre dışı ve onaydan önce çalıştırılmayacak.
 Jenkins sunucusundaki paket yeni HTML kodunu içeriyor. Yeniden
 etkinleştirmeden önce paket önceki rapor sürümüne alınmalı.
 Bu aşamada yeni test ve canlı Oracle karşılaştırması NOT_RUN.
+
+## 6 Kasım 2026 - Yerel eposta taslağı hazır
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Şema karşılaştırması epostasının yeni yerel taslağı
+`.local/html-preview-previous-20261106/approved-design/report-email.preview.html`
+konumunda. Önceki taslak aynı klasörün üst dizininde duruyor.
+Üretilen DDL türleri plan işlemlerinden sayılıyor. Kayıtlı toplamla
+uyuşmazsa tür dağılımı doğrulanamadı mesajı gösteriliyor.
+Tek hedefte tekrar eden hedef özeti gizleniyor. Proje adı gövdede yok.
+Özet kartları ve toplam başlıkları aynı büyük harf düzenine getirildi.
+Değişen dosyalar reporting/view.py, email.html.j2,
+ddl_types_email.html.j2 ve test_report_views.py.
+Rapor görünümü testi 17 geçti. Geniş rapor testindeki üç eski tarama
+kapsamı hatası bu değişiklikle ilgili değil. Oracle, Jenkins ve SMTP
+NOT_RUN. Jenkins işi devre dışı. Sonraki adım görsel onayı almak.
+
+## 6 Kasım 2026 - Paralel çözümleme ve performans
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Kullanıcı beş dakikalık toplam süre hedefiyle genel iyileştirme istedi.
+Üç alt ajan kaynak, karşılaştırma ve paket maliyetlerini ayrı inceledi.
+Kaynak çözümlemesi ve hedef DDL projeksiyonu sınırlı parser süreçlerinde
+çalışıyor. Oracle oturumu ana iş parçacığında kalıyor. Sıralı birleştirme,
+kanıtlar, ContextVar ve envanter tutarlılığı korunuyor.
+Snapshot özeti ve kısa SQL normalizasyonundaki tekrarlar kaldırıldı.
+Jenkins akışındaki fazladan paket doğrulaması kaldırıldı. Son bütünlük
+kontrolü korunuyor. runtime/worker.py aşama sürelerini kaydediyor.
+
+Değişen ürün dosyaları model/snapshot.py, parsing/client.py,
+parsing/adapter.py, parsing/canonicalize.py, oracle/collector.py,
+runtime/worker.py ve tools/jenkins_run.py. Yeni testler
+test_parallel_parser.py, test_collector_parallel.py ve
+test_comparison_caches.py. Mevcut runtime ve Jenkins testleri genişletildi.
+
+8.867 nesneli çevrimdışı karşılaştırma ve planlama toplamı 37,35 saniyeden
+21,44 saniyeye indi. Tam plan ve fark hash değerleri aynı. SQL byte
+eşitliği ayrı gerçek parser örnekleriyle doğrulandı. Kaynak küçük soğuk
+ölçümünde 2,2560 saniye 1,9274 saniyeye indi. Sıcak küçük ölçümde paralellik
+ek maliyet getirdi. Ayrıntı docs/PERFORMANS_20261106.md dosyasında.
+
+Önceki üç tarama kapsamı testi hatası paket alt sürecinin worktree
+modülünü bulamamasından kaynaklanıyordu. PYTHONPATH=src ile giderildi.
+HTML başlık testleri onaylı büyük harf düzenine güncellendi. Tek hedefte
+sonuç alınamaması durumunun gizlenmemesi için kısa durum satırı korundu.
+
+Canlı Oracle kabulü, Jenkins dağıtımı ve SMTP NOT_RUN. Beş dakika hedefi
+henüz doğrulanmadı. Sonraki somut adım canlı tam koşuda kaynak hazırlığı,
+hedef receipt ve performance.json sürelerini birlikte ölçmek.
+
+Son doğrulama PYTHONPATH=src ile `python -m pytest -q --tb=short
+--junitxml=.local/performance-tests-final.xml` komutunda 1.278 test geçti.
+Süre 224,34 saniye. Bir üçüncü taraf kullanım dışı kalma uyarısı var.
+Jenkins #74 API salt okunur kontrolü HTTP 403 döndü. Canlı koşu başlatılmadı.

@@ -1,3 +1,8 @@
+"""Şema Karşılaştırma raporunda fark sayısını ve süreleri sentetik kayıtlarla sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 from copy import deepcopy
 import json
 
@@ -17,7 +22,7 @@ def test_partial_comparison_shows_confirmed_differences_separately_from_unknown_
     assert view['targets'][0]['confirmed_difference_count'] == 2
     for raw in (render_email(view), render_run_reports(view)['index.html']):
         html = raw.decode()
-        assert 'Bulunan fark' in html and '2 kayıt, bilgisi eksik olduğu için karşılaştırılamadı.' in html
+        assert 'Bulunan Fark' in html and '2 kayıt, bilgisi eksik olduğu için karşılaştırılamadı.' in html
         assert 'Bilinmiyor fark' not in html and 'fark sayısı bilinmiyor' not in html
     assert (run, plans) == before
 

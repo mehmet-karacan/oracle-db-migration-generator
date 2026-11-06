@@ -75,9 +75,9 @@ def test_email_counts_generated_conflict_sql_without_missing_ddl(tmp_path):
     assert view['important_objects'][0]['display_status']=='DDL üretildi'
     html=render_email(view,preview=True).decode('utf-8')
     assert 'Kaynakta fonksiyon, hedefte aynı adlı tablo var.' in html
-    assert 'DDL dosyası eksik' in html
+    assert 'DDL Dosyası Eksik' in html
     assert 'Ayrı DDL' not in html
-    assert 'Taranan nesne' in html
+    assert 'Taranan Nesne' in html
     assert 'PROD - APP (APP)' not in html
     assert 'İşlem</th>' not in html
 
@@ -93,7 +93,7 @@ def test_run_and_jenkins_mail_read_proposal_files(tmp_path):
     run=aggregate_run(tmp_path,source_commit=result.source['commit_sha'],
                       build_number=7,build_url=job+'7/')
     body=write_notification(tmp_path,run,job+'7/',job).read_text(encoding='utf-8')
-    assert 'DDL dosyası eksik' in body
+    assert 'DDL Dosyası Eksik' in body
     assert 'Kaynakta fonksiyon, hedefte aynı adlı tablo var.' in body
     assert 'Üretilemeyen DDL' not in body
 

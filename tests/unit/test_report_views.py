@@ -1,3 +1,8 @@
+"""Şema Karşılaştırma eposta ve web özetlerini sentetik planlarla sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 from copy import deepcopy
 import re
 import pytest
@@ -30,6 +35,28 @@ def test_email_limits_unique_objects_and_preserves_unknown_counts():
     assert 'Karşılaştırma yapılamadı' in html and '1 hedeften sonuç alınamadı' in html and '2.353' in html
     assert 'artifact-browser.preview' not in html and 'href=' not in html
     assert len(html.encode())<200*1024
+
+
+def test_email_ddl_types_match_generated_total_and_remove_repeated_summary():
+    from oracle_db_migration_generator.reporting.view import build_run_view
+    from oracle_db_migration_generator.reporting.render import render_email
+    run, plans = inputs()
+    plan = plans['TARGET-000']
+    plan['operations'][0]['decision'] = 'READY'
+    plan['operations'][0]['kind'] = 'CREATE'
+    column = deepcopy(plan['operations'][0])
+    column['id'] = 'op-column'
+    column['kind'] = 'ADD_COLUMN'
+    plan['operations'].append(column)
+    plan['counts']['ready_operations'] = 2
+    view = build_run_view(run, plans)
+    assert view['ddl_types']['rows'] == [
+        {'label': 'Kolon', 'count': 1}, {'label': 'Tablo', 'count': 1}]
+    assert sum(row['count'] for row in view['ddl_types']['rows']) == 2
+    html = render_email(view).decode()
+    assert html.count('Şema karşılaştırması') == 2  # Başlık ve HTML title
+    assert 'Genel Özet' not in html
+    assert html.index('Üretilen DDL türleri') < html.index('Tarama Kapsamı')
 
 
 def test_email_zero_and_thousand_objects_escape_and_rank():

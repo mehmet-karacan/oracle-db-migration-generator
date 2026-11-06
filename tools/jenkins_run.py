@@ -1,4 +1,8 @@
-"""Trusted Jenkins entry point. It never applies SQL, pushes Git or sends mail."""
+"""Şema Karşılaştırma için Jenkins kaynak hazırlığını ve hedef raporlarını yürütür.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import argparse
 from dataclasses import asdict
 from datetime import datetime,timezone
@@ -162,7 +166,6 @@ def reuse_prepared_source(cached,prepared,source_dir,commit,profile,*,snapshot_s
 def main(argv=None):
     import hashlib
     started=build_started_at()
-    from oracle_db_migration_generator.artifacts.bundle import verify_bundle
     from oracle_db_migration_generator.cli import main as cli
     from oracle_db_migration_generator.config.loader import load_source_profile,load_targets
     from oracle_db_migration_generator.config.credentials import EnvCredentialResolver
@@ -262,8 +265,7 @@ def main(argv=None):
             scope_receipts.append({'target_id':target.id,'status':'NOT_AVAILABLE','excluded_counts':None,'objects':[]})
     (output/'scope-exclusions.json').write_bytes(canonical_bytes({'exclude_system_generated':profile.policy.exclude_system_generated,
         'excluded_object_types':profile.policy.excluded_object_types,'targets':scope_receipts})+b'\n')
-    for result in results:
-        if result['plan_path']:verify_bundle(output/result['plan_path'].rsplit('/',1)[0])
+    # aggregate_run her hedef paketini genel rapor yazılmadan önce doğrular.
     run=aggregate_run(output,source_commit=source.source_commit,started_at=started,
         build_number=int(os.environ['BUILD_NUMBER']),build_url=os.environ['BUILD_URL'])
     try:

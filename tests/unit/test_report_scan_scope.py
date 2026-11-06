@@ -1,3 +1,8 @@
+"""Şema Karşılaştırma kaynak envanterinin rapora aktarılmasını sentetik SQL ile sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import json
 from copy import deepcopy
 from dataclasses import replace
@@ -36,7 +41,7 @@ def test_unchanged_objects_are_counted_in_web_and_mail(tmp_path):
         {'label': 'Tablo', 'count': 1}, {'label': 'Görünüm', 'count': 1}]
     for html in [(root/'index.html').read_text(encoding='utf-8'),
                  (destination/'index.html').read_text(encoding='utf-8'), render_email(view).decode()]:
-        assert 'Tarama Kapsamı' in html and 'Toplam taranan nesne' in html
+        assert 'Tarama Kapsamı' in html and 'Toplam Taranan Nesne' in html
         assert 'Tablo' in html and 'Görünüm' in html
         scope = html.split('<section aria-label="Tarama Kapsamı">', 1)[1].split('</section>', 1)[0]
         assert 'Hedefler' not in scope and 'kaynak nesneleri' in scope
