@@ -2684,3 +2684,15 @@ Oracle DDL/DML NOT_RUN.
 Kod düzeltmesi `ab3cd0867d537fc4107e5ce2eca0c685663c43f1` ile uzak
 `main` dalına gönderildi. Sonraki somut adım 238 eksik DDL dosyasının
 gerekçelerini incelemek. Mail istemcisindeki teslim ayrıca doğrulanmadı.
+
+## 6 Kasım 2026 - HTML onayı bekleniyor
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Son rapor değişikliği `f42e05a` ile geri alındı ve `main` dalına
+gönderildi. Rapor kodu `30c793c` sürümüyle aynı. Jenkins #77 iptal
+edildi. İş şu anda devre dışı ve onaydan önce çalıştırılmayacak.
+Jenkins sunucusundaki paket yeni HTML kodunu içeriyor. Yeniden
+etkinleştirmeden önce paket önceki rapor sürümüne alınmalı.
+Bu aşamada yeni test ve canlı Oracle karşılaştırması NOT_RUN.

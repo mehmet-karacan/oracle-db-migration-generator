@@ -2328,3 +2328,19 @@ Raporda kaynak envanteri 3.805 nesne, 12.389 fark, 1.933 üretilen DDL
 ve 238 eksik DDL dosyası görünüyor. Kaynak kapsamı PARTIAL ve hedef
 BLOCKED. Bu çalışma tam kabul değildir. Veritabanına DDL uygulanmadı.
 Sonraki adım 238 eksik DDL gerekçesini ayrı incelemek.
+
+## 6 Kasım 2026 - HTML görünümünü geri alma
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Proje, şema ve DDL türü alanlarını ekleyen `078391e` değişikliği
+`f42e05a` ile geri alındı. Rapor kodu `30c793c` sürümüyle aynı.
+Uzak `main` dalı güncellendi. Bu aşamada yeni test ve karşılaştırma
+çalıştırılmadı.
+
+Jenkins #77 kullanıcı isteğiyle iptal edildi. Kapanış adımı iptal
+bildirimini yalnız `mkaracan@innova.com.tr` adresine gönderdi.
+Jenkins işi HTML onayına kadar devre dışı. Sunucuda kurulu paket
+önceki HTML sürümüne henüz alınmadı. Yeniden etkinleştirmeden önce
+paket sürümü rapor koduyla eşitlenmeli.
