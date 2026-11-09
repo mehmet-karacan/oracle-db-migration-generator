@@ -103,8 +103,12 @@ export LD_LIBRARY_PATH="$GENERATOR_ORACLE_CLIENT_DIR:${LD_LIBRARY_PATH:-}"
   }
   post {
     always {
-      archiveArtifacts(artifacts: "output/runs/build-${env.BUILD_NUMBER}/**", excludes: "output/runs/build-${env.BUILD_NUMBER}/observations/**", allowEmptyArchive: true, fingerprint: true)
+      archiveArtifacts(artifacts: "output/runs/build-${env.BUILD_NUMBER}/**", excludes: "output/runs/build-${env.BUILD_NUMBER}/observations/**", allowEmptyArchive: true, fingerprint: false)
       script {
+        // Bütün dosyalar arşivlenir. Dosya hash'lerini içeren manifestler izlenir.
+        if (fileExists("output/runs/build-${env.BUILD_NUMBER}/ddl-generation.json")) {
+          fingerprint(targets: "output/runs/build-${env.BUILD_NUMBER}/ddl-generation.json,output/runs/build-${env.BUILD_NUMBER}/targets/*/bundle-manifest.json")
+        }
         if (fileExists("output/runs/build-${env.BUILD_NUMBER}/index.html")) {
           currentBuild.description = "PROD - ${env.GENERATOR_SCHEMA_SCOPE} - Schema Compare - SQL uygulanmadı"
         }

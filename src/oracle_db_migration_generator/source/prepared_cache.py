@@ -1,5 +1,8 @@
 """Şema Karşılaştırma aynı Git içeriğinin doğrulanmış kaynak sonucunu saklar.
 
+Kapasite dolduğunda yalnız hash'leri doğrulanmış en eski kayıt yenilenir.
+Kullanılan kayıt korunur. Kaynak deposundaki dosyalar değiştirilmez.
+
 A PARTIAL checkpoint stays PARTIAL, as with the explicit prepared-source resume.
 Only identical pinned Git bytes, profile, preparation code and Python can reuse it.
 The bounded parser response cache keeps its separate no-timeout-response policy.
@@ -13,6 +16,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import sys
 import tempfile
 
@@ -20,7 +24,7 @@ from ..config.loader import load_source_profile
 from ..model.serialization import canonical_bytes, digest
 from ..model.snapshot_io import load_snapshot, safe_path, write_source_snapshot, source_storage_paths
 from ..parsing.fingerprint import parser_artifact_sha256
-from ..parsing.response_cache import _guard_parents, _plain
+from ..parsing.response_cache import _guard_parents, _plain, _lock
 
 MAX_CACHE_ENTRIES = 4
 MAX_CACHE_BYTES = 1024 * 1024 * 1024
@@ -49,6 +53,9 @@ class PreparedSourceCache:
         self.inputs = inputs
         self.max_entries=max_entries
         self.max_bytes=max_bytes
+        self.last_load_reason='NOT_ATTEMPTED'
+        self.last_store_reason='NOT_ATTEMPTED'
+        self.evicted_entries=0
         files = [{'path': a.path, 'kind': a.kind, 'owner': a.source_schema,
                   'type_hint': a.object_type_hint, 'sha256': hashlib.sha256(a.raw).hexdigest(),
                   'bytes': len(a.raw)} for a in inputs.artifacts]
@@ -124,39 +131,95 @@ class PreparedSourceCache:
         return snapshot if self._bound(snapshot) and snapshot.semantic_digest == document['semantic_digest'] else None
 
     def load(self):
+        self.last_load_reason='INPUT_MISMATCH'
         if not self.valid_input: return None
         try:
+            self.last_load_reason='ROOT_NOT_ALLOWED'
             if not self._allowed_root(): return None
-            return self._load_at(self.path)
+            self.last_load_reason='NOT_FOUND'
+            if not self.path.exists():return None
+            self.last_load_reason='INVALID_ENTRY'
+            snapshot=self._load_at(self.path)
+            if snapshot is not None:
+                self.last_load_reason='HIT_VERIFIED'
+                try:os.utime(self.path,None)
+                except OSError:pass
+            return snapshot
         except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
+            self.last_load_reason='INVALID_ENTRY'
             return None
 
+    def _owned_entry_size(self, entry):
+        """Yalnız kapalı manifesti ve bütün dosya hash'leri doğrulanan kaydı tanır."""
+        if entry.parent!=self.root or not re.fullmatch('[0-9a-f]{64}',entry.name):
+            raise ValueError('UNVERIFIED_EXISTING_ENTRY')
+        _guard_parents(entry);_plain(entry,directory=True)
+        manifest=entry/'prepared-cache.json'
+        if _plain(manifest).st_size>MAX_MANIFEST_BYTES:raise ValueError('UNVERIFIED_EXISTING_ENTRY')
+        doc=json.loads(manifest.read_bytes())
+        if (set(doc)!={'schema_version','binding','files','semantic_digest'}
+                or doc['schema_version']!='prepared-source-cache/1.0'
+                or not isinstance(doc['binding'],dict) or digest(doc['binding'])!=entry.name
+                or not isinstance(doc['files'],dict)
+                or not {'source-snapshot.json','source-input.json','source-profile.json'}<=set(doc['files'])):
+            raise ValueError('UNVERIFIED_EXISTING_ENTRY')
+        actual=set();size=0
+        for path in entry.rglob('*'):
+            _guard_parents(path)
+            if path.is_dir():_plain(path,directory=True);continue
+            size+=_plain(path).st_size;actual.add(path.relative_to(entry).as_posix())
+        if actual!=set(doc['files'])|{'prepared-cache.json'}:raise ValueError('UNVERIFIED_EXISTING_ENTRY')
+        for name,expected in doc['files'].items():
+            path=safe_path(entry,name);_guard_parents(path);_plain(path)
+            if (not isinstance(expected,str) or not re.fullmatch('[0-9a-f]{64}',expected)
+                    or hashlib.sha256(path.read_bytes()).hexdigest()!=expected):
+                raise ValueError('UNVERIFIED_EXISTING_ENTRY')
+        return size
+
     def store(self, snapshot):
+        self.evicted_entries=0
+        self.last_store_reason='SNAPSHOT_BINDING_MISMATCH'
         if not self._bound(snapshot): return False
         try:
+            self.last_store_reason='ROOT_NOT_ALLOWED'
             if not self._allowed_root(): return False
             _guard_parents(self.root)
             self.root.mkdir(parents=True, exist_ok=True); _plain(self.root, directory=True)
-            if self.path.exists():
-                previous = self.load()
-                return previous is not None and canonical_bytes(previous.to_dict()) == canonical_bytes(snapshot.to_dict())
-            entries = list(self.root.iterdir())
-            if (len(entries) >= (self.max_entries or MAX_CACHE_ENTRIES) or any(not re.fullmatch('[0-9a-f]{64}', p.name)
-                                                       or p.is_symlink() for p in entries)):
-                return False
-            used = sum(_plain(p).st_size for entry in entries for p in entry.rglob('*') if p.is_file())
-            with tempfile.TemporaryDirectory(prefix='.prepared-staging-', dir=self.root) as temporary:
-                staged = Path(temporary)/'payload'
-                write_source_snapshot(snapshot, self.inputs, staged)
-                files = {p.relative_to(staged).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-                         for p in staged.rglob('*') if p.is_file()}
-                manifest = {'schema_version': 'prepared-source-cache/1.0', 'binding': self.binding,
-                            'files': files, 'semantic_digest': snapshot.semantic_digest}
-                (staged/'prepared-cache.json').write_bytes(canonical_bytes(manifest)+b'\n')
-                size = sum(p.stat().st_size for p in staged.rglob('*') if p.is_file())
-                if used+size > (self.max_bytes or MAX_CACHE_BYTES) or self._load_at(staged) is None:
-                    return False
-                os.rename(staged, self.path)
+            self.last_store_reason='CACHE_BUSY'
+            with _lock(self.root):
+                if self.path.exists():
+                    previous=self.load()
+                    same=previous is not None and canonical_bytes(previous.to_dict())==canonical_bytes(snapshot.to_dict())
+                    self.last_store_reason='ALREADY_VERIFIED' if same else 'INVALID_EXISTING_ENTRY'
+                    return same
+                self.last_store_reason='UNVERIFIED_EXISTING_ENTRY'
+                entries=[p for p in self.root.iterdir() if p.name!='.lock']
+                sizes={entry:self._owned_entry_size(entry) for entry in entries}
+                used=sum(sizes.values())
+                # Yeni kayıt doğrulanmadan mevcut bir kayıt kaldırılmaz.
+                self.last_store_reason='STAGED_VALIDATION_FAILED'
+                with tempfile.TemporaryDirectory(prefix='.prepared-staging-', dir=self.root.parent) as temporary:
+                    staged=Path(temporary)/'payload'
+                    write_source_snapshot(snapshot,self.inputs,staged)
+                    files={p.relative_to(staged).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+                           for p in staged.rglob('*') if p.is_file()}
+                    manifest={'schema_version':'prepared-source-cache/1.0','binding':self.binding,
+                              'files':files,'semantic_digest':snapshot.semantic_digest}
+                    (staged/'prepared-cache.json').write_bytes(canonical_bytes(manifest)+b'\n')
+                    size=sum(p.stat().st_size for p in staged.rglob('*') if p.is_file())
+                    if size>(self.max_bytes or MAX_CACHE_BYTES):
+                        self.last_store_reason='ENTRY_TOO_LARGE';return False
+                    if self._load_at(staged) is None:return False
+                    ordered=sorted(entries,key=lambda p:(p.stat().st_mtime_ns,p.name))
+                    while ordered and (len(ordered)>=(self.max_entries or MAX_CACHE_ENTRIES)
+                                       or used+size>(self.max_bytes or MAX_CACHE_BYTES)):
+                        victim=ordered.pop(0)
+                        if victim.parent!=self.root:raise ValueError('CACHE_PATH_OUTSIDE_ROOT')
+                        _guard_parents(victim);_plain(victim,directory=True)
+                        shutil.rmtree(victim)
+                        used-=sizes[victim];self.evicted_entries+=1
+                    os.rename(staged,self.path)
+            self.last_store_reason='STORED_VERIFIED'
             return True
         except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
             return False

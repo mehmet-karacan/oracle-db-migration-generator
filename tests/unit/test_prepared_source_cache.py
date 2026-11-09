@@ -1,3 +1,8 @@
+"""Schema Compare kaynak önbelleğinin doğrulamasını ve sınırlı yenilenmesini sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
 import hashlib
 import json
 from dataclasses import replace
@@ -87,16 +92,78 @@ def test_decoder_recursion_failure_is_a_checkpoint_miss(tmp_path, monkeypatch):
     assert cache.load() is None
 
 
-def test_cache_capacity_is_bounded_without_deleting_existing_entries(tmp_path, monkeypatch):
+def test_cache_capacity_replaces_only_verified_older_entry(tmp_path, monkeypatch):
     from oracle_db_migration_generator.source import prepared_cache
     inputs, snapshot, cache = case(tmp_path)
     assert cache.store(snapshot)
-    before={p.relative_to(cache.path).as_posix():p.read_bytes() for p in cache.path.rglob('*') if p.is_file()}
     monkeypatch.setattr(prepared_cache, 'MAX_CACHE_ENTRIES', 1)
     monkeypatch.setattr(prepared_cache, 'preparation_artifact_sha256', lambda: '0'*64)
     another=prepared_cache.PreparedSourceCache(cache.root, inputs)
+    assert another.store(snapshot) is True
+    assert not cache.path.exists()
+    assert canonical_bytes(another.load().to_dict())==canonical_bytes(snapshot.to_dict())
+    assert another.evicted_entries==1
+
+
+@pytest.mark.parametrize('damage',['unknown_directory','modified_file','extra_file'])
+def test_unowned_or_changed_entries_are_never_evicted(tmp_path,monkeypatch,damage):
+    from oracle_db_migration_generator.source import prepared_cache
+    inputs,snapshot,cache=case(tmp_path);assert cache.store(snapshot)
+    if damage=='unknown_directory':
+        (cache.root/'user-files').mkdir();(cache.root/'user-files/note.txt').write_text('keep')
+    elif damage=='modified_file':(cache.path/'source-input.json').write_text('{}')
+    else:(cache.path/'note.txt').write_text('keep')
+    before={p.relative_to(cache.root).as_posix():p.read_bytes() for p in cache.root.rglob('*') if p.is_file() and p.name!='.lock'}
+    monkeypatch.setattr(prepared_cache,'MAX_CACHE_ENTRIES',1)
+    monkeypatch.setattr(prepared_cache,'preparation_artifact_sha256',lambda:'0'*64)
+    another=prepared_cache.PreparedSourceCache(cache.root,inputs)
     assert another.store(snapshot) is False
-    assert before == {p.relative_to(cache.path).as_posix():p.read_bytes() for p in cache.path.rglob('*') if p.is_file()}
+    after={p.relative_to(cache.root).as_posix():p.read_bytes() for p in cache.root.rglob('*') if p.is_file() and p.name!='.lock'}
+    assert after==before
+    assert another.last_store_reason=='UNVERIFIED_EXISTING_ENTRY'
+
+
+def test_oversized_new_entry_does_not_remove_valid_old_entry(tmp_path,monkeypatch):
+    from oracle_db_migration_generator.source import prepared_cache
+    inputs,snapshot,cache=case(tmp_path);assert cache.store(snapshot)
+    monkeypatch.setattr(prepared_cache,'preparation_artifact_sha256',lambda:'0'*64)
+    another=prepared_cache.PreparedSourceCache(cache.root,inputs,max_bytes=1)
+    assert another.store(snapshot) is False and cache.path.exists()
+    assert another.last_store_reason=='ENTRY_TOO_LARGE'
+
+
+def test_successful_read_updates_directory_recency_without_changing_files(tmp_path):
+    import os
+    _,snapshot,cache=case(tmp_path);assert cache.store(snapshot)
+    before={p.relative_to(cache.path).as_posix():p.read_bytes() for p in cache.path.rglob('*') if p.is_file()}
+    os.utime(cache.path,(1,1))
+    assert cache.load() is not None
+    assert cache.path.stat().st_mtime>1
+    assert before=={p.relative_to(cache.path).as_posix():p.read_bytes() for p in cache.path.rglob('*') if p.is_file()}
+    assert cache.last_load_reason=='HIT_VERIFIED'
+
+
+def test_recently_used_entry_survives_capacity_rotation(tmp_path):
+    import os
+    from oracle_db_migration_generator.source.prepared_cache import PreparedSourceCache
+    inputs,snapshot,base=case(tmp_path)
+    caches=[PreparedSourceCache(base.root,inputs,runtime_fingerprint=n,max_entries=2) for n in range(3)]
+    assert caches[0].store(snapshot) and caches[1].store(snapshot)
+    os.utime(caches[0].path,(1,1));os.utime(caches[1].path,(2,2))
+    assert caches[0].load() is not None
+    assert caches[2].store(snapshot)
+    assert caches[0].path.exists() and not caches[1].path.exists()
+    assert len([p for p in base.root.iterdir() if p.name!='.lock'])==2
+
+
+def test_busy_writer_does_not_delete_existing_data(tmp_path):
+    from oracle_db_migration_generator.parsing.response_cache import _lock
+    _,snapshot,cache=case(tmp_path);cache.root.mkdir()
+    with _lock(cache.root):
+        assert cache.store(snapshot) is False
+        assert cache.last_store_reason=='CACHE_BUSY'
+    assert not cache.path.exists()
+    assert cache.store(snapshot)
 
 
 def test_cli_rechecks_git_but_does_not_reparse_identical_completed_preparation(tmp_path, monkeypatch):
@@ -117,6 +184,9 @@ def test_cli_rechecks_git_but_does_not_reparse_identical_completed_preparation(t
     assert proof['cache_status'] == 'HIT_VERIFIED'
     assert proof['phases_seconds']['parse'] == 0
     assert proof['database_connections'] == 0 and proof['source_files'] == 1
+    assert proof['checkpoint_load_reason']=='HIT_VERIFIED'
+    assert proof['checkpoint_store_reason']=='NOT_ATTEMPTED'
+    assert proof['checkpoint_evicted_entries']==0
 
 
 def test_checkpoint_never_writes_inside_source_repository(tmp_path):

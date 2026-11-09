@@ -317,3 +317,52 @@ Ana dal doğrulamasında aynı planın HTML dosyasının ortam BUILD_URL
 bilgisiyle değiştiği ve Git arşivlemesinin INTEGRITY_CONFLICT verdiği
 saptandı. Kaynaklarda yalnız bu örtük bağlantı kaldırılır. Doğrulanmış
 report_context desteği, SQL içeriği ve arşiv bütünlük kontrolleri korunur.
+
+9 Kasım 2026 son ana dal commit'inin Jenkins kurulumu
+
+Kullanıcı daf616f0ec215dcd8e76fdd42647227ff9336269 commit'inin Jenkins'e
+kurulmasını istedi. Sürüm arşivi doğrudan bu commit'ten hazırlanır.
+Kurulum ve ortam kontrolü yetkilidir. Sabah raporu Europe/Istanbul 08.00
+zamanlamasıyla Innova-SKY@innova.com.tr adresine gider. Bu adımda yeni
+Oracle karşılaştırması veya mail gönderimi tetiklenmez. DDL/DML uygulanmaz.
+Yeni branch oluşturulmaz ve kaynak commit'i değiştirilmez.
+
+9 Kasım 2026 güncel sürümle canlı süre ölçümü
+
+Kullanıcı kurulu daf616f sürümüyle canlı karşılaştırma ve toplam süre
+ölçümü istedi. Mevcut Git SKY kaynağı ve canlı TTBP hedefi kullanılır.
+Test maili yalnız mkaracan@innova.com.tr adresine gider. Normal sabah
+Pipeline alıcısı Innova-SKY@innova.com.tr ve Europe/Istanbul 08.00 kaydı
+değiştirilmez. Tek koşuluk betik kalıcı properties tanımı yazmaz.
+Oracle metadata salt okunur toplanır. DDL ve DML uygulanmaz.
+
+9 Kasım 2026 kaynak önbelleği düzeltmesi ve canlı tekrar
+
+Kullanıcı 116 koşusunda kaynak önbelleğinin okunmama ve saklanmama nedenini
+bulup düzeltmeyi istedi. DDL içeriği korunacak, 5 dakika hedefine yaklaşmak
+için süre ölçülecek ve canlı test tekrarlanacak. Paket kurulumu, yalnız
+doğrulanmış kaynak önbelleği kopyalarının kapasite içinde yenilenmesi ve
+mailin yalnız mkaracan@innova.com.tr adresine gönderilmesi bu kapsamdadır.
+Normal SKY alıcısı ve 08.00 zamanlaması korunur. SQL uygulanmaz.
+Plan docs/superpowers/plans/2026-11-09-source-cache-rotation.md içindedir.
+
+9 Kasım 2026 hedef toplama performansı
+
+Kullanıcı 120 koşusundaki 5 dakika 34 saniyelik hedef toplamasını azaltmayı
+ve toplam süreyi 5 dakikaya indirmeyi istedi. Kayıtlı girdilerle DDL eşitliği
+doğrulanır ve canlı test tekrarlanır. Test maili yalnız mkaracan@innova.com.tr
+adresine gider. Sabah SKY alıcısı ve 08.00 kaydı korunur. DDL uygulanmaz.
+Plan docs/superpowers/plans/2026-11-09-target-capture-performance.md içindedir.
+
+9 Kasım 2026 performans iyileştirmelerinin ana dala alınması
+
+Kullanıcı kaynak önbelleği ve hedef toplama performans değişikliklerinin
+origin/main hedefine gönderilmesini ve Jenkins'in son commit ile
+kurulmasını istedi. Yeni branch oluşturulmaz. Başka çalışma dizininin
+bekleyen değişikliklerine dokunulmaz. Kaynak, test ve belgeler gönderilir.
+.local bağlantı kayıtları, ölçüm arşivleri ve sürüm paketleri Git dışındadır.
+
+Kurulum yalnız ortam ve dosya bütünlüğü kontrolü yapar. Yeni canlı Oracle
+karşılaştırması veya mail bu görevde tetiklenmez. SQL uygulanmaz. Sabah
+Europe/Istanbul 08.00 ve Innova-SKY@innova.com.tr alıcısı korunur. Son uzak
+commit ve Jenkins kurulum kanıtı .local/push-perf-20261109 altında tutulur.

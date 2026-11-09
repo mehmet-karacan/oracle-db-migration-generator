@@ -1,4 +1,10 @@
-"""Metadata-only name resolution. No SQL from source text is executed."""
+"""Schema Compare ad çözümleme bilgisini yalnız metadata sorgularıyla toplar.
+
+Kaynak SQL metni çalıştırılmaz. Aynı toplamadaki kaynak referansları paylaşılır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
 import time
 
 from ..model.evidence import Evidence
@@ -15,7 +21,7 @@ def _kind(kind):
     return {'PACKAGE':'PACKAGE_SPEC','TYPE':'TYPE_SPEC'}.get(kind,kind.replace(' ','_'))
 
 
-def read_reference_metadata(cursor,source,owner,existing=(),*,target_id,deadline=None):
+def read_reference_metadata(cursor,source,owner,existing=(),*,target_id,deadline=None,source_references=None):
     records=[];errors=[];cache={}
     def query(sql,binds):
         key=(sql,tuple(sorted(binds.items())))
@@ -48,8 +54,10 @@ def read_reference_metadata(cursor,source,owner,existing=(),*,target_id,deadline
     known={(o.identity.owner.effective_name,o.identity.name.effective_name) for o in existing if o.identity.object_type in SHARED_NAMESPACE-{'SYNONYM'}}
     desired={(o.identity.owner.effective_name,o.identity.name.effective_name) for o in source.objects if o.identity.object_type in SHARED_NAMESPACE} if source else set()
     synonyms={(o.identity.owner.effective_name,o.identity.name.effective_name) for o in existing if o.identity.object_type=='SYNONYM'}
-    requested=sorted({(r.owner,r.name,r.unqualified) for obj in source.objects for r in references(obj)
-                      if r.owner!=owner or (r.owner,r.name) in synonyms or r.unqualified and (r.owner,r.name) not in known|desired}) if source else []
+    if source_references is None:
+        source_references=tuple(r for obj in source.objects for r in references(obj)) if source else ()
+    requested=sorted({(r.owner,r.name,r.unqualified) for r in source_references
+                      if r.owner!=owner or (r.owner,r.name) in synonyms or r.unqualified and (r.owner,r.name) not in known|desired})
     for request_owner,name,unqualified in requested:
         record={'requested_owner':request_owner,'requested_name':name,'unqualified':unqualified,'state':'KNOWN','objects':[],'chain':[]}
         try:

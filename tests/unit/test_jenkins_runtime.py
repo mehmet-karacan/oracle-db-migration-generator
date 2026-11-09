@@ -142,6 +142,8 @@ def test_ddl_stays_in_jenkins_without_artifact_git_stage_or_credential():
     assert 'jenkins_publication.py' not in text
     assert 'GENERATOR_ARTIFACT_PASSWORD' not in text and '@@ARTIFACT_CREDENTIAL@@' not in text
     assert 'archiveArtifacts(artifacts: "output/runs/build-${env.BUILD_NUMBER}/**"' in text
+    assert 'allowEmptyArchive: true, fingerprint: false)' in text
+    assert 'fingerprint(targets: "output/runs/build-${env.BUILD_NUMBER}/ddl-generation.json,output/runs/build-${env.BUILD_NUMBER}/targets/*/bundle-manifest.json")' in text
     assert 'excludes: "output/runs/build-${env.BUILD_NUMBER}/observations/**"' in text
 
 

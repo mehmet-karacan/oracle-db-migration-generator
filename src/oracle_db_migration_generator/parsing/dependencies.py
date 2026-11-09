@@ -1,5 +1,14 @@
-"""Conservative token references, supplemented by exporter dependency evidence."""
-from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens, identifier
+"""Schema Compare nesne bağımlılıklarını token ve dışa aktarım kanıtıyla çıkarır.
+
+Kısa çağrı adlarının saf çözümlemesi yeniden kullanılır. Şema, yetki ve
+canlı metadata sonuçları bu önbellekte saklanmaz.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
+from functools import lru_cache
+from .._vendor.analyzer_core.oracle.ddl_tokens import identifier
+from .token_cache import analysis_tokens as code_tokens
 from ..model.plan import DependencyReference
 
 BUILTIN_TYPES=frozenset(('NUMBER VARCHAR2 VARCHAR CHAR NCHAR NVARCHAR2 RAW LONG BINARY_FLOAT BINARY_DOUBLE FLOAT DEC DECIMAL INTEGER INT SMALLINT REAL DOUBLE DATE TIMESTAMP INTERVAL BLOB CLOB NCLOB BFILE BOOLEAN UROWID ROWID PLS_INTEGER BINARY_INTEGER SIMPLE_INTEGER NATURAL NATURALN POSITIVE POSITIVEN SIGNTYPE STRING').split())
@@ -89,8 +98,9 @@ def signature_only_spec(obj,projection):
     return True
 
 
-def has_dynamic_sql(obj):
-    tokens=code_tokens(obj.raw_ddl.decode()) if obj.raw_ddl else ()
+def has_dynamic_sql(obj,*,tokens=None):
+    if tokens is None:
+        tokens=code_tokens(obj.raw_ddl.decode()) if obj.raw_ddl else ()
     for i,token in enumerate(tokens):
         if token.upper=='EXECUTE' and i+1<len(tokens) and tokens[i+1].upper=='IMMEDIATE':return True
         if i+1<len(tokens) and tokens[i+1].text=='.':
@@ -106,6 +116,16 @@ def has_dynamic_sql(obj):
 
 def _callee_parts(raw):
     """Only the qualified callee is an identifier; arguments are expressions."""
+    text=raw or ''
+    return _cached_callee_parts(text) if len(text)<=2048 else _parse_callee_parts(text)
+
+
+@lru_cache(maxsize=4096)
+def _cached_callee_parts(raw):
+    return _parse_callee_parts(raw)
+
+
+def _parse_callee_parts(raw):
     tokens=code_tokens(raw or '') or ()
     if tokens and tokens[0].upper=='CALL':tokens=tokens[1:]
     result=[];at=0

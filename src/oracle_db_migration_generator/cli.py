@@ -173,6 +173,9 @@ def main(argv=None):
             phases['checkpoint_write']=time.perf_counter()-mark
             performance={'schema_version':'source-preparation-performance/1.0','cache_status':cache_status,
                          'checkpoint_stored':stored,'source_files':len(inputs.artifacts),
+                         'checkpoint_load_reason':cache.last_load_reason if cache else 'DISABLED',
+                         'checkpoint_store_reason':cache.last_store_reason if cache else 'DISABLED',
+                         'checkpoint_evicted_entries':cache.evicted_entries if cache else 0,
                          'phases_seconds':phases,'total_seconds':time.perf_counter()-started,
                          'source_commit':inputs.revision.commit,'source_semantic_digest':snapshot.semantic_digest,
                          'database_connections':0,'read_only':True}

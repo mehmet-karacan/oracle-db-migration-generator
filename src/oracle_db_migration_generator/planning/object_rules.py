@@ -7,7 +7,8 @@ import re
 import hashlib
 from collections.abc import Mapping
 
-from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens, identifier, enclosed
+from .._vendor.analyzer_core.oracle.ddl_tokens import identifier, enclosed
+from ..parsing.token_cache import analysis_tokens as code_tokens
 from .._vendor.analyzer_core.oracle.table import constraint_properties
 from ..model.plan import DependencyReference
 from .builder import operation
@@ -332,7 +333,7 @@ def object_change(context,obj,actual,changes):
         declared_complete=bool(declared and declared.state=='KNOWN')
         from ..parsing.dependencies import has_dynamic_sql
         from .review_reasons import routine_inventory
-        if has_dynamic_sql(obj):
+        if has_dynamic_sql(obj,tokens=tokens or None):
             return decide('REVIEW_REQUIRED','DYNAMIC_SQL_DEPENDENCY_REQUIRES_REVIEW',
                           'Dinamik SQL içindeki nesne bağımlılıkları doğrulanamadı.'+routine_inventory(obj),
                           statement=review_source_statement(obj,tokens=tokens),plsql=kind!='VIEW')

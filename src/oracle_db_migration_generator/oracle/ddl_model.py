@@ -5,6 +5,8 @@ Date: 2026-11-06
 """
 from dataclasses import replace
 import hashlib
+import json
+import re
 from antlr4 import InputStream
 from antlr4.error.ErrorListener import ErrorListener
 
@@ -13,7 +15,7 @@ from ..model.evidence import Evidence
 from ..model.serialization import digest,thaw
 from ..model.snapshot import KnownValue
 from ..parsing.adapter import parse_ddl
-from ..parsing.canonicalize import canonical_sql
+from ..parsing.canonicalize import canonical_sql, RESERVED
 from ..parsing.context import apply_context
 
 
@@ -28,18 +30,50 @@ class _StrictErrors(ErrorListener):
 
 
 def _checked_canonical(text):
+    """Tek lexer geçişiyle eşitliği ve korunacak literal içeriğini çıkarır.
+
+    Satırdaki slash literal veya hint içindeyse eski kanonik dönüşüm ayrıca
+    kullanılır. Böylece mevcut tanım özeti ve ham literal kontrolü korunur.
+    """
     from .._vendor.analyzer_core.oracle.generated.PlSqlLexer import PlSqlLexer
-    lexer = PlSqlLexer(InputStream(text.lstrip('\ufeff')))
+    text = text.lstrip('\ufeff')
+    removed = tuple((match.start(),match.end()) for match in re.finditer(r'(?m)^\s*/\s*$',text))
+    lexer = PlSqlLexer(InputStream(text))
     lexer.removeErrorListeners()
     lexer.addErrorListener(_StrictErrors())
     protected = []
+    result = []
+    fallback = False
     while True:
         token = lexer.nextToken()
         if token.type == -1:
             break
         if (token.channel == 0 and "'" in token.text) or token.text.startswith(('/*+', '--+')):
             protected.append(token.text)
-    return canonical_sql(text), tuple(protected)
+        value = token.text
+        overlaps = [(start,end) for start,end in removed if start <= token.stop and end > token.start]
+        if overlaps and not value.isspace():
+            if value == '/' and any(start <= token.start and end > token.stop for start,end in overlaps):
+                continue
+            fallback = True
+        if token.channel != 0:
+            if value.startswith(('/*+', '--+')):
+                result.append(['hint',value])
+            continue
+        if value.startswith('"') and value.endswith('"'):
+            name = value[1:-1].replace('""','"')
+            result.append(['quoted' if name in RESERVED else 'code',name])
+        elif "'" in value:
+            result.append(['literal',value])
+        else:
+            result.append(['code',value.upper()])
+    if fallback:
+        return canonical_sql(text),tuple(protected)
+    if result[:3] == [['code','CREATE'],['code','OR'],['code','REPLACE']]:
+        del result[1:3]
+    while result and result[-1] == ['code',';']:
+        result.pop()
+    return json.dumps(result,ensure_ascii=False,separators=(',',':')),tuple(protected)
 
 
 def _matching_package(obj, source, statistics):
@@ -102,7 +136,12 @@ def project_target_object(obj, *, source=None, statistics=None):
     props=dict(obj.properties)
     known=candidate is not None and not reasons
     props['projection']=KnownValue('KNOWN' if known else 'UNKNOWN',thaw(candidate.projection.properties) if known else None,obj.evidence_ids)
-    props['definition']=KnownValue('KNOWN' if known else 'UNKNOWN',candidate.projection.properties.get('_generator_effective_definition',canonical_sql(candidate.raw_ddl.decode())) if known else None,obj.evidence_ids)
+    definition = None
+    if known:
+        definition = candidate.projection.properties.get('_generator_effective_definition')
+        if '_generator_effective_definition' not in candidate.projection.properties:
+            definition = canonical_sql(candidate.raw_ddl.decode())
+    props['definition']=KnownValue('KNOWN' if known else 'UNKNOWN',definition,obj.evidence_ids)
     updated=replace(obj,properties=props,projection=candidate.projection if candidate else None,
                     coverage=replace(obj.coverage,ddl='COMPLETE' if known else 'PARTIAL',diagnostics=tuple(sorted(reasons))))
     evidence=[]

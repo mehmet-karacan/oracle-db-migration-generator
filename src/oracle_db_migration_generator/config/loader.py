@@ -1,5 +1,12 @@
-"""Closed JSON contracts and semantic checks; errors never echo input values."""
+"""Schema Compare kapalı JSON sözleşmelerini ve anlam kontrollerini doğrular.
+
+Hata mesajları girdi değerlerini içermez.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
 import json
+from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 
@@ -33,9 +40,23 @@ def read_json(path: Path) -> dict:
     return document
 
 
-def validate_document(document: dict, schema_name: str) -> None:
+@lru_cache(maxsize=32)
+def _validators(schema_name):
     schema = json.loads(files('oracle_db_migration_generator').joinpath('schemas', schema_name).read_text(encoding='utf-8'))
-    if next(Draft202012Validator(schema).iter_errors(document), None) is not None:
+    from .schema_validation import compile_checked_schema
+    return compile_checked_schema(schema),Draft202012Validator(schema)
+
+
+def validate_document(document: dict, schema_name: str) -> None:
+    fast,standard=_validators(schema_name)
+    if fast is not None:
+        try:
+            fast(document)
+            return
+        except ValueError:
+            pass
+    # Regex son satır ve dialect farklarında son sözü mevcut doğrulayıcı söyler.
+    if next(standard.iter_errors(document), None) is not None:
         raise ConfigError("CONFIG_SCHEMA_INVALID")
 
 

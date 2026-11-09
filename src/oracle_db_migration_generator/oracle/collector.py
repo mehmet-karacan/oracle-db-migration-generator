@@ -181,13 +181,16 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
         capabilities.update(collation_capabilities(parameter_rows,parameter_id))
         from .reference_metadata import read_reference_metadata
         phase_started = time.monotonic()
+        from ..parsing.dependencies import references
+        reference_started=time.monotonic()
+        source_references=tuple(ref for obj in source.objects for ref in references(obj)) if source else ()
+        timings['source_reference_analysis']=time.monotonic()-reference_started
         resolution,resolution_evidence=read_reference_metadata(cursor,source,owner,
-            target_id=target.id,deadline=deadline)
+            target_id=target.id,deadline=deadline,source_references=source_references)
         capabilities.update(resolution);evidence.append(resolution_evidence)
         if source is not None:
-            from ..parsing.dependencies import references
             from .queries import REFERENCE_OBJECT
-            requested=sorted({(ref.owner,ref.name) for obj in source.objects for ref in references(obj) if ref.owner!=owner})
+            requested=sorted({(ref.owner,ref.name) for ref in source_references if ref.owner!=owner})
             external=[];external_failed=False
             for reference_owner,reference_name in requested:
                 try:
@@ -201,6 +204,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             evidence.append(Evidence(ref_id,'TARGET_METADATA','TARGET',None,digest(external),None,None,'all_objects.references','İstenen harici bağımlılıkların görünürlük ve durum metadata kaydı.'))
             capabilities['reference_objects']=KnownValue('UNKNOWN' if external_failed else 'KNOWN',None if external_failed else external,(ref_id,))
         timings['reference_metadata'] += time.monotonic()-phase_started
+        timings['reference_queries']=timings['reference_metadata']-timings['source_reference_analysis']
         capabilities['grantees'] = KnownValue('KNOWN' if groups['grantees'] is not None else 'UNKNOWN',
                                               [r['username'] for r in groups['grantees']]+['PUBLIC'] if groups['grantees'] is not None else None,
                                               (group_evidence['grantees'],))
@@ -255,6 +259,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             elapsed=time.monotonic()-started if needs_projection else 0.0
             return index,item,ddl_evidence,context_evidence,elapsed,statistics
         completed = {}
+        projection_started=time.monotonic()
         try:
             with ddl_records(managed, cursor, target=target, mapping=mapping, credential=credential,
                              connect=connect, owner=owner, deadline=deadline, workers=workers) as records:
@@ -264,7 +269,9 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                         if progress: progress(len(completed),len(managed))
         except DDLReadError as error:
             raise CaptureError(str(error)) from None
+        timings['ddl_projection_pipeline_wall']=time.monotonic()-projection_started
         timings['ddl_read_active_wall'] = active_read_seconds(read_intervals)
+        slow_projections=[]
         for index in range(len(managed)):
             item,ddl_evidence,context_evidence,elapsed,statistics = completed.pop(index)
             for key, value in statistics.items():
@@ -272,6 +279,10 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
             evidence.append(ddl_evidence)
             evidence.extend(context_evidence)
             timings['grammar_projection'] += elapsed
+            if elapsed:
+                slow_projections.append({'object_type':item.identity.object_type,
+                    'name':item.identity.name.effective_name,'seconds':elapsed,'bytes':len(item.raw_ddl or b''),
+                    'diagnostics':item.coverage.diagnostics})
             phase_started = time.monotonic()
             objects.append(enrich_object(item,groups,group_evidence,row_index=row_index))
             timings['dictionary_enrichment'] += time.monotonic()-phase_started
@@ -310,6 +321,7 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                           'package_sha_reuse':package_statistics,
                           'ddl_reader_workers':min(workers,len(managed)),
                           'slowest_ddl_reads':sorted(slow_reads,key=lambda item:(-item['seconds'],item['object_type'],item['name']))[:10],
+                          'slowest_grammar_projections':sorted(slow_projections,key=lambda item:(-item['seconds'],item['object_type'],item['name']))[:10],
                           'ddl_read_timing_basis':'SUM_OF_WORKER_DURATIONS',
                           'grammar_projection_timing_basis':'SUM_OF_WORKER_DURATIONS'}, artifacts
     finally:

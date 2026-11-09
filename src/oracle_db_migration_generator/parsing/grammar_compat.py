@@ -5,6 +5,11 @@ grammar omits that production. Mask just this recognized header token with
 equal-length whitespace for parsing, retaining every source/body offset.
 https://docs.oracle.com/en/database/oracle/oracle-database/19/lnpls/CREATE-PROCEDURE-statement.html
 https://docs.oracle.com/en/database/oracle/oracle-database/19/lnpls/CREATE-TRIGGER-statement.html
+
+Schema Compare mevcut grammar'ın uyumluluk ve fonksiyon seçimlerini uygular.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
 """
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens,enclosed
 from antlr4 import CommonTokenStream
@@ -53,6 +58,11 @@ class CompatiblePlSqlParser(PlSqlParser):
     atn = _in_select_atn()
     decisionsToDFA = [DFA(state, index) for index, state in enumerate(atn.decisionToState)]
     sharedContextCache = PredictionContextCache()
+
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        from .function_prediction import FunctionPrediction
+        self._interp=FunctionPrediction(self,self.atn,self.decisionsToDFA,self.sharedContextCache)
 
     def subquery(self):
         if isinstance(self._ctx, self.In_elementsContext):
