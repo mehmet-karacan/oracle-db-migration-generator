@@ -1,0 +1,254 @@
+{
+  "library": "lucide-react",
+  "version": "1.61.0",
+  "source": "web/node_modules/lucide-react",
+  "icons": {
+    "database": {
+      "name": "database",
+      "tone": "oracle",
+      "color": "#325CAA",
+      "background": "#EDF3FF",
+      "source_sha256": "9de8fbc6c3ac18fd1eab47bdde0ed16f08146f3a0769121dc0bc530f7e0b1e72"
+    },
+    "compare": {
+      "name": "file-diff",
+      "tone": "warning",
+      "color": "#765200",
+      "background": "#FFF7E8",
+      "source_sha256": "1c7550c040b8a8a92726b79f1939ac2455657aa2263f53f5e09b64ea57a243cb"
+    },
+    "code": {
+      "name": "file-code-corner",
+      "tone": "output",
+      "color": "#0F766E",
+      "background": "#EAF5F2",
+      "source_sha256": "eb8ea0cdae84a7cf4510836df697c25ac72050c54899c4bae4848a9d6e2b837f"
+    },
+    "scan": {
+      "name": "scan-search",
+      "tone": "info",
+      "color": "#244B78",
+      "background": "#EDF3FC",
+      "source_sha256": "ec9573fbba6d407ed4f1db4a689f820049182f8d2310ca9b4ca9fb7e199b85bc"
+    },
+    "time": {
+      "name": "clock",
+      "tone": "info",
+      "color": "#0369A1",
+      "background": "#EFF6FF",
+      "source_sha256": "c44087c7de7018626a5faff40edc6298ea7767638998ddc77b7b120ade24e7b2"
+    },
+    "document": {
+      "name": "file-exclamation-point",
+      "tone": "negative",
+      "color": "#9D203D",
+      "background": "#FFF0F3",
+      "source_sha256": "959eb4847fa0ca55c49c1b8196e55d5b22bc921972695de26a3bf82ad6c9fb5e"
+    },
+    "details": {
+      "name": "list-tree",
+      "tone": "info",
+      "color": "#244B78",
+      "background": "#EDF3FC",
+      "source_sha256": "f92bbcff5913f5b68f6b865a42bf520f87ce099d49139b11f6799cbfe4efb338"
+    },
+    "connections": {
+      "name": "workflow",
+      "tone": "relation",
+      "color": "#6D28D9",
+      "background": "#F5F3FF",
+      "source_sha256": "5f0693ab5812201d2b12ad8d6cbc50d1650f8def5bc817cc469e4fa196df3750"
+    },
+    "review": {
+      "name": "clipboard-list",
+      "tone": "warning",
+      "color": "#765200",
+      "background": "#FFF7E8",
+      "source_sha256": "a9aacafdf25724d6a65cf29bd402b65a97d4e6f2851f28c907eed44b41ace31b"
+    },
+    "inventory": {
+      "name": "boxes",
+      "tone": "info",
+      "color": "#244B78",
+      "background": "#EDF3FC",
+      "pixels": 96,
+      "source_sha256": "93092aebd44a4a97c01a35d2871230b2572d269583b06151dd3f463ec2d65029"
+    },
+    "object-table": {
+      "name": "table",
+      "tone": "table",
+      "color": "#2563EB",
+      "background": "#EFF6FF",
+      "pixels": 48,
+      "source_sha256": "fef3c557be9f7345aa58bbf7a3e0a2bf4eca1d3c963c305f57a1970ef6abc2fb"
+    },
+    "object-column": {
+      "name": "columns-3",
+      "tone": "column",
+      "color": "#0E7490",
+      "background": "#ECFEFF",
+      "pixels": 48,
+      "source_sha256": "28b6b4855e52f647fb932b2ce1e08320253cb610059b44d1418f27efebf59685"
+    },
+    "object-view": {
+      "name": "eye",
+      "tone": "view",
+      "color": "#7C3AED",
+      "background": "#F5F3FF",
+      "pixels": 48,
+      "source_sha256": "c7fc556a06301d919327a81872f770f938adb11b5f55e550b09ce98128afe79a"
+    },
+    "object-materialized-view": {
+      "name": "layers-2",
+      "tone": "view",
+      "color": "#7C3AED",
+      "background": "#F5F3FF",
+      "pixels": 48,
+      "source_sha256": "404997581bf31dbcef822e339820eb7042b598537618e95261b1d05826973b3e"
+    },
+    "object-index": {
+      "name": "list-filter",
+      "tone": "index",
+      "color": "#A16207",
+      "background": "#FFFBEB",
+      "pixels": 48,
+      "source_sha256": "cdd37b6766d4352ee465dcf97958b9bd516a22e4208439be530fbf74e75eabe7"
+    },
+    "object-function": {
+      "name": "square-function",
+      "tone": "routine",
+      "color": "#0F766E",
+      "background": "#F0FDFA",
+      "pixels": 48,
+      "source_sha256": "0bd62fe4a20378334187ff63fe34f70112f91ce79b728b6310e329a53dd58e53"
+    },
+    "object-procedure": {
+      "name": "code-xml",
+      "tone": "routine",
+      "color": "#0F766E",
+      "background": "#F0FDFA",
+      "pixels": 48,
+      "source_sha256": "34e95cf1e66cb4b4e23e2421ddda7dff6333323b9f7394433a69ad9268059d94"
+    },
+    "object-package": {
+      "name": "package",
+      "tone": "package",
+      "color": "#4F46E5",
+      "background": "#EEF2FF",
+      "pixels": 48,
+      "source_sha256": "ada2cbe6cb4d3304f503efbdb6879028ab8269fea6075e7af433ea055a6f0143"
+    },
+    "object-package-body": {
+      "name": "package-open",
+      "tone": "package",
+      "color": "#4F46E5",
+      "background": "#EEF2FF",
+      "pixels": 48,
+      "source_sha256": "0e647b58a8f5915110149d67eb02f5b7cd8f917465d1df129d4260df95858ded"
+    },
+    "object-type": {
+      "name": "shapes",
+      "tone": "type",
+      "color": "#A21CAF",
+      "background": "#FDF4FF",
+      "pixels": 48,
+      "source_sha256": "60e2747da6c39d7819e5006e50f6fd8bb5c511cda1039b3997fad2778c2545b5"
+    },
+    "object-type-body": {
+      "name": "braces",
+      "tone": "type",
+      "color": "#A21CAF",
+      "background": "#FDF4FF",
+      "pixels": 48,
+      "source_sha256": "f990aaef26f9bf208cb396566a6a3dcb454bbf872888c48c5e682a3ef6675211"
+    },
+    "object-sequence": {
+      "name": "list-ordered",
+      "tone": "sequence",
+      "color": "#A16207",
+      "background": "#FFFBEB",
+      "pixels": 48,
+      "source_sha256": "bc64d79021771de44f77640087d5f02f878970edad6c84c969c1bb393ff5560b"
+    },
+    "object-synonym": {
+      "name": "link",
+      "tone": "relation",
+      "color": "#0369A1",
+      "background": "#F0F9FF",
+      "pixels": 48,
+      "source_sha256": "3318b5c3514c7927f926df832704e2b16457459e9e645697e94c22a3bda494c7"
+    },
+    "object-trigger": {
+      "name": "zap",
+      "tone": "event",
+      "color": "#C2410C",
+      "background": "#FFF7ED",
+      "pixels": 48,
+      "source_sha256": "ba406a0c573387eb45921170fd3fc996b7f80cb628a5ae256673e8c9ebf37c5b"
+    },
+    "object-comment": {
+      "name": "message-square",
+      "tone": "document",
+      "color": "#0369A1",
+      "background": "#F0F9FF",
+      "pixels": 48,
+      "source_sha256": "04b057ba4640243b1456d3cc21fa9d8362cac945beb607086a2516120dd29ebd"
+    },
+    "object-grant": {
+      "name": "key-round",
+      "tone": "permission",
+      "color": "#047857",
+      "background": "#ECFDF5",
+      "pixels": 48,
+      "source_sha256": "f7dcaa3d9cef0f374df665b758e6c835a4f94a6ddfd976d6f421e6acde5e2a14"
+    },
+    "object-log": {
+      "name": "logs",
+      "tone": "document",
+      "color": "#0369A1",
+      "background": "#F0F9FF",
+      "pixels": 48,
+      "source_sha256": "455157ce7f75c7d36aa6e944a6ea3c3711d48e603869f5e232c815c50602d830"
+    },
+    "object-constraint": {
+      "name": "list-check",
+      "tone": "constraint",
+      "color": "#0F766E",
+      "background": "#F0FDFA",
+      "pixels": 48,
+      "source_sha256": "88d4e19b7f78bb9cb26946f9cd0f9403d98684b8e518967c628bee7899910840"
+    },
+    "object-other": {
+      "name": "file-text",
+      "tone": "info",
+      "color": "#0369A1",
+      "background": "#F0F9FF",
+      "pixels": 48,
+      "source_sha256": "f00d511f6fbea36c9fe3f23f7c41ae65ca9fc9c84b9701851cff1946799b5e50"
+    }
+  },
+  "type_roles": {
+    "tablo": "object-table",
+    "kolon": "object-column",
+    "görünüm": "object-view",
+    "saklanan görünüm": "object-materialized-view",
+    "indeks": "object-index",
+    "fonksiyon": "object-function",
+    "prosedür": "object-procedure",
+    "paket tanımı": "object-package",
+    "paket": "object-package",
+    "paket gövdesi": "object-package-body",
+    "veri tipi": "object-type",
+    "veri tipi gövdesi": "object-type-body",
+    "sıra numarası": "object-sequence",
+    "nesne takma adı": "object-synonym",
+    "eş ad": "object-synonym",
+    "tetikleyici": "object-trigger",
+    "açıklama": "object-comment",
+    "yetki": "object-grant",
+    "saklanan görünüm günlüğü": "object-log",
+    "kural": "object-constraint",
+    "kısıt": "object-constraint",
+    "nesne": "object-other"
+  }
+}

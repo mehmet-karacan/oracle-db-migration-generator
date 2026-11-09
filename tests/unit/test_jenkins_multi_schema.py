@@ -161,7 +161,9 @@ def test_two_owner_runner_prepares_once_enriches_before_capture_and_preserves_fa
     assert len(verified)==2
     run=json.loads((output/'run.json').read_bytes())
     assert phases==['prepare','source-INNOVA_ODI','source-TTBP','target-INNOVA_ODI','target-TTBP']
-    assert code==10 and [(item['id'],item['status']) for item in run['targets']]==[('LOCAL-ODI','ERROR'),('LOCAL-TTBP','BLOCKED' if prepared_partial else 'NO_CHANGE')]
+    assert code==20 and [(item['id'],item['status']) for item in run['targets']]==[('LOCAL-ODI','ERROR'),('LOCAL-TTBP','BLOCKED' if prepared_partial else 'NO_CHANGE')]
+    generation=json.loads((output/'ddl-generation.json').read_bytes())
+    assert generation['status']=='FAILURE' and generation['failed_targets']==1
     if prepared_partial:
         assert run['targets'][1]['difference_count'] is None
         plan=json.loads((output/'targets/LOCAL-TTBP/plan.json').read_bytes())

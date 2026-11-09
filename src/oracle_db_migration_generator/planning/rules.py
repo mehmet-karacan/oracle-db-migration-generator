@@ -1,3 +1,8 @@
+"""Schema Compare farklarını DDL planına ve gerekçeli SQL önerilerine çevirir.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
 from .. import __version__
 from ..model.plan import TargetPlan
 from ..model.serialization import digest
@@ -44,6 +49,8 @@ def plan_target(differences,context):
             operations.extend(object_change(context,desired,actual,changes))
     from .graph import bind_and_order
     operations = bind_and_order(operations,context)
+    from .ddl_proposals import complete_proposals
+    operations = complete_proposals(operations,context,differences)
     warnings=list(differences.diagnostics)
     for op in operations:
         if set(op.reason_codes)&{'PHYSICAL_STORAGE_PRESERVED','BACKING_INDEX_CREATED_BY_CONSTRAINT',

@@ -34,7 +34,7 @@ def _scan(payloads,secret_values):
 def write_bundle(plan,output,*,secret_values=(),scan_summary=None,source=None):
     output=Path(output).resolve()
     if output.exists(): raise ValueError('OUTPUT_ALREADY_EXISTS')
-    payload={};ops=[];plan_id=plan.plan_id
+    payload={};ops=[];plan_id=plan.plan_id;objects={}
     source_paths={}
     proposal_paths={}
     if source is not None:
@@ -61,7 +61,10 @@ def write_bundle(plan,output,*,secret_values=(),scan_summary=None,source=None):
                 'objects':sorted(archive.values(),key=lambda item:item['object_key'])})+b'\n'
     for op in plan.operations:
         if op.decision=='READY':
-            raw=render_statement(op,plan_id);path=object_sql_path(op)
+            obj=objects.get(op.identity.key)
+            raw=(render_statement(op,plan_id,source=obj) if obj is not None
+                 and obj.identity.object_type in {'PACKAGE_SPEC','PACKAGE_BODY','PROCEDURE','FUNCTION','VIEW'} else render_statement(op,plan_id))
+            path=object_sql_path(op)
             payload[path]=raw
             op=replace(op,sql={'path':path,'sha256':hashlib.sha256(raw).hexdigest(),'statement_kind':op.intent.statement_kind})
         elif op.decision in {'REVIEW_REQUIRED','BLOCKED'} and op.proposal is not None:

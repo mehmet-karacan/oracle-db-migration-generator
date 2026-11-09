@@ -9,22 +9,27 @@ import hashlib
 from ..parsing.adapter import parse_ddl
 
 
-def render_statement(operation,plan_id):
+def render_statement(operation,plan_id,*,source=None):
     intent=operation.intent
     if operation.decision!='READY' or intent is None:
         raise ValueError('EMITTED_SQL_NOT_READY')
     if hashlib.sha256(intent.statement).hexdigest()!=intent.verification_sha256:
         raise ValueError('EMITTED_SQL_INTEGRITY_MISMATCH')
-    parsed=parse_ddl(intent.statement,operation.identity)
-    if parsed.diagnostics:
-        raise ValueError('EMITTED_SQL_PARSE_FAILED')
-    if operation.kind in {'CREATE','REPLACE','CREATE_INDEX'}:
-        if len(parsed.objects)!=1 or parsed.sidecars or parsed.objects[0].identity.key!=operation.identity.key or not parsed.objects[0].parse_ok:
-            raise ValueError('EMITTED_SQL_IDENTITY_OR_STATEMENT_MISMATCH')
-    else:
-        expected={'ADD_COLUMN':'ALTER_TABLE','MODIFY_COLUMN':'ALTER_TABLE','ADD_CONSTRAINT':'ALTER_TABLE','GRANT':'GRANT','COMMENT':'COMMENT'}[operation.kind]
-        if parsed.objects or len(parsed.sidecars)!=1 or parsed.sidecars[0]['kind']!=expected:
-            raise ValueError('EMITTED_SQL_STATEMENT_MISMATCH')
+    from ..planning.object_rules import verified_source_definition, replace_header
+    verified = (source is not None and source.object_key == operation.identity.key
+                and operation.kind in {'CREATE', 'REPLACE'} and verified_source_definition(source)
+                and intent.statement == replace_header(source.raw_ddl))
+    if not verified:
+        parsed=parse_ddl(intent.statement,operation.identity)
+        if parsed.diagnostics:
+            raise ValueError('EMITTED_SQL_PARSE_FAILED')
+        if operation.kind in {'CREATE','REPLACE','CREATE_INDEX'}:
+            if len(parsed.objects)!=1 or parsed.sidecars or parsed.objects[0].identity.key!=operation.identity.key or not parsed.objects[0].parse_ok:
+                raise ValueError('EMITTED_SQL_IDENTITY_OR_STATEMENT_MISMATCH')
+        else:
+            expected={'ADD_COLUMN':'ALTER_TABLE','MODIFY_COLUMN':'ALTER_TABLE','ADD_CONSTRAINT':'ALTER_TABLE','GRANT':'GRANT','COMMENT':'COMMENT'}[operation.kind]
+            if parsed.objects or len(parsed.sidecars)!=1 or parsed.sidecars[0]['kind']!=expected:
+                raise ValueError('EMITTED_SQL_STATEMENT_MISMATCH')
     text=intent.statement.decode('utf-8').rstrip()
     # The parser clips a runner slash from source units. Only the renderer adds it.
     if text.endswith('\n/'):

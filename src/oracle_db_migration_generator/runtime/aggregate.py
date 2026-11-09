@@ -19,6 +19,8 @@ from ..artifacts.layout import markdown
 
 def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,build_url=None,source_origin=None):
     root=Path(root).resolve();results=[];commits=set();synthetic=False;plans={};proposal_ids={}
+    # Önceki başarı kaydı yeni doğrulama hatasında geçerli kalmaz.
+    (root/'ddl-generation.json').unlink(missing_ok=True)
     for path in sorted((root/'targets').glob('*')):
         if not path.is_dir(): continue
         if (path/'plan.json').is_file():
@@ -76,4 +78,8 @@ def aggregate_run(root,*,source_commit=None,started_at=None,build_number=None,bu
                         scan_summaries=load_scan_summaries(root,document,plans),proposal_ids=proposal_ids)
     for path,raw in render_run_reports(view).items():
         destination=root/path;destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(raw)
+    from .generation import generation_summary
+    generation={'schema_version':'ddl-generation/1.0','run_id':document['run_id'],
+                'comparison_status':document['status'],**generation_summary(results,plans,proposal_ids)}
+    (root/'ddl-generation.json').write_bytes(canonical_bytes(generation)+b'\n')
     return document

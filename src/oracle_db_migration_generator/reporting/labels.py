@@ -1,27 +1,33 @@
-"""Human labels preserve canonical identity and use only recorded parent facts."""
+"""Şema Karşılaştırma tür, işlem ve durum etiketlerini ortak başlık biçiminde sunar.
+
+Kanonik nesne kimliği korunur ve bağlı nesne için yalnız kayıtlı bilgi kullanılır.
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+"""
 import re
 
 
-STATUSES = {'BLOCKED': 'DDL üretilemedi', 'REVIEW_REQUIRED': 'İnceleme gerekli',
-            'READY': 'DDL hazır', 'INFORMATIONAL': 'Bilgi', 'NO_ACTION': 'İşlem gerekmiyor',
-            'NO_CHANGE': 'Fark yok', 'ERROR': 'Karşılaştırma yapılamadı',
-            'INCOMPLETE': 'Karşılaştırma eksik', 'INCONSISTENT': 'Sonuçlar tutarsız',
-            'COMPLETE': 'Karşılaştırma tamamlandı', 'PARTIAL': 'Karşılaştırma kısmen tamamlandı',
-            'FAILED': 'Karşılaştırma tamamlanamadı'}
-TYPES = {'TABLE': 'Tablo', 'VIEW': 'Görünüm', 'MATERIALIZED_VIEW': 'Saklanan görünüm',
+STATUSES = {'BLOCKED': 'DDL Üretilemedi', 'REVIEW_REQUIRED': 'İnceleme Gerekli',
+            'READY': 'DDL Hazır', 'INFORMATIONAL': 'Bilgi', 'NO_ACTION': 'İşlem Gerekmiyor',
+            'NO_CHANGE': 'Fark Yok', 'ERROR': 'Karşılaştırma Yapılamadı',
+            'INCOMPLETE': 'Karşılaştırma Eksik', 'INCONSISTENT': 'Sonuçlar Tutarsız',
+            'COMPLETE': 'Karşılaştırma Tamamlandı', 'PARTIAL': 'Karşılaştırma Kısmen Tamamlandı',
+            'FAILED': 'Karşılaştırma Tamamlanamadı'}
+TYPES = {'TABLE': 'Tablo', 'VIEW': 'Görünüm', 'MATERIALIZED_VIEW': 'Saklanan Görünüm',
          'INDEX': 'İndeks', 'COMMENT': 'Açıklama', 'GRANT': 'Yetki', 'FUNCTION': 'Fonksiyon',
-         'PROCEDURE': 'Prosedür', 'PACKAGE_SPEC': 'Paket tanımı', 'PACKAGE_BODY': 'Paket gövdesi',
-         'TYPE_SPEC': 'Veri tipi', 'TYPE_BODY': 'Veri tipi gövdesi', 'SEQUENCE': 'Sıra numarası',
-         'SYNONYM': 'Nesne takma adı', 'TRIGGER': 'Tetikleyici'}
+         'PROCEDURE': 'Prosedür', 'PACKAGE_SPEC': 'Paket Tanımı', 'PACKAGE_BODY': 'Paket Gövdesi',
+         'TYPE_SPEC': 'Veri Tipi', 'TYPE_BODY': 'Veri Tipi Gövdesi', 'SEQUENCE': 'Sıra Numarası',
+         'SYNONYM': 'Nesne Takma Adı', 'TRIGGER': 'Tetikleyici'}
 KINDS = {'CREATE': 'Oluşturma', 'REPLACE': 'Güncelleme', 'REVIEW': 'İnceleme',
-         'COMMENT': 'Açıklama', 'GRANT': 'Yetki', 'CREATE_INDEX': 'İndeks oluşturma',
-         'ADD_COLUMN': 'Kolon ekleme', 'ALTER_COLUMN': 'Kolon güncelleme',
-         'ADD_CONSTRAINT': 'Kural ekleme', 'DROP_CONSTRAINT': 'Kural kaldırma',
-         'DROP': 'Kaldırma', 'ALTER': 'Güncelleme', 'NO_ACTION': 'İşlem gerekmiyor'}
+         'COMMENT': 'Açıklama', 'GRANT': 'Yetki', 'CREATE_INDEX': 'İndeks Oluşturma',
+         'ADD_COLUMN': 'Kolon Ekleme', 'ALTER_COLUMN': 'Kolon Güncelleme',
+         'ADD_CONSTRAINT': 'Kural Ekleme', 'DROP_CONSTRAINT': 'Kural Kaldırma',
+         'DROP': 'Kaldırma', 'ALTER': 'Güncelleme', 'NO_ACTION': 'İşlem Gerekmiyor'}
 
 
 def status_label(value):
-    return STATUSES.get(value, 'Sonuç doğrulanamadı')
+    return STATUSES.get(value, 'Sonuç Doğrulanamadı')
 
 
 def type_label(value):
@@ -29,7 +35,7 @@ def type_label(value):
 
 
 def kind_label(value):
-    return KINDS.get(value, 'Yapı değişikliği')
+    return KINDS.get(value, 'Yapı Değişikliği')
 
 
 def _plain_reason(text):
@@ -112,7 +118,7 @@ def target_reason(plan):
 
 def target_status(plan):
     if plan['counts']['blocked_operations'] and plan['counts']['ready_operations']:
-        return 'DDL kısmen hazır'
+        return 'DDL Kısmen Hazır'
     return status_label(plan['status'])
 
 

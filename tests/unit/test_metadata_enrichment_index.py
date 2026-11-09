@@ -75,12 +75,13 @@ def test_collector_indexes_metadata_rows_once_for_all_objects(monkeypatch):
                                       connect=lambda *_: connection)
     assert result.snapshot is not None and len(result.snapshot.objects) == 40
     timings = result.receipt['schemas'][0]['phase_timings_seconds']
-    assert set(timings) == {'dictionary_group_reads', 'reference_metadata', 'ddl_reads',
+    assert set(timings) == {'dictionary_group_reads', 'reference_metadata', 'ddl_reads', 'ddl_read_active_wall',
                            'grammar_projection', 'dictionary_enrichment', 'sidecar_merge', 'total'}
     assert all(isinstance(value, float) and value >= 0 for value in timings.values())
     assert result.receipt['schemas'][0]['grammar_projection_timing_basis']=='SUM_OF_WORKER_DURATIONS'
     # Paralel parser süreleri örtüşür. Ana iş parçacığındaki aşamalar örtüşmez.
-    assert timings['total'] >= sum(value for key, value in timings.items() if key not in {'total','grammar_projection'})
+    assert timings['total'] >= sum(value for key, value in timings.items() if key not in {'total','grammar_projection','ddl_read_active_wall'})
+    assert timings['ddl_read_active_wall'] <= timings['ddl_reads'] + 1e-6
     assert 'phase_timings_seconds' not in result.snapshot.to_dict()
     for obj in result.snapshot.objects:
         assert obj.properties['dictionary.columns'].value[0]['table_name'] == obj.identity.name.effective_name

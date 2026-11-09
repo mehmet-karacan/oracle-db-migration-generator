@@ -1,0 +1,11 @@
+{# Şema Karşılaştırma özetindeki dört temel ölçüyü iki sütunlu kartlarla sunar.
+Author: Mehmet KARACAN
+Date: 2026-11-07 #}
+{% set metric_labels = ['Hedef Ortam', 'Bulunan Fark', 'Üretilen DDL', view.metrics[3].label, view.metrics[4].label] %}
+<table class="summary-grid" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed">
+{% for group in view.metrics[1:]|batch(2) %}{% set group_index = loop.index0 %}<tr class="metric-row">{% for metric in group %}{% set metric_index = 1 + group_index * 2 + loop.index0 %}
+<td class="metric" width="50%" valign="top" bgcolor="#F6F8FA" style="width:50%;padding:12px 14px;background:#F6F8FA;border-right:1px solid #E4E9EF;border-bottom:1px solid #E4E9EF;vertical-align:top">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed"><tr><td width="32" style="width:32px;vertical-align:middle">{{ report_icon(metric_icon(metric_index, view.proposal_catalog_known), 24, accent=True) }}</td><td class="metric-label" height="38" style="height:38px;font-size:12px;line-height:18px;font-weight:600;color:#526174;vertical-align:middle;overflow-wrap:anywhere">{{ metric_labels[metric_index] }}</td></tr></table>
+<div class="mail-value" style="margin-top:6px;font-size:24px;line-height:30px;font-weight:700;color:#18273A;overflow-wrap:anywhere">{{ metric.value }}</div>
+</td>{% endfor %}</tr>{% endfor %}
+</table>

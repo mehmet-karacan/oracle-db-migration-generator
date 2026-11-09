@@ -64,7 +64,7 @@ def test_duration_note_escapes_content_and_keeps_readable_small_text(profile):
     if profile=='email':
         assert 'class="timing-summary"' in html and 'font-size:14px' in html
         assert re.findall(r'<th width="(\d+%)"',html)==['58%','25%','17%']
-        assert html.count('class="metric"')==5
+        assert html.count('class="metric"')==4
     else:
         css=render_run_reports(view)['assets/report.css'].decode()
         assert '.timing-summary{' in css and 'overflow-wrap:anywhere' in css

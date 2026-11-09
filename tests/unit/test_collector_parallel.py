@@ -87,3 +87,24 @@ def test_projection_exception_closes_cursor_and_connection(monkeypatch):
     result,connection=capture()
     assert result.snapshot is None and result.receipt['status']=='ERROR'
     assert connection.closed and connection.reader.closed and connection.rollbacks>=1
+
+
+def test_slow_first_projection_does_not_stop_later_work(monkeypatch):
+    monkeypatch.setenv('GENERATOR_PARSER_WORKERS', '3')
+    monkeypatch.setenv('GENERATOR_ORACLE_DDL_WORKERS', '1')
+    connection = FakeConnection()
+    connection.reader = OwnedCursor()
+    connection.reader.inventory = [('TABLE', f'T{i}', 'VALID', 'stamp') for i in range(12)]
+    last = threading.Event()
+    real = collector.project_target_object
+    def project(obj):
+        name = obj.identity.name.effective_name
+        if name == 'T0': assert last.wait(8), 'first result stopped the queue'
+        if name == 'T11': last.set()
+        return real(obj)
+    monkeypatch.setattr(collector, 'project_target_object', project)
+    target, profile = inputs()
+    captured = collector.collect_target(target, lambda _: Credentials('APP', 'synthetic'), profile,
+                                       connect=lambda *_: connection)
+    assert captured.snapshot is not None and last.is_set()
+    assert len(captured.snapshot.objects) == 12

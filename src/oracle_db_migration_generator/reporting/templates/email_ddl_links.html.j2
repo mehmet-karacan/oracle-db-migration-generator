@@ -1,0 +1,8 @@
+{# Şema Karşılaştırma epostasından aynı çalışmanın rapor ve DDL arşivini bir kez açar.
+Author: Mehmet KARACAN
+Date: 2026-11-07 #}
+{% if view.link %}
+<table class="ddl-actions" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:14px 0 0"><tr><td style="padding:0">
+<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr><td bgcolor="#253142" style="padding:10px 16px;background:#253142;border-radius:4px"><a href="{{ view.link }}" style="font-size:14px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">Raporu ve DDL Dosyalarını Aç</a></td></tr></table>
+</td></tr></table>
+{% endif %}

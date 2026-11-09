@@ -1,4 +1,8 @@
-"""Snapshot inventory counters, separate from differences and executable SQL."""
+"""Schema Compare kaynak nesne sayılarını fark ve SQL sayılarından ayrı hesaplar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
 import json
 import hashlib
 from collections import Counter
@@ -6,20 +10,24 @@ from collections import Counter
 from .labels import TYPES, type_label
 
 
-def build_scan_summary(source, target, policy, plan):
+def inventory_side(snapshot, policy, schemas):
+    """Seçili şemaların kapsam içi nesnelerini türlerine göre sayar."""
     from ..compare.scope import scoped_objects
-    def side(snapshot):
-        counts = {owner: Counter() for owner in target.schemas}
-        raw = sum(obj.identity.owner.effective_name in counts for obj in snapshot.objects)
-        for obj in scoped_objects(snapshot, policy):
-            if obj.identity.owner.effective_name in counts:
-                counts[obj.identity.owner.effective_name][obj.identity.object_type] += 1
-        return {'by_schema': {owner: dict(sorted(rows.items())) for owner, rows in sorted(counts.items())},
-                'inventory': snapshot.completeness.inventory,
-                'excluded': raw - sum(sum(rows.values()) for rows in counts.values())}
+    counts = {owner: Counter() for owner in schemas}
+    raw = sum(obj.identity.owner.effective_name in counts for obj in snapshot.objects)
+    for obj in scoped_objects(snapshot, policy):
+        if obj.identity.owner.effective_name in counts:
+            counts[obj.identity.owner.effective_name][obj.identity.object_type] += 1
+    return {'by_schema': {owner: dict(sorted(rows.items())) for owner, rows in sorted(counts.items())},
+            'inventory': snapshot.completeness.inventory,
+            'excluded': raw - sum(sum(rows.values()) for rows in counts.values())}
+
+
+def build_scan_summary(source, target, policy, plan):
     return {'schema_version': 'scan-summary/1.0', 'plan_id': plan['plan_id'] if isinstance(plan,dict) else plan.plan_id,
             'source_digest': source.semantic_digest, 'target_digest': target.semantic_digest,
-            'target_id': target.target_id, 'source': side(source), 'target': side(target)}
+            'target_id': target.target_id, 'source': inventory_side(source, policy, target.schemas),
+            'target': inventory_side(target, policy, target.schemas)}
 
 
 def validate_scan_summary(summary, plan):
@@ -64,15 +72,24 @@ def load_scan_summaries(root, run, plans):
     return summaries
 
 
-def scan_scope_view(plans, summaries, target_ids):
+def scan_scope_view(plans, summaries, target_ids, *, source_summaries=None):
     source_schemas = {}; partial = False; expected_schemas = set()
     for target_id in target_ids:
         plan = plans.get(target_id); summary = summaries.get(target_id) if plan else None
         if plan:
             expected_schemas.update(plan['target']['schemas'])
+        fallback = (source_summaries or {}).get(target_id)
+        if fallback:
+            expected_schemas.update(fallback['schemas'])
+        if summary is not None:
+            validate_scan_summary(summary, plan)
+            if fallback and (fallback['source_digest'] != summary['source_digest']
+                             or fallback['source'] != summary['source']):
+                raise ValueError('REPORT_CONTEXT_SOURCE_CONFLICT')
+        elif fallback:
+            summary = fallback
         if summary is None:
             continue
-        validate_scan_summary(summary, plan)
         if summary['source']['inventory'] != 'UNAVAILABLE':
             for owner, counts in summary['source']['by_schema'].items():
                 record = (summary['source_digest'], counts)

@@ -1,87 +1,21 @@
-{# Oracle DB Migration Generator karşılaştırma özetini ve nesne farklarını gösterir.
+{# Schema Compare hedef özetini ve gruplanmış nesne ayrıntılarını gösterir.
 Author: Mehmet KARACAN
 Date: 2026-11-02 #}
-<!doctype html>
-<html lang="tr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Şema karşılaştırması</title>
-  <link rel="stylesheet" href="{{ prefix }}assets/report.css">
-</head>
-<body class="comparison-report">
-  <div class="shell">
-    <header class="report-topbar pad">
-      <div class="report-brand"><img src="{{ prefix }}assets/innova-logo.png" alt="İnnova"><span>Şema Karşılaştırma</span></div>
-      {% if not show_previews %}<a class="report-back" href="{{ prefix }}index.html">Rapor özetine dön</a>{% endif %}
-    </header>
-    <main class="pad report-main">
-      <section class="report-hero" aria-labelledby="report-title">
-        <div><p class="report-kicker">Karşılaştırma raporu</p><h1 id="report-title">Şema karşılaştırması</h1>
-          <p class="report-lead">{{ plan.target.schemas|join(', ') }} şemasının {{ target_label }} ile karşılaştırma sonucu.</p></div>
-        <span class="report-state">{{ display_status }}</span>
-      </section>
-      {% if status_reason %}<p class="report-context">{{ status_reason }}</p>{% endif %}
-      <section class="report-overview" aria-label="Karşılaştırma özeti">
-        <div class="report-stat"><span>Kaynakta incelenen nesne</span><strong>{{ scan_scope.source_total|count_tr if scan_scope.source_total is not none else 'Bilinmiyor' }}</strong></div>
-        <div class="report-stat"><span>Bulunan fark</span><strong>{{ difference_summary.confirmed|count_tr }}</strong></div>
-        <div class="report-stat report-stat-ready"><span>Üretilen DDL</span><strong>{{ generated_count|count_tr }}</strong></div>
-        <div class="report-stat report-stat-review"><span>Hazır DDL</span><strong>{{ plan.counts.ready_operations|count_tr }}</strong></div>
-        <div class="report-stat report-stat-blocked"><span>{{ 'Ek bilgi' if generation_complete else 'Engellenen' }}</span><strong>{{ plan.counts.blocked_operations|count_tr }}</strong></div>
-      </section>
-      <p class="report-count-note">Bir kaynak nesnesi için birden fazla fark bulunabilir.{% if proposal_count %} {{ proposal_count|count_tr }} DDL ayrı öneri dosyalarında yer alıyor.{% endif %}</p>
-      {% if difference_summary.unverified %}<p class="report-context">{{ difference_summary.unverified|count_tr }} kayıt eksik bilgi nedeniyle karşılaştırılamadı.</p>{% endif %}
-      <div class="report-actions">
-        {% if plan.counts.ready_operations %}<a class="report-button report-button-primary" href="{{ prefix }}{{ 'migration.sql' if plan.status=='READY' else 'partial-ready.sql' }}">Hazır DDL dosyası</a>{% endif %}
-        <a class="report-button" href="{{ prefix }}changes/page-0001.html">Tüm DDL dosyalarını ve farkları gör</a>
-      </div>
-      {% if warning_groups %}<details class="report-disclosure report-warnings">
-        <summary><span>Uyarılar</span><span class="report-summary-note">{% for group in warning_groups %}{{ group.count|count_tr }} {{ group.label }}{% if not loop.last %}, {% endif %}{% endfor %}</span></summary>
-        <div class="report-disclosure-body"><ul>{% for warning in warning_rows %}<li>{{ warning.text }}{% if warning.characters %} {{ warning.characters|count_tr }} ek karakter plan dosyasında yer alıyor.{% endif %}</li>{% endfor %}</ul>
-          {% if remaining_warnings %}<p>{{ remaining_warnings|count_tr }} ek uyarının tamamı <a href="{{ prefix }}plan.json">plan dosyasında</a> yer alıyor.</p>{% endif %}</div>
-      </details>{% endif %}
-      <details class="report-disclosure report-scope">
-        <summary><span>Kaynak nesneleri</span><span class="report-summary-note">Türlere göre dağılımı gör</span></summary>
-        <div class="report-disclosure-body">{% include "scan_scope.html.j2" %}</div>
-      </details>
-      <section class="report-results" aria-labelledby="results-title">
-        <div class="report-section-heading"><div><p class="report-kicker">{{ 'Öne çıkan kayıtlar' if show_previews else 'Tüm kayıtlar' }}</p>
-          <h2 id="results-title">{{ 'Öncelikli farklar' if show_previews else 'Farklı nesneler' }}</h2></div>
-          {% if show_previews %}<a href="{{ prefix }}changes/page-0001.html">Tüm farkları gör</a>{% endif %}</div>
-        {% if not rows %}<p class="report-empty">Bu kapsamda işlem gerektiren fark bulunmadı.</p>{% endif %}
-        <div class="report-list">{% for op in rows %}<article class="report-item">
-          <div class="report-item-top"><span class="report-object-type">{{ op.type_label }}</span><span class="report-decision report-decision-{{ op.decision|lower }}">{{ op.display_status }}</span></div>
-          <h3>{{ op.object_label }}</h3><p class="report-operation">{{ op.kind_label }}</p><p class="report-reason">{{ op.summary_reason }}</p>
-          <div class="report-item-actions">
-            {% if op.sql %}<a href="{{ prefix }}{{ op.sql.path }}">DDL dosyasını aç</a>{% endif %}
-            {% if op.proposal_path %}<a href="{{ prefix }}{{ op.proposal_path }}">Önerilen değişim DDL metnini aç</a>{% endif %}
-            {% if op.source_ddl_path %}<a href="{{ prefix }}{{ op.source_ddl_path }}">Kaynak DDL metnini aç</a>{% endif %}
-            <details class="report-item-detail"><summary>Teknik ayrıntılar</summary>
-              <p>{{ op.reason_tr }}{% if op.reason_remaining %} Açıklamanın tamamı plan dosyasında yer alıyor.{% endif %}</p>
-              <span>İşlem kodu</span><p class="wrap">{{ op.id }}</p>
-              {% if op.depends_on %}<p>Bağlı işlemler {{ op.depends_on|join(', ') }}</p>{% endif %}
-              {% if op.reason_codes %}<p>Neden kodları {{ op.reason_codes|join(', ') }}</p>{% endif %}
-              {% if op.evidence_ids %}<p>Kanıtlar {{ op.evidence_ids|join(', ') }}</p>{% endif %}
-              {% for field in op.field_previews %}{% if field.remaining or field.characters %}<p>{{ field.remaining|count_tr }} ek {{ field.label }}{% if field.characters %} ve {{ field.characters|count_tr }} ek karakter{% endif %} plan dosyasında yer alıyor.</p>{% endif %}{% endfor %}
-              <a href="{{ prefix }}plan.json">Plan dosyasını aç</a>
-            </details>
-          </div>
-        </article>{% endfor %}</div>
-        {% if pages > 1 %}<nav class="report-pagination" aria-label="Fark sayfaları">{% for page in page_links %}<a href="{{ prefix }}changes/page-{{ '%04d'|format(page) }}.html">{{ page }}</a>{% endfor %}</nav>{% endif %}
-      </section>
-      <details class="report-disclosure report-technical">
-        <summary><span>Teknik bilgiler</span><span class="report-summary-note">Kimlikler ve doğrulama kaydı</span></summary>
-        <div class="report-disclosure-body"><dl class="report-facts">
-          <div><dt>Kaynak</dt><dd>{{ 'Oracle veritabanı' if plan.source.get('origin') else 'Git deposu' }}</dd></div>
-          <div><dt>Hedef</dt><dd>{{ target_label }}</dd></div>
-          <div><dt>Şema</dt><dd>{{ plan.target.schemas|join(', ') }}</dd></div>
-          <div><dt>Kaynak kimliği</dt><dd class="wrap">{{ plan.source.origin.snapshot_id if plan.source.get('origin') else plan.source.commit_sha }}</dd></div>
-          <div><dt>Plan kimliği</dt><dd class="wrap">{{ plan.plan_id }}</dd></div>
-          <div><dt>Doğrulama</dt><dd>Çevrimdışı doğrulandı. SQL uygulanmadı.</dd></div>
-        </dl><div class="report-file-links"><a href="{{ prefix }}plan.json">Plan dosyası</a><a href="{{ prefix }}evidence.json">Kanıtlar</a><a href="{{ prefix }}README.md">Kullanım bilgileri</a><a href="{{ prefix }}bundle-manifest.json">Dosya listesi</a></div></div>
-      </details>
-    </main>
-    <footer class="report-footer pad">© 2026 İnnova Bilişim Çözümleri A.Ş.</footer>
-  </div>
-</body>
-</html>
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>{{ title }} - Schema Compare</title><link rel="stylesheet" href="{{ prefix }}assets/report.css"></head>
+<body class="comparison-report"><div class="shell">{% set back_href=context.run_href if show_previews and context.run_href else prefix+'index.html' if not show_previews else 'changes/page-0001.html' %}{% set back_label='Çalışma Özetine Dön' if show_previews and context.run_href else 'Hedef Ayrıntılarına Dön' if not show_previews else 'Nesne Listesini Aç' %}{% include 'web_header.html.j2' %}
+<main class="pad report-main"><div class="report-heading"><h1 class="title">{{ 'Hedef Ayrıntıları' if show_previews else 'Nesneler' }}</h1><span class="report-state">{{ display_status }}</span></div>
+<div class="environment-pair"><div><span>Kaynak Şema</span><strong>{{ context.source_label }}</strong></div><div><span>Hedef Şema</span><strong>{{ target_label }}</strong></div></div>
+{% if show_previews %}<div class="metrics"><div class="metric"><span>{{ report_icon('scan',24) }} Taranan Nesne</span><strong>{{ scan_scope.source_total|count_tr if scan_scope.source_total is not none else 'Bilinmiyor' }}</strong></div><div class="metric"><span>{{ report_icon('compare',24) }} Bulunan Fark</span><strong>{{ difference_summary.confirmed|count_tr }}</strong></div><div class="metric" data-metric="generated"><span>{{ report_icon('code',24) }} Üretilen DDL</span><strong>{{ generated_count|count_tr }}</strong></div><div class="metric" data-metric="missing"><span>{{ report_icon('review',24) }} DDL Dosyası Eksik</span><strong>{{ missing_count|count_tr }}</strong></div></div>{% endif %}
+{% if status_reason %}<p class="report-context">{{ status_reason }}</p>{% endif %}{% if difference_summary.unverified %}<p class="note">{{ difference_summary.unverified|count_tr }} kayıt eksik bilgi nedeniyle karşılaştırılamadı.</p>{% endif %}
+<div class="report-actions">{% if aggregate_view %}<a class="report-button report-button-primary" href="{{ prefix }}{{ aggregate_view }}">Genel DDL Görüntüle</a>{% elif plan.counts.ready_operations %}<a class="report-button report-button-primary" href="{{ prefix }}{{ 'migration.sql' if plan.status=='READY' else 'partial-ready.sql' }}" download>Genel DDL İndir</a>{% endif %}{% if show_previews %}<a class="report-button" href="changes/page-0001.html">Tüm Nesneleri Gör</a>{% endif %}{% if has_comparisons %}<a class="report-button" href="{{ prefix }}comparison/index-0001.html">Tüm Kaynak ve Hedef Farkları</a>{% endif %}</div>
+{% if show_previews and not compact_chrome %}{% include 'ddl_types_web.html.j2' %}<details class="report-disclosure"><summary>Tarama Kapsamı</summary><div class="report-disclosure-body">{% include 'scan_scope.html.j2' %}</div></details>{% endif %}
+<section class="report-results" aria-label="Nesne Ayrıntıları"><h2 class="section">{{ report_icon('details',22) }} {{ 'Önemli Nesneler' if show_previews else 'Nesne Listesi' }}</h2>
+{% if not rows %}<p class="report-empty">Bu kapsamda işlem gerektiren fark bulunmadı.</p>{% else %}
+<div class="object-browser"><details class="object-filters"><summary>Bu Sayfayı Filtrele</summary><fieldset><legend>Nesne Türü</legend><input id="type-all" name="object-type" type="radio" checked><label for="type-all">Tüm Türler</label>{% for code,label in filter_types %}<input id="type-{{ code }}" name="object-type" type="radio"><label for="type-{{ code }}">{{ label }}</label>{% endfor %}</fieldset><fieldset><legend>DDL Dosyası</legend><input id="ddl-all" name="ddl-state" type="radio" checked><label for="ddl-all">Tümü</label><input id="ddl-present" name="ddl-state" type="radio"><label for="ddl-present">DDL Var</label><input id="ddl-missing" name="ddl-state" type="radio"><label for="ddl-missing">DDL Dosyası Eksik</label></fieldset></details>
+<div class="object-workspace"><aside class="object-sidebar"><h3>Nesne Bul</h3><p class="meta">{{ groups|length|count_tr }} nesne bu sayfada. Adıyla bulmak için Ctrl+F kullanın. Filtreler yalnız bu sayfaya uygulanır.</p><nav class="object-index" aria-label="Nesne Dizini">{% for group in groups %}<a class="object-entry" data-type="{{ group.type }}" data-has-ddl="{{ 'yes' if group.has_ddl else 'no' }}" data-missing="{{ 'yes' if group.missing else 'no' }}" href="#{{ group.id }}">{{ report_type_icon(group.type_label,18) }}<span><strong>{{ group.label }}</strong><small>{{ group.type_label }} - {{ group.operations|length|count_tr }} İşlem</small></span></a>{% endfor %}</nav><p class="filter-empty">Bu filtreyle bu sayfada eşleşen nesne bulunamadı. Tüm Türler ve Tümü seçenekleriyle listeyi geri açabilirsiniz.</p></aside>
+<div class="object-details"><p class="object-placeholder">Ayrıntılarını görmek için nesne listesinden seçim yapın.</p>{% for group in groups %}<section class="object-detail" id="{{ group.id }}" tabindex="-1"><div class="object-detail-heading">{{ report_type_icon(group.type_label,22) }}<h3>{{ group.label }}</h3></div>{% if group.comparison %}<div class="object-field-comparison"><h4>Kaynak ve Hedef Farkları</h4>{% with comparison_rows=group.comparison.preview %}{% include "comparison_table.html.j2" %}{% endwith %}<p class="comparison-preview-note">{{ group.comparison.total|count_tr }} kayıtlı alan farkından ilk {{ group.comparison.preview|length }} tanesi gösteriliyor. Değerler kısa gösterilebilir.</p><a class="report-button" href="{{ prefix }}{{ group.comparison.path }}">Kaynak ve Hedefi Karşılaştır</a></div>{% endif %}{% for op in group.operations %}<article class="report-item"><div class="report-item-top"><strong>{{ op.kind_label }}</strong><span class="report-decision">{{ op.display_status }}</span></div><p class="report-reason">{{ op.summary_reason }}</p><div class="report-item-actions">
+{% if op.sql %}<a href="{{ prefix }}{{ op.sql_view or op.sql.path }}">Değişim DDL</a>{% endif %}{% if op.proposal_path %}<a href="{{ prefix }}{{ op.proposal_view or op.proposal_path }}">Önerilen DDL</a>{% endif %}{% if op.source_ddl_path %}<a href="{{ prefix }}{{ op.source_view or op.source_ddl_path }}">Kaynak DDL</a>{% endif %}
+<details class="report-item-detail"><summary>Teknik Ayrıntılar</summary><p>{{ op.reason_tr }}{% if op.reason_remaining %} Açıklamanın tamamı plan dosyasında yer alıyor.{% endif %}</p><span>İşlem Kodu</span><p class="wrap">{{ op.id }}</p>{% if op.depends_on %}<p>Bağlı İşlemler {{ op.depends_on|join(', ') }}</p>{% endif %}{% if op.reason_codes %}<p>Neden Kodları {{ op.reason_codes|join(', ') }}</p>{% endif %}{% if op.evidence_ids %}<p>Kanıtlar {{ op.evidence_ids|join(', ') }}</p>{% endif %}{% for field in op.field_previews %}{% if field.remaining or field.characters %}<p>{{ field.remaining|count_tr }} ek {{ field.label }}{% if field.characters %} ve {{ field.characters|count_tr }} ek karakter{% endif %} plan dosyasında yer alıyor.</p>{% endif %}{% endfor %}<a href="{{ prefix }}plan.json">Plan Dosyasını Aç</a></details></div></article>{% endfor %}</section>{% endfor %}</div></div></div>{% endif %}
+<nav class="report-pagination" aria-label="Nesne Sayfaları">{% for number in page_links %}<a href="{{ prefix }}changes/page-{{ '%04d'|format(number) }}.html"{% if number==current_page and not show_previews %} aria-current="page"{% endif %}>{{ number }}</a>{% endfor %}<span>Toplam {{ pages|count_tr }} Sayfa</span></nav></section>
+{% if warning_groups %}<details class="report-disclosure report-warnings"><summary><span>Uyarılar</span><span class="report-summary-note">{% for group in warning_groups %}{{ group.count|count_tr }} {{ group.label }}{{ ', ' if not loop.last else '' }}{% endfor %}</span></summary><div class="report-disclosure-body"><ul>{% for warning in warning_rows %}<li>{{ warning.text }}{% if warning.characters %} {{ warning.characters|count_tr }} ek karakter plan dosyasında yer alıyor.{% endif %}</li>{% endfor %}</ul>{% if remaining_warnings %}<p>{{ remaining_warnings|count_tr }} ek uyarının tamamı <a href="{{ prefix }}plan.json">plan dosyasında</a> yer alıyor.</p>{% endif %}</div></details>{% endif %}
+<details class="report-disclosure report-technical"><summary>Teknik Bilgiler</summary><div class="report-disclosure-body"><dl class="report-facts"><div><dt>Kaynak</dt><dd>{{ 'Oracle Veritabanı' if plan.source.get('origin') else 'Git Deposu' }}</dd></div><div><dt>Hedef</dt><dd>{{ target_label }}</dd></div><div><dt>Kaynak Kimliği</dt><dd class="wrap">{{ plan.source.origin.snapshot_id if plan.source.get('origin') else plan.source.commit_sha }}</dd></div><div><dt>Plan Kimliği</dt><dd class="wrap">{{ plan.plan_id }}</dd></div></dl><p>SQL veritabanına uygulanmadı.</p><div class="report-file-links"><a href="{{ prefix }}plan.json">Plan Dosyası</a><a href="{{ prefix }}evidence.json">Kanıtlar</a><a href="{{ prefix }}README.md">Kullanım Bilgileri</a></div></div></details></main><footer class="report-footer pad">© 2026 İnnova Bilişim Çözümleri A.Ş.</footer></div></body></html>

@@ -1,7 +1,10 @@
-"""Closed expression-index proof; return referenced columns, never rewritten SQL."""
+"""Şema Karşılaştırma indeks ifadelerinin kolon ve tip kanıtlarını denetler.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 from .._vendor.analyzer_core.oracle.ddl_tokens import top_level_items
 from .partition_rules import _name,_literal
-from .table_rules import column_fields
 
 
 def index_key_columns(context,table,tokens):
@@ -10,7 +13,7 @@ def index_key_columns(context,table,tokens):
     property_=proof.properties.get('projection')
     if proof.coverage.ddl!='COMPLETE' or not property_ or property_.state!='KNOWN':
         raise ValueError('INDEX_TABLE_SHAPE_UNVERIFIED')
-    fields=column_fields(proof,context.target if actual else context.source,context.profile.policy)
+    fields=context.column_fields(proof,desired=actual is None)
     columns=[];expression=False;evidence_ids=set(proof.evidence_ids)
     for item in top_level_items(tokens) or ():
         if item and item[-1].upper in {'ASC','DESC'}:item=item[:-1]

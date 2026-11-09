@@ -1,0 +1,14 @@
+{# Schema Compare eposta üst alanını özgün kurumsal logo ve kısa kapsam açıklamasıyla sunar.
+Author: Mehmet KARACAN
+Date: 2026-11-07 #}
+<table class="report-masthead" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse"><tr>
+<td class="brand-column" width="196" valign="middle" style="width:196px;padding:0;vertical-align:middle">
+<!--[if mso]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:132pt;height:34.5pt"><v:fill type="tile" src="{{ logo_surface }}" color="#F5F5F5"/><v:textbox inset="0,0,0,0"><![endif]-->
+<table role="presentation" width="176" border="0" cellpadding="0" cellspacing="0" style="width:176px;border-collapse:collapse"><tr><td class="brand-surface" background="{{ logo_surface }}" bgcolor="#F5F5F5" style="padding:8px 10px;background:#F5F5F5;background-image:url('{{ logo_surface }}');background-image:url('{{ logo_surface }}'),linear-gradient(#F5F5F5,#F5F5F5);background-repeat:repeat;line-height:0;font-size:0"><img src="{{ logo }}" width="156" height="30" alt="İnnova" style="border:0;display:block;width:156px;height:30px"></td></tr></table>
+<!--[if mso]></v:textbox></v:rect><![endif]-->
+</td>
+<td class="brand-tagline mail-muted" valign="middle" style="padding:0 0 0 14px;border-left:2px solid #D8DFE7;font-size:12px;line-height:18px;color:#788599;vertical-align:middle">Daha akıllı<br>Daha güçlü yarınlara</td>
+<td class="brand-message mail-muted" valign="middle" align="right" style="padding:0 0 0 14px;text-align:right;font-size:12px;line-height:18px;color:#788599;vertical-align:middle">İnsan için teknoloji.<br>Daha iyi bir gelecek.</td>
+</tr></table>
+<h1 class="hero-title" style="margin:28px 0 8px;font-size:30px;line-height:38px;font-weight:700;color:#111B2D;letter-spacing:-.3px;overflow-wrap:break-word">Schema Compare</h1>
+<p class="comparison-description" style="margin:0;font-size:15px;line-height:23px;color:#526174;overflow-wrap:anywhere">{% if view.source_schemas %}{% for schema in view.source_schemas %}<strong>{{ schema }}{% if view.source_environment %} - {{ view.source_environment }}{% endif %}</strong>{% if not loop.last %}, {% endif %}{% endfor %} kaynak şeması ile {% else %}Kaynak bilgisi belirtilmeyen bu çalışmada {% endif %}{% for target in view.targets[:5] %}<strong>{{ target.name }}{% if target.schema_subtitle %} ({{ target.schema_subtitle }}){% endif %}</strong>{% if not loop.last %}, {% endif %}{% endfor %}{% if view.targets %} hedef şema{{ 'sının' if view.targets|length == 1 else 'larının' }} karşılaştırma sonuçları ve DDL özeti.{% else %}hedef bilgisi bulunmuyor.{% endif %}{% if view.targets|length > 5 %} {{ (view.targets|length - 5)|count_tr }} diğer hedef ayrıntılı raporda yer alır.{% endif %}</p>

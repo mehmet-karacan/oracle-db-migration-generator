@@ -1,8 +1,12 @@
-"""Closed snapshot contracts, safe blob reads and atomic new source bundles.
+"""Şema Karşılaştırma snapshot ve kaynak arşivlerini doğrulayarak okur ve yazar.
 
 Semantic digests are recomputed from actual facts on import rather than
 trusting a caller-supplied cached digest. Identity/evidence hashes are checked.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
 """
+from collections import defaultdict
 import hashlib
 import json
 import os
@@ -35,10 +39,42 @@ def safe_path(root: Path, relative: str):
     return path
 
 
+def source_storage_paths(inputs):
+    """Harf büyüklüğüyle ayrılan Git yollarına benzersiz fiziksel dosyalar ayırır."""
+    variants = defaultdict(set)
+    for artifact in inputs.artifacts:
+        parts = artifact.path.split('/')
+        for end in range(1, len(parts)+1):
+            prefix = '/'.join(parts[:end])
+            variants[prefix.casefold()].add(prefix)
+    if not any(len(names) > 1 for names in variants.values()):
+        return {}
+    return {a.path: 'source-blobs/' + hashlib.sha256(a.path.encode()).hexdigest() + '.bin'
+            for a in inputs.artifacts}
+
+
+def _storage_paths(root):
+    path = root/'source-storage.json'
+    if not path.is_file(): return {}
+    data = read_json(path)
+    if (not isinstance(data, dict) or set(data) != {'schema_version', 'paths'}
+            or data['schema_version'] != 'source-storage/1.0' or not isinstance(data['paths'], dict)):
+        raise ValueError('SOURCE_STORAGE_INVALID')
+    paths = data['paths']
+    if len({value.casefold() for value in paths.values() if isinstance(value, str)}) != len(paths):
+        raise ValueError('SOURCE_STORAGE_INVALID')
+    for logical, physical in paths.items():
+        safe_path(root, logical)
+        if not isinstance(physical, str) or physical != 'source-blobs/'+hashlib.sha256(logical.encode()).hexdigest()+'.bin':
+            raise ValueError('SOURCE_STORAGE_INVALID')
+    return paths
+
+
 def load_snapshot(path: Path, *, require_ddl=False):
     path = Path(path)
     document = read_json(path)
     validate_document(document,'snapshot.schema.json')
+    storage = _storage_paths(path.parent)
     evidence = tuple(Evidence(**item) for item in document['evidence'])
     registry = {item.id:item for item in evidence}
     if len(registry)!=len(evidence):
@@ -46,7 +82,7 @@ def load_snapshot(path: Path, *, require_ddl=False):
     if require_ddl and document.get('source_origin'):
         for ev in evidence:
             if ev.path:
-                blob=safe_path(path.parent,ev.path)
+                blob=safe_path(path.parent,storage.get(ev.path, ev.path))
                 if not blob.is_file():raise ValueError('SNAPSHOT_EVIDENCE_MISSING')
                 if hashlib.sha256(blob.read_bytes()).hexdigest()!=ev.sha256:raise ValueError('SNAPSHOT_EVIDENCE_INTEGRITY_MISMATCH')
     objects = []
@@ -65,7 +101,7 @@ def load_snapshot(path: Path, *, require_ddl=False):
             raise ValueError('SNAPSHOT_PROPERTY_EVIDENCE_UNRESOLVED')
         raw = None
         if item['ddl_path']:
-            blob_path = safe_path(path.parent,item['ddl_path'])
+            blob_path = safe_path(path.parent,storage.get(item['ddl_path'], item['ddl_path']))
             if blob_path.is_file():
                 payload = blob_path.read_bytes()
                 candidates = [registry[key] for key in item['evidence_ids'] if registry[key].path==item['ddl_path']]
@@ -102,10 +138,13 @@ def write_source_snapshot(snapshot,inputs,output: Path):
     temporary = Path(tempfile.mkdtemp(prefix='.source-staging-',dir=output.parent)).resolve()
     assert temporary.parent==output.parent and temporary.name.startswith('.source-staging-')
     try:
+        storage = source_storage_paths(inputs)
         for artifact in inputs.artifacts:
-            target = safe_path(temporary,artifact.path)
+            target = safe_path(temporary,storage.get(artifact.path, artifact.path))
             target.parent.mkdir(parents=True,exist_ok=True)
             target.write_bytes(artifact.raw)
+        if storage:
+            (temporary/'source-storage.json').write_text(json.dumps({'schema_version': 'source-storage/1.0', 'paths': storage}),encoding='utf-8')
         document = snapshot.to_dict()
         validate_document(document,'snapshot.schema.json')
         (temporary/'source-snapshot.json').write_text(json.dumps(document,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

@@ -45,8 +45,8 @@ def test_report_keeps_summary_readable_and_warnings_collapsed():
     ))
     html=render_reports(plan.to_dict(),{})['index.html']
     text=visible_text(html)
-    assert 'Şema karşılaştırması' in text
-    assert 'Kaynakta incelenen nesne' in text
+    assert 'Schema Compare' in text
+    assert 'Taranan Nesne' in text
     assert b'>Uyar' in html
     assert 'APP.BROKEN' not in text
     assert not any(character in text for character in ('→','—',';',':'))

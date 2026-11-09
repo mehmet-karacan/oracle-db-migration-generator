@@ -1,4 +1,4 @@
-"""Şema Karşılaştırma raporunda fark sayısını ve süreleri sentetik kayıtlarla sınar.
+"""Schema Compare raporunda fark sayısını ve süreleri sentetik kayıtlarla sınar.
 
 Author: Mehmet KARACAN
 Date: 2026-11-06
@@ -30,7 +30,7 @@ def test_partial_comparison_shows_confirmed_differences_separately_from_unknown_
 def test_no_target_result_does_not_invent_zero_differences():
     run, _ = inputs(); run['targets'][0].update(status='ERROR',difference_count=None)
     view = build_run_view(run, {})
-    assert view['metrics'][1]['value'] == 'Sonuç alınamadı'
+    assert view['metrics'][1]['value'] == 'Karşılaştırılamadı'
     assert view['confirmed_differences'] is None
 
 

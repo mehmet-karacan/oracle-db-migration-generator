@@ -1,4 +1,8 @@
-"""Merge comments/grants/dependencies with explicit identities and evidence."""
+"""Şema Karşılaştırma açıklama, yetki ve bağımlılık kayıtlarını kanıtlarıyla birleştirir.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 import hashlib
 import json
 import re
@@ -13,6 +17,22 @@ from ..parsing.projections import normalize_projection
 from ..parsing.statements import sidecar_facts
 from .._vendor.analyzer_core.oracle.projections import project
 from .._vendor.analyzer_core.oracle.scanner import scan
+
+
+def _statement_positions(text, statements):
+    """Sıralı karakter sınırlarının UTF-8 ve satır konumlarını tek geçişte bulur."""
+    boundaries = sorted({position for statement in statements
+                         for position in (statement['start_char'], statement['end_char'])})
+    positions, previous, byte_offset, line = {}, 0, 0, 1
+    for position in boundaries:
+        if not isinstance(position, int) or not 0 <= position <= len(text):
+            raise ValueError('SIDECAR_POSITION_INVALID')
+        chunk = text[previous:position]
+        byte_offset += len(chunk.encode('utf-8'))
+        line += chunk.count('\n')
+        positions[position] = (byte_offset, line)
+        previous = position
+    return positions
 
 
 def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
@@ -78,12 +98,14 @@ def merge_sidecars(snapshot, sidecars, *, parsed_results=None):
                                   artifact.object_type_hint or 'TABLE', Identifier.parse('UNRESOLVED'))
             result = parse_ddl(artifact.raw, hint)
         text = artifact.raw.decode('utf-8') if result.sidecars else ''
+        positions = _statement_positions(text, result.sidecars)
         for statement in result.sidecars:
             ev_id = 'ev-' + digest([artifact.path, artifact.sha256, statement['start_char'], statement['end_char'], statement['kind']])
             start, end = statement['start_char'], statement['end_char']
-            start_byte, end_byte = len(text[:start].encode()), len(text[:end].encode())
+            start_byte, start_line = positions[start]
+            end_byte, end_line = positions[end]
             evidence.append(Evidence(ev_id, 'SOURCE_SPAN', snapshot.side, artifact.path, artifact.sha256,
-                                     text.count('\n',0,start)+1, text.count('\n',0,end)+1, None,
+                                     start_line, end_line, None,
                                      'Kaynak sidecar statement aralığı.', start_byte, end_byte))
             try:
                 facts = sidecar_facts(statement['text'], artifact.source_schema)

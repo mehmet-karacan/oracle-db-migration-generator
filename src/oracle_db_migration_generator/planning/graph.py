@@ -1,4 +1,8 @@
-"""Resolve prerequisites and propagate failures before deterministic ordering."""
+"""Şema Karşılaştırma bağımlılık kanıtlarını denetler ve DDL sırasını belirler.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+"""
 from dataclasses import replace
 from heapq import heappop, heappush
 
@@ -11,7 +15,7 @@ def _key(identity):
 
 
 def _block(op,code,details):
-    proposal=op.intent if code=='TARGET_NAMESPACE_CONFLICT' and op.intent is not None else op.proposal
+    proposal=op.intent if op.intent is not None else op.proposal
     return replace(op,decision='BLOCKED',risk='UNKNOWN',intent=None,proposal=proposal,sql=None,
                    reason_codes=tuple(sorted(set((*op.reason_codes,code)))),
                    reason_tr='; '.join(sorted(set(details)))+'.',postconditions=())
@@ -46,9 +50,8 @@ def _existing_relation_shape(ref,desired,actual,context):
     for obj in (desired,actual):
         proof=obj.properties.get('projection')
         if proof is None or proof.state!='KNOWN':return False
-    from .table_rules import column_fields
-    wanted=column_fields(desired,context.source,context.profile.policy)
-    observed=column_fields(actual,context.target,context.profile.policy)
+    wanted=context.column_fields(desired)
+    observed=context.column_fields(actual,desired=False)
     return bool(wanted) and all(name in observed and fields['data_type'].state==observed[name]['data_type'].state=='KNOWN'
                                and fields['data_type'].value==observed[name]['data_type'].value for name,fields in wanted.items())
 
@@ -59,9 +62,8 @@ def _existing_sequence_shape(ref,desired,actual,context):
     for obj in (desired,actual):
         proof=obj.properties.get('projection')
         if obj.coverage.ddl!='COMPLETE' or not proof or proof.state!='KNOWN':return False
-    from ..compare.projection_adapter import canonical_fields
-    wanted=canonical_fields(desired,context.source,context.profile.policy)
-    observed=canonical_fields(actual,context.target,context.profile.policy)
+    wanted=context.canonical_fields(desired)
+    observed=context.canonical_fields(actual,desired=False)
     def known(fields,key):
         value=fields.get('/sequence/'+key)
         if not value or value.state!='KNOWN':raise ValueError('SEQUENCE_SHAPE_UNKNOWN')
@@ -82,9 +84,9 @@ def _existing_required_column_shape(ref,desired,actual,context):
         proof=obj.properties.get('projection')
         if obj.identity.object_type!='TABLE' or obj.coverage.ddl!='COMPLETE' or not proof or proof.state!='KNOWN':return None
         if ref.role=='FK_PARENT' and not _unique_parent(obj,ref.columns):return None
-    from ..compare.projection_adapter import canonical_fields,pointer
-    wanted=canonical_fields(desired,context.source,context.profile.policy)
-    observed=canonical_fields(actual,context.target,context.profile.policy)
+    from ..compare.projection_adapter import pointer
+    wanted=context.canonical_fields(desired)
+    observed=context.canonical_fields(actual,desired=False)
     evidence=set(desired.evidence_ids)|set(actual.evidence_ids)
     for name in ref.columns:
         for field in ('exists','data_type','length','length_semantics','precision','scale',
@@ -196,8 +198,7 @@ def bind_and_order(operations,context):
                 if ref.role=='FK_PARENT' and not _unique_parent(actual,ref.columns):
                     issue(ref,'hedefte bu kolonlar için etkin ve doğrulanmış PRIMARY KEY/UNIQUE bulunamadı');blocked=True
                 if ref.columns:
-                    from .table_rules import column_fields
-                    cols = column_fields(actual,context.target,context.profile.policy)
+                    cols = context.column_fields(actual,desired=False)
                     missing=set(ref.columns)-set(cols)
                     adds=[other for other in candidates if other.kind=='ADD_COLUMN' and other.decision=='READY' and other.intent
                           and missing.intersection(other.intent.affected_columns)]
@@ -215,8 +216,7 @@ def bind_and_order(operations,context):
                       'hedefte mevcut fakat DDL yapısı eksik; doğrulanmış oluşturma işlemi de yok')
                 blocked=True
             if creates and ref.columns:
-                from .table_rules import column_fields
-                if desired is None or any(name not in column_fields(desired,context.source,context.profile.policy) for name in ref.columns):
+                if desired is None or any(name not in context.column_fields(desired) for name in ref.columns):
                     issue(ref,'kaynak tanımı bu kolonları sağlamıyor');blocked=True
             if creates and ref.role=='FK_PARENT' and not _unique_parent(desired,ref.columns):
                 issue(ref,'kaynakta bu kolonlar için etkin ve doğrulanmış PRIMARY KEY/UNIQUE bulunamadı');blocked=True

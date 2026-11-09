@@ -1,4 +1,4 @@
-"""Şema Karşılaştırma planlarından eposta ve çalışma özeti hazırlar.
+"""Schema Compare planlarından eposta ve çalışma özeti hazırlar.
 
 Author: Mehmet KARACAN
 Date: 2026-11-02
@@ -10,11 +10,12 @@ from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 from .formatting import format_count, difference_counts
+from .web import ddl_type_label
 from .labels import object_label, status_label, type_label, kind_label, operation_reason, mail_operation_reason, target_reason, target_status
 
 RANK={'ERROR':0,'INCONSISTENT':1,'INCOMPLETE':2,'BLOCKED':3,'REVIEW_REQUIRED':4,'READY':5,'NO_ACTION':6,'NO_CHANGE':7}
 OP_RANK={'BLOCKED':0,'REVIEW_REQUIRED':1,'READY':2,'INFORMATIONAL':3}
-DISPLAY={'READY':'DDL hazır','INFORMATIONAL':'Bilgi','BLOCKED':'DDL üretilemedi','REVIEW_REQUIRED':'İnceleme gerekli'}
+DISPLAY={decision:status_label(decision) for decision in ('READY','INFORMATIONAL','BLOCKED','REVIEW_REQUIRED')}
 
 
 def short(value,limit=500):
@@ -26,16 +27,6 @@ def schema_subtitle(name,schemas):
     """Hedef adında zaten bulunan şema adını ikinci kez yazmaz."""
     return ', '.join(schema for schema in schemas
                      if not re.search(r'(?<![A-Z0-9_])'+re.escape(schema.upper())+r'(?![A-Z0-9_])',name.upper()))
-
-
-def ddl_type_label(op):
-    """Üretilen işlemi eposta özetindeki yapı türüne ayırır."""
-    kind=op['kind']
-    if kind in {'ADD_COLUMN','ALTER_COLUMN','MODIFY_COLUMN','DROP_COLUMN'}:
-        return 'Kolon'
-    if kind in {'ADD_CONSTRAINT','ALTER_CONSTRAINT','DROP_CONSTRAINT'}:
-        return 'Kural'
-    return type_label(op['object']['object_type'])
 
 
 def _duration_label(run):
@@ -73,8 +64,33 @@ def _timing_view(run,comparison_timing):
             'comparison_finished_label':date(origin,'finished_at')}
 
 
-def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,allowed_link_hosts=(),comparison_timing=None,scan_summaries=None,proposal_ids=None):
+def _display_environments(run, targets, context):
+    """Kullanıcının ortam adlarını yalnız aynı koşunun sunum alanlarına uygular."""
+    if context is None:
+        return None
+    required={'run_id','source_commit','source_environment','target_environments'}
+    if (not isinstance(context,dict) or set(context)!=required
+            or context['run_id']!=run['run_id'] or context['source_commit']!=run['source_commit']
+            or not isinstance(context['target_environments'],dict)
+            or not set(context['target_environments'])<={item['id'] for item in targets}):
+        raise ValueError('REPORT_DISPLAY_CONTEXT_MISMATCH')
+    for value in (context['source_environment'],*context['target_environments'].values()):
+        if not isinstance(value,str) or not value.strip() or len(value)>40 or any(ord(c)<32 for c in value):
+            raise ValueError('REPORT_DISPLAY_CONTEXT_MISMATCH')
+    for item in targets:
+        environment=context['target_environments'].get(item['id'])
+        if environment and item['schemas']:
+            item['name']=', '.join(schema+' - '+environment.strip() for schema in item['schemas'])
+            item['schema_subtitle']=''
+    return context['source_environment'].strip()
+
+
+def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,allowed_link_hosts=(),comparison_timing=None,scan_summaries=None,proposal_ids=None,display_context=None,report_context=None):
+    from ..runtime.generation import generation_summary
+    generation=generation_summary(run['targets'],plans,proposal_ids)
     from .inventory import scan_scope_view
+    from .context import validate_report_context
+    context_targets=validate_report_context(report_context,run,plans)
     scan_summaries=scan_summaries or {}
     catalog_known=proposal_ids is not None
     proposal_ids=proposal_ids or {}
@@ -82,6 +98,7 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
     proposal_total=0;missing_ddl=0;ddl_types=Counter();source_schemas=set()
     for target in run['targets']:
         plan=plans.get(target['id'])
+        context=context_targets.get(target['id'])
         proposed=set(proposal_ids.get(target['id'],()))
         if plan and catalog_known:
             eligible={op['id'] for op in plan['operations'] if op['decision'] in {'REVIEW_REQUIRED','BLOCKED'}}
@@ -89,11 +106,13 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
             proposal_total+=len(proposed)
             missing_ddl+=len(eligible-proposed)
         summary=scan_summaries.get(target['id'])
-        if plan and summary and summary['source']['inventory']!='UNAVAILABLE':
+        if summary and summary['source']['inventory']!='UNAVAILABLE':
             source_schemas.update(summary['source']['by_schema'])
+        if context:
+            source_schemas.update(context['schemas'])
         facts=difference_counts(plan) if plan else None
-        item={**target,'name':short(plan['target']['name']) if plan else 'Hedef adı doğrulanamadı',
-              'schemas':list(plan['target']['schemas']) if plan else [],
+        item={**target,'name':short(plan['target']['name']) if plan else context['name'] if context else 'Hedef adı doğrulanamadı',
+              'schemas':list(plan['target']['schemas']) if plan else list(context['schemas']) if context else [],
               'confirmed_difference_count':target['difference_count'] if target['difference_count'] is not None else facts['confirmed'] if facts else None,
               'unverified_difference_count':facts['unverified'] if facts else None,
               'display_status':target_status(plan) if plan else status_label(target['status']), 'status_reason':target_reason(plan),
@@ -101,6 +120,13 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
               'aggregate_view_path':None,'download_path':None,'manifest_path':None,'objects_path':None,
               'generated_ddl_count':None,'proposal_count':None,'missing_ddl_count':None,'source_object_count':None}
         item['schema_subtitle']=schema_subtitle(item['name'],item['schemas'])
+        if context:
+            item['source_object_count']=scan_scope_view(plans,scan_summaries,[target['id']],
+                source_summaries=context_targets)['source_total']
+        if not plan and target.get('error_code')=='CHANGED_DURING_CAPTURE':
+            item['display_status']='Hedef Okuması Tamamlanamadı'
+            item['status_reason']=('Hedef şemadaki nesne tanımları okuma sırasında değişti. '
+                'İkinci okuma da tutarlı tamamlanamadığı için farklar ve DDL hesaplanmadı.')
         if plan:
             item['generated_ddl_count']=plan['counts']['ready_operations']+len(proposed)
             item['proposal_count']=len(proposed)
@@ -109,7 +135,7 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
                 item['source_object_count']=scan_scope_view({target['id']:plan},
                     {target['id']:scan_summaries[target['id']]},[target['id']])['source_total']
             if catalog_known and not (eligible-proposed):
-                item['display_status']='DDL üretildi'
+                item['display_status']='DDL Üretildi'
                 item['status_reason']='Kaynak ve hedef farkları için DDL dosyaları hazır.'
             base=str(PurePosixPath(target['plan_path']).parent)
             item.update(report_path=base+'/index.html',manifest_path=base+'/bundle-manifest.json',objects_path=base+'/README.md')
@@ -130,11 +156,14 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
                     row['mail_reason']=('Kaynakta fonksiyon, hedefte aynı adlı tablo var.'
                                         if obj['object_type']=='FUNCTION' else 'Kaynakta farklı türde nesne var. Hedefte aynı ad kullanılıyor.')
         targets.append(item)
+    source_environment=_display_environments(run,targets,display_context)
     important=sorted(unique.values(),key=lambda r:(OP_RANK[r['decision']],r['object']['owner'],r['object']['object_type'],r['object']['name']))[:5]
     target_labels={item['id']:item['name']+(' ('+item['schema_subtitle']+')' if item['schema_subtitle'] else '') for item in targets}
     for row in important:
         row['targets']=sorted(row['targets']);row['kinds']=[kind_label(kind) for kind in sorted(row['kinds'])]
-        row['display_status']='DDL üretildi' if catalog_known and row['has_ddl'] and row['decision'] in {'REVIEW_REQUIRED','BLOCKED'} else status_label(row['decision'])
+        row['display_status']='DDL Üretildi' if catalog_known and row['has_ddl'] and row['decision'] in {'REVIEW_REQUIRED','BLOCKED'} else status_label(row['decision'])
+        if row['display_status']=='DDL Üretildi' and 'DDL desteği gerekiyor' in row['mail_reason']:
+            row['mail_reason']='DDL dosyası üretildi. Bağlı nesnenin metadata ve bağımlılık bilgileri tam doğrulanamadı.'
         row['target_label']=', '.join(target_labels[target] for target in row['targets'][:5])+ (f" + {format_count(len(row['targets'])-5)} hedef" if len(row['targets'])>5 else '')
     unknown=sum(t['difference_count'] is None for t in targets)
     known_values=[t['confirmed_difference_count'] for t in targets if t['confirmed_difference_count'] is not None]
@@ -145,13 +174,13 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
     if unverified:notes.append(f'{format_count(unverified)} kayıt, bilgisi eksik olduğu için karşılaştırılamadı.')
     if unknown>missing:notes.append('Kapsam eksik; ek farklar bulunabilir.')
     if missing:notes.append(f'{format_count(missing)} hedeften sonuç alınamadı.')
-    scan_scope=scan_scope_view(plans,scan_summaries,[target['id'] for target in targets])
+    scan_scope=scan_scope_view(plans,scan_summaries,[target['id'] for target in targets],source_summaries=context_targets)
     generated_total=counts['ready_operations']+proposal_total
     ddl_types_match=sum(ddl_types.values())==generated_total
-    metrics=[{'label':'Hedef','value':format_count(len(targets))},{'label':'Bulunan Fark','value':format_count(known) if known is not None else 'Sonuç alınamadı'},
+    metrics=[{'label':'Hedef','value':format_count(len(targets))},{'label':'Bulunan Fark','value':format_count(known) if known is not None else 'Karşılaştırılamadı'},
              {'label':'Üretilen DDL','value':format_count(generated_total)},
              {'label':'Taranan Nesne' if catalog_known else 'İnceleme','value':format_count(scan_scope['source_total']) if catalog_known and scan_scope['source_total'] is not None else 'Bilinmiyor' if catalog_known else format_count(counts['review_operations'])},
-             {'label':'DDL Dosyası Eksik' if catalog_known else 'Üretilemeyen DDL','value':format_count(missing_ddl if catalog_known else counts['blocked_operations'])}]
+             {'label':'DDL Dosyası Eksik' if catalog_known else 'Üretilemeyen DDL','value':'Hesaplanmadı' if missing and not plans else format_count(missing_ddl if catalog_known else counts['blocked_operations'])}]
     link=None;note='Git yayını yapılmadı veya bağlantı doğrulanmadı. Dosyalar yerel çalışma arşivinde.'
     if publication and publication.status=='PUBLISHED' and publication.url and publication.commit_sha and url_check:
         p=urlsplit(publication.url);sha=publication.commit_sha
@@ -167,11 +196,11 @@ def build_run_view(run,plans,*,publication=None,url_check=None,fallback=None,all
         from .links import verified_archive
         checked=verified_archive(fallback.url,allowed_link_hosts,url_check,build_url=run['build_url'])
         if checked: link=checked.url;note=checked.note
-    return {'scan_scope':scan_scope,
-            'source_schemas':sorted(source_schemas),
+    return {'scan_scope':scan_scope,'sql_result':'SQL üretildi, uygulanmadı' if generated_total else 'Bu çalışmada DDL üretilmedi.',
+            'source_schemas':sorted(source_schemas),'source_environment':source_environment,
             'ddl_types':{'total':generated_total,'verified':ddl_types_match,
                          'rows':[{'label':label,'count':count} for label,count in sorted(ddl_types.items())] if ddl_types_match else []},
-            'run':run,'display_status':status_label(run.get('status')),'duration_label':_duration_label(run),**_timing_view(run,comparison_timing),'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
+            'run':run,'generation':generation,'display_status':'DDL Üretimi Tamamlandı' if generation['status']=='SUCCESS' else status_label(run.get('status')),'duration_label':_duration_label(run),**_timing_view(run,comparison_timing),'targets':targets,'critical_targets':sorted(targets,key=lambda t:(RANK[t['status']],t['id']))[:5],
             'metrics':metrics,'important_objects':important,'unique_objects':len(unique),'unknown_targets':unknown,
             'confirmed_differences':known,'unverified_differences':unverified,'difference_note':' '.join(notes),
             'counts':counts,'link':link,'link_note':note,'proposal_catalog_known':catalog_known}

@@ -125,5 +125,5 @@ def test_error_target_without_plan_does_not_expose_id_as_a_business_name():
         text=VisibleText();text.feed(raw.decode());visible=' '.join(text.parts)
         assert 'Hedef adı doğrulanamadı' in visible
         assert 'LOCAL-' not in visible and 'TTBP' not in visible and 'PROD' not in visible
-        assert 'Karşılaştırma yapılamadı' in visible and 'fark sonucu üretilemedi' in visible
+        assert 'Karşılaştırma Yapılamadı' in visible and 'fark sonucu üretilemedi' in visible
         assert 'ORA-01031' not in visible and 'UNKNOWN' not in visible

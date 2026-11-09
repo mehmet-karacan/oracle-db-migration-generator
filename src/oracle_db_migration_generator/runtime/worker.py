@@ -7,6 +7,8 @@ Date: 2026-11-02
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
+from concurrent.futures import ThreadPoolExecutor
+import os
 
 from ..artifacts.bundle import write_bundle
 from ..compare.snapshots import compare_snapshots
@@ -42,6 +44,7 @@ def offline_plan(source,target,profile,output,*,name=None,secret_values=(),timin
 
 
 def save_observation(observation,output):
+    """Metadata sözleşmesini doğrular ve bağımsız ham dosyaları sınırlı paralellikle yazar."""
     output=Path(output)
     if output.exists(): raise ValueError('CAPTURE_OUTPUT_ALREADY_EXISTS')
     output.mkdir(parents=True)
@@ -49,15 +52,38 @@ def save_observation(observation,output):
     snapshot=observation.snapshot
     if snapshot is not None:
         document=snapshot.to_dict();validate_document(document,'snapshot.schema.json')
+        payloads = {}
         for obj in snapshot.objects:
             if obj.ddl_path and obj.raw_ddl:
-                path=safe_path(output,obj.ddl_path);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(obj.raw_ddl)
+                path=safe_path(output,obj.ddl_path)
+                if path in payloads and payloads[path] != obj.raw_ddl:
+                    raise ValueError('CAPTURE_DDL_PATH_CONFLICT')
+                payloads[path] = obj.raw_ddl
         for evidence in snapshot.evidence:
             if evidence.query_id!='oracle.compiled-static/v1' or not evidence.path:continue
             artifact=next((item for item in observation.artifacts
                            if item.path==evidence.path and item.sha256==evidence.sha256),None)
             if artifact is None:raise ValueError('ROUTINE_METADATA_EVIDENCE_BLOB_MISSING')
-            path=safe_path(output,evidence.path);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(artifact.raw)
+            path=safe_path(output,evidence.path)
+            if path in payloads and payloads[path] != artifact.raw:
+                raise ValueError('CAPTURE_DDL_PATH_CONFLICT')
+            payloads[path] = artifact.raw
+        try:
+            writers = int(os.environ.get('GENERATOR_CAPTURE_WRITERS', '4'))
+        except ValueError:
+            raise ValueError('CAPTURE_WRITERS_INVALID') from None
+        if not 1 <= writers <= 4: raise ValueError('CAPTURE_WRITERS_INVALID')
+        def write_batch(batch):
+            for path,raw in batch:
+                path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_bytes(raw)
+        items = list(payloads.items())
+        batches = (items[index:index+16] for index in range(0,len(items),16))
+        executor = ThreadPoolExecutor(max_workers=writers,thread_name_prefix='capture-write')
+        try:
+            for _ in executor.map(write_batch,batches): pass
+        finally:
+            executor.shutdown(wait=True,cancel_futures=True)
         (output/'target-snapshot.json').write_bytes(canonical_bytes(document)+b'\n')
 
 

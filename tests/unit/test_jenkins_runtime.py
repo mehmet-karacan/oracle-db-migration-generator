@@ -1,3 +1,8 @@
+"""Schema Compare Jenkins paketini ve salt okunur bildirim sınırlarını örneklerle sınar.
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+"""
 import hashlib
 import json
 import zipfile
@@ -80,7 +85,7 @@ def test_python_archive_outside_link_is_rejected(tmp_path):
 
 def test_jenkins_mail_has_one_explicit_recipient_and_no_distribution_provider():
     text=Path('templates/jenkins-generator.groovy').read_text(encoding='utf-8')
-    assert "to: '@@NOTIFY_TO@@'" in text and 'recipientProviders' not in text
+    assert "to: '@@NOTIFY_TO@@'" in text and "recipientProviders: []" in text
     assert "params.RUN_MODE == 'COMPARE'" in text
 
 
@@ -127,7 +132,7 @@ def test_python_archive_reads_regular_member_once_for_multiple_links(tmp_path,mo
 def test_jenkins_notification_is_visible_html_body_with_consistent_subject():
     text=Path('templates/jenkins-generator.groovy').read_text(encoding='utf-8')
     assert "mimeType: 'text/html'" in text
-    assert 'SKY | Oracle DB Migration Generator | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}' in text
+    assert 'SKY | Schema Compare | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}' in text
     assert 'body: fileExists(report) ? readFile(report)' in text
     assert "attachmentsPattern: ''" in text
 
@@ -152,7 +157,8 @@ def test_notification_has_fixed_build_link_and_no_sql_body(tmp_path):
     url='http://jenkins.example.invalid/job/generator/'
     path=write_notification(tmp_path,run,url+'7/',url)
     html=path.read_text(encoding='utf-8')
-    assert 'Genel' in html and url+'7/artifact/output/runs/build-7/index.html' in html
+    assert 'Raporu ve DDL Dosyalarını Aç' in html and url+'7/artifact/output/runs/build-7/index.html' in html
+    assert html.count('href=')==1
     assert 'CREATE TABLE' not in html and 'ALTER TABLE' not in html
     with pytest.raises(ValueError,match='JENKINS_BUILD_LINK_MISMATCH'):
         write_notification(tmp_path,run,'https://other.invalid/7/',url)

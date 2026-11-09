@@ -4,6 +4,8 @@ Author: Mehmet KARACAN
 Date: 2026-11-02
 """
 import re
+import hashlib
+from collections.abc import Mapping
 
 from .._vendor.analyzer_core.oracle.ddl_tokens import code_tokens, identifier, enclosed
 from .._vendor.analyzer_core.oracle.table import constraint_properties
@@ -17,10 +19,10 @@ def value(obj,key):
     return item.value if item and item.state=='KNOWN' else None
 
 
-def replace_header(raw):
+def replace_header(raw,*,tokens=None):
     # Only the CREATE header changes; body literals and comments stay byte exact.
     text = raw.decode('utf-8')
-    tokens = code_tokens(text)
+    if tokens is None:tokens = code_tokens(text)
     if not tokens or tokens[0].upper!='CREATE':
         raise ValueError('CREATE_HEADER_UNVERIFIED')
     if tokens[1].upper!='OR':
@@ -28,10 +30,29 @@ def replace_header(raw):
     return text.encode('utf-8')
 
 
-def review_source_statement(obj):
+def verified_source_definition(obj):
+    """Yerine yazılabilen birimin ham metnini kaynak doğrulamasıyla eşleştirir."""
+    if (obj.identity.object_type not in {'PACKAGE_SPEC', 'PACKAGE_BODY', 'FUNCTION', 'PROCEDURE', 'VIEW'} or not obj.raw_ddl
+            or obj.coverage.ddl != 'COMPLETE' or obj.coverage.diagnostics
+            or hashlib.sha256(obj.raw_ddl).hexdigest() != obj.ddl_sha256):
+        return False
+    projected = obj.properties.get('projection')
+    definition = obj.properties.get('definition')
+    return bool(projected and projected.state == 'KNOWN' and isinstance(projected.value, Mapping)
+                and definition and definition.state == 'KNOWN' and isinstance(definition.value, str))
+
+
+def verified_package_source(obj):
+    """Paket kaynak kanıtının önceki çağrı sözleşmesini korur."""
+    return obj.identity.object_type in {'PACKAGE_SPEC', 'PACKAGE_BODY'} and verified_source_definition(obj)
+
+
+def review_source_statement(obj,*,tokens=None):
     """Kaynak birimin kimliği korunuyorsa değişim SQL önerisini hazırlar."""
     try:
-        statement=replace_header(obj.raw_ddl)
+        statement=replace_header(obj.raw_ddl,tokens=tokens)
+        if verified_source_definition(obj):
+            return statement
         from ..parsing.adapter import parse_ddl
         parsed=parse_ddl(statement,obj.identity)
         if parsed.sidecars and obj.identity.object_type=='TRIGGER' and len(parsed.sidecars)==1:
@@ -305,19 +326,19 @@ def object_change(context,obj,actual,changes):
             return decide('BLOCKED','OBJECT_METADATA_INCOMPLETE','Kaynak veya hedef birimin gerekli tanım/edition metadata kanıtı eksik.')
         if any(diff.property_path=='/editionable' for diff in changes):
             return decide('BLOCKED','EDITIONABILITY_CHANGE_UNSUPPORTED','Mevcut nesnenin editionable özelliği CREATE OR REPLACE ile değiştirilemez.')
-        words=[t.upper for t in code_tokens(obj.raw_ddl.decode()) or ()]
-        declared=obj.properties.get('dependencies')
         tokens=code_tokens(obj.raw_ddl.decode()) or ()
+        words=[t.upper for t in tokens]
+        declared=obj.properties.get('dependencies')
         declared_complete=bool(declared and declared.state=='KNOWN')
         from ..parsing.dependencies import has_dynamic_sql
         from .review_reasons import routine_inventory
         if has_dynamic_sql(obj):
             return decide('REVIEW_REQUIRED','DYNAMIC_SQL_DEPENDENCY_REQUIRES_REVIEW',
                           'Dinamik SQL içindeki nesne bağımlılıkları doğrulanamadı.'+routine_inventory(obj),
-                          statement=review_source_statement(obj),plsql=kind!='VIEW')
+                          statement=review_source_statement(obj,tokens=tokens),plsql=kind!='VIEW')
         if kind=='TYPE_BODY' and not declared_complete:
             return decide('REVIEW_REQUIRED','TYPE_BODY_DEPENDENCY_INVENTORY_REQUIRED','Type body parametre ve çağrı bağımlılık envanteri doğrulanmalı.',
-                          statement=review_source_statement(obj),plsql=True)
+                          statement=review_source_statement(obj,tokens=tokens),plsql=True)
         # Qualified declarations, %TYPE/%ROWTYPE and code references not covered
         # by a complete exporter inventory remain a review requirement. The
         # CREATE owner.name itself is the first dot and is not a dependency.
@@ -335,15 +356,15 @@ def object_change(context,obj,actual,changes):
             if compiled is not None and not compiled.approved:
                 return decide('REVIEW_REQUIRED','COMPILED_DEPENDENCY_PROOF_INCOMPLETE',
                               ' '.join(compiled.issues)+'.',proof=compiled,
-                              statement=review_source_statement(obj),plsql=True)
+                              statement=review_source_statement(obj,tokens=tokens),plsql=True)
             if compiled:declared_complete=True
         if kind in {'PROCEDURE','FUNCTION','PACKAGE_SPEC','PACKAGE_BODY'} and not declared_complete and qualified_uses>int(own_qualified):
             return decide('REVIEW_REQUIRED','QUALIFIED_REFERENCE_INVENTORY_REQUIRED','Nitelikli çağrı, tip veya değişken referanslarının tam bağımlılık envanteri doğrulanmalı.'+routine_inventory(obj),
-                          statement=review_source_statement(obj),plsql=True)
+                          statement=review_source_statement(obj,tokens=tokens),plsql=True)
         if kind in {'PACKAGE_SPEC','PACKAGE_BODY','PROCEDURE','FUNCTION'} and (any(word in words for word in ('SELECT','INSERT','UPDATE','DELETE','MERGE','EXECUTE'))
                              and not declared_complete):
             return decide('REVIEW_REQUIRED','ROUTINE_DEPENDENCY_INVENTORY_REQUIRED','SQL içeren birimin statik bağımlılık ve çağrı envanteri doğrulanmalı.'+routine_inventory(obj),
-                          statement=review_source_statement(obj),plsql=True)
+                          statement=review_source_statement(obj,tokens=tokens),plsql=True)
         if kind.startswith('TYPE') and not missing:
             return decide('BLOCKED','EXISTING_TYPE_EVOLUTION_UNSUPPORTED','Mevcut type evrimi otomatik üretilmez.')
         if kind=='TRIGGER':
@@ -356,7 +377,7 @@ def object_change(context,obj,actual,changes):
                     raise ValueError('TRIGGER_PARENT_OR_FORM_UNVERIFIED')
                 projection=source_projection(obj);state=projection.properties.get('enabled_state') if projection else None
                 if state not in {None,'ENABLE','DISABLE','ENABLED','DISABLED'}: raise ValueError('TRIGGER_STATE_UNKNOWN')
-                statement=replace_header(obj.raw_ddl)
+                statement=replace_header(obj.raw_ddl,tokens=tokens)
                 source_body=next(i for i,t in enumerate(tokens) if t.upper in {'DECLARE','BEGIN','CALL'})
                 from .trigger_rules import sequence_only_insert
                 table=context.lookup(owner,'TABLE',name)
@@ -379,7 +400,7 @@ def object_change(context,obj,actual,changes):
                               refs=(DependencyReference(owner,'TABLE',name,'TRIGGER_TABLE'),),plsql=True)
             except (ValueError,StopIteration,TypeError):
                 return decide('REVIEW_REQUIRED','TRIGGER_DEFINITION_UNVERIFIED','Trigger parent, enabled durumu veya kod bağımlılığı doğrulanamadı.',
-                              statement=review_source_statement(obj),plsql=True)
+                              statement=review_source_statement(obj,tokens=tokens),plsql=True)
         refs = []
         if kind in {'PROCEDURE','FUNCTION'} and not compiled:
             projection=source_projection(obj)
@@ -404,7 +425,8 @@ def object_change(context,obj,actual,changes):
             from ..parsing.projections import normalize_projection
             if normalize_projection(projection,obj.raw_ddl.decode()).diagnostics:
                 return decide('BLOCKED','TYPE_EFFECTIVE_DEFINITION_UNVERIFIED','Nihai type tanımı kaynak CREATE ve ALTER aralıklarıyla doğrulanamadı.')
-        statement = replace_header(effective_create.encode('utf-8') if effective_create else obj.raw_ddl)
+        statement = (replace_header(effective_create.encode('utf-8')) if effective_create
+                     else replace_header(obj.raw_ddl,tokens=tokens))
         if kind=='VIEW':
             statement = re.sub(rb'(?i)^(\s*CREATE\s+OR\s+REPLACE\s+(?:(?:NON)?EDITIONABLE\s+)?)FORCE\s+',rb'\1',statement,count=1)
         return decide('READY',('CREATE_COMPILED_STATIC_OBJECT' if missing else 'REPLACE_COMPILED_STATIC_OBJECT') if compiled else 'CREATE_VERIFIED_OBJECT' if missing else 'REPLACE_VERIFIED_OBJECT',

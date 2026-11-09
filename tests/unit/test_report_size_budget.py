@@ -1,3 +1,11 @@
+"""Şema Karşılaştırma işlem HTML sayfalarının boyut ve içerik sınırlarını sınar.
+
+Karşılaştırma sayfaları ayrıca ölçülür. İşlem gerekçeleri yalnız işlem
+sayfalarında aranır. Sentetik plan kullanılır ve bağlantı açılmaz.
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+"""
 from copy import deepcopy
 import re
 
@@ -14,6 +22,10 @@ def document(count=1):
 
 def html_pages(result):
     return {name:raw.decode() for name,raw in result.items() if name.endswith('.html')}
+
+
+def operation_pages(pages):
+    return {name:html for name,html in pages.items() if not name.startswith('comparison/')}
 
 
 def test_unicode_rows_paginate_by_bytes_without_losing_or_repeating_operations():
@@ -45,7 +57,9 @@ def test_single_huge_operation_and_warning_previews_keep_complete_json_link():
     op['reason_codes']=[f'REASON_{i}' for i in range(100)]
     plan['warnings']=['LONG: '+('ü<script>w</script>'*20000) for _ in range(25)]
     before=deepcopy(plan)
-    for html in html_pages(render_reports(plan,{})).values():
+    pages=html_pages(render_reports(plan,{}))
+    assert all(len(html.encode())<=200*1024 and '<script>' not in html for html in pages.values())
+    for html in operation_pages(pages).values():
         assert len(html.encode())<=200*1024
         assert '<script>' not in html and '&lt;script&gt;' in html
         assert '92 ek bağımlılık' in html and '92 ek kanıt' in html and '92 ek neden kodu' in html
@@ -69,11 +83,13 @@ def test_small_reports_keep_complete_fields_and_first_five_summary():
 def test_single_operation_that_fits_budget_is_not_truncated():
     plan=document();plan['operations'][0]['reason_tr']='A'*195000+'UNCHANGED_END'
     pages=html_pages(render_reports(plan,{}))
-    assert all('UNCHANGED_END' in html and 'ek karakter' not in html for html in pages.values())
+    assert all(len(html.encode())<=200*1024 for html in pages.values())
+    assert all('UNCHANGED_END' in html and 'ek karakter' not in html for html in operation_pages(pages).values())
 
 
 def test_empty_plan_with_large_warnings_still_has_bounded_pages():
     plan=document(0);plan['warnings']=['WARNING: '+('ş'*300000)]
     pages=html_pages(render_reports(plan,{}))
-    assert len(pages)==2
-    assert all(len(html.encode())<=200*1024 and '299.753 ek karakter' in html for html in pages.values())
+    assert len(operation_pages(pages))==2
+    assert all(len(html.encode())<=200*1024 for html in pages.values())
+    assert all('299.753 ek karakter' in html for html in operation_pages(pages).values())

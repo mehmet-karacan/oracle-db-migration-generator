@@ -1,3 +1,20 @@
+## 9 Kasım 2026 Başarısız Hedefte Kaynak Bilgisi
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Ürün başlığı yalnız Schema Compare olur. Raporu eki kullanılmaz.
+Hedef okunamadığında kaynak adı ve nesne sayısı aynı çalışmanın
+report-context.json kaydından gösterilir. Bu kayıt kaynak SHA ve hedef
+listesiyle doğrulanır. Teknik nesne politikası ve kaynak başına tek sayım
+kuralı korunur. Kaynak kapsamı PARTIAL ise alt sınır notu kalır.
+Karşılaştırma yapılamadıysa fark ve eksik DDL sayıları sıfır gösterilmez.
+Nesne tanımı okuma sırasında değişmişse nedeni açık Türkçeyle yazılır.
+Yeni başlık ve bağlam 98 ortam kontrolünde, 99 kayıtlı mail önizlemesinde
+doğrulandı. 214 ilgili test geçti. Ekip gönderimi onay bekler. Güncel
+normal Pipeline ve test maili alıcısı yalnız mkaracan@innova.com.tr olur.
+Onay geldiğinde Innova-SKY@innova.com.tr adresine dönüş ayrıca uygulanır.
+
 # HTML Rapor Standardı
 
 ## 23 Ekim 2026 kaynak esaslı Tarama Kapsamı
@@ -147,3 +164,163 @@ başlığının altında, sayaçlardan önce tek satırda gösterilir. Bu talima
 alt gri not yerleşiminin yerini alır. Özgün karşılaştırma süresi korunur,
 rapor yenileme süresi bu değere yazılmaz. Eksik/geçersiz özgün saatte
 Ölçülemedi gösterilir. Saat/başlangıç/bitiş ve plan kararları değişmez.
+
+
+## 7 Kasım 2026 Mobil Ve Koyu Eposta
+
+Kaynak Şema ve Hedef Şema etiketleri birlikte kullanılır. Süre ikonunun
+boşluğu tablo hücresiyle korunur. Görünen bütün ikonlar semantic renkli
+varlıkları kullanır. Logo byte'ları değişmez, açık bir yüzeyde gösterilir.
+Mobil özet iki sütun, detaylar alan etiketleriyle alt alta düzenlenir.
+
+email_styles.html.j2 açık ve koyu renkleri birlikte tanımlar. color-scheme
+ve supported-color-schemes light dark olur. prefers-color-scheme ve
+Outlook veri özniteliği seçicileri aynı renkleri taşır. İstemciler arasındaki
+farklar nedeniyle gerçek telefondaki sonuç ayrıca kontrol edilir.
+WebKit yaklaşımı [resmi koyu tema belgesine](https://webkit.org/blog/8840/dark-mode-support-in-webkit/)
+dayanır. SQL ve rapor sayıları bu sunumdan etkilenmez.
+
+
+7 Kasım Outlook kabul düzeltmesi. Bölüm başlıklarının ikon boşluğu
+email_heading.html.j2 içindeki sabit hücreyle korunur. Mobil son özet
+kartı metric-final sınıfıyla tam satıra geçer. Eposta logosunda açık zemin
+PNG piksellerinin içindedir. Asıl transparan logo değişmez. Gömülü önizleme
+innova-logo-email.png kullanır. CID tüketicisi aynı PNG'yi innova-logo
+kimliğine bağlar. Paket bu dosyayı assets/innova-logo-email.png olarak taşır.
+
+
+7 Kasım sonraki Outlook kabulü önceki beş kartlı mobil görünümün yerini
+alır. Hedef sayısı tek bağlam satırı, kalan dört ölçü gerçek iki sütunlu
+HTML tablo olur. Özette display değiştiren mobil CSS bulunmaz. Kart
+etiketleri aynı yüksekliktedir. Eposta logosu resmî beyaz SVG yollarının
+koyu #17283F yüzeydeki PNG sunumudur. Özgün logo varlıkları korunur.
+Resmî kaynak kopyası ve türev ilişkisi assets/email-logo-NOTICE.md içindedir.
+Logo kontrolünde SVG renkleri yanında gerçek PNG harf pikseli de sınanır.
+
+
+7 Kasım son kullanıcı kararı önceki logo türevi kullanımını kaldırır.
+Kurumsal logo assets/innova-logo.png dosyasıdır ve değiştirilmeden kullanılır.
+Başka renk veya zeminle yeniden rasterleştirilmez. Önizlemede gömülü görsel
+özgün dosyayla byte düzeyinde aynı olmalıdır. CID tüketicisi de aynı özgün
+PNG'yi innova-logo kimliğine bağlar. Önceki logo türevleri yalnız yerel
+geçmişte tutulur ve rapor varlık paketine eklenmez.
+
+Rapor başlığı Şema Karşılaştırma Raporu olur. Eposta üst alanında logo ve
+başlık solda, kaynak ve hedef şema bilgileri ikonlarla sağda gösterilir.
+Mobilde kapsam bilgisi başlığın altına iner. Aynı şema bilgileri başlık
+altında ikinci kez yazılmaz. Sayısal özet ve özgün süre değişmez.
+
+
+7 Kasım son Snapshot referansı sağ üst şema kutusunun yerini alır.
+Eposta üst alanında özgün kurumsal logo ve referansta paylaşılan iki mesaj
+alanı bulunur. Başlığın altındaki açıklama kaynak ve hedef şemalarını
+rolleriyle birlikte adlandırır. Ayrı şema kartı bulunmaz. Hedef Ortam
+sayısının ayrı özet satırı kaldırılır. Özet dört temel ölçüden oluşur.
+Kaynak ve hedef sayıları iç veri modelinde korunur. Kurumsal logo dosyası
+aynen kullanılır ve görünür açıklamalar doğal Türkçe olur.
+
+
+7 Kasım 2026 son etiket ve logo zemini düzeni
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Nesne türleri, durumlar ve alan başlıklarında sözcük başları büyük olur.
+Veri Tipi, Paket Tanımı, Sıra Numarası ve Bulunan Fark bu biçimi kullanır.
+Açıklamalar doğal cümle biçimini korur. Teknik kimlikler ve SQL değişmez.
+Kurumsal logo aynen kullanılır. Logo arkasındaki açık zemin ayrı 1 piksel
+RGB görselidir. CSS arka planı ve klasik Outlook VML desteği bu zemini
+taşır. Logo başka zemine rasterleştirilmez veya yeniden renklendirilmez.
+Genel DDL butonu aynı Jenkins çalışmasının SQL arşiv görünümüne gider.
+Bağlantısı olmayan yerel sonuç için Jenkins adresi oluşturulmaz.
+Gerçek istemci görünümü ayrıca kontrol edilir. Yerel render bu kabulün
+yerini almaz.
+
+
+7 Kasım 2026 onaylanan görünüm Jenkins günlük işine alındı. #88 kurulum
+ve #89 arşivle HTML kabulü başarılıdır. UAT ve PROD adları işin rapor
+ortam alanlarından gelir. Kaynak ve hedef şema adları gerçek sonuçtan
+okunur. Genel DDL bağlantısı aynı karşılaştırmanın sabit Jenkins build
+arşivine gider. Dağıtım kanıtı yz/DEVIR.md içindeki aynı tarihli kayıttadır.
+
+## 7 Kasım 2026 Ayrıntılı Rapor Düzeni
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Ana çalışma özeti ve hedef ayrıntıları aynı dört ölçüyü kullanır.
+Üretilen DDL hazır işlemler ile dosyası bulunan önerilerin toplamıdır.
+DDL Dosyası Eksik ölçüsü engelli karar sayısı değildir. Üretilen DDL
+türleri doğrulanmış işlem toplamından hazırlanır. Kaynak ve hedef ortam
+adları işin sunum ayarlarından, şema adları kayıtlı sonuçtan gelir.
+
+Nesne listesinde aynı nesnenin açık sayfadaki işlemleri birleştirilir.
+Soldaki dizinden seçilen nesne sağda açılır. Tür ve DDL dosyası filtreleri
+yalnız açık sayfaya uygulanır. Nesne adı tarayıcının Ctrl+F aramasıyla
+bulunur. Sınırlı sayfalama korunur. JavaScript veya Jenkins güvenlik
+ayarı değişikliği gerekmez.
+
+Değişim, öneri ve kaynak SQL dosyaları statik HTML görüntüleyicide açılır.
+SQL metninin tamamı kaçış uygulanarak gösterilir. Büyük metin bölünür,
+her sayfa en fazla 200 KiB olur. Özgün SQL indirme bağlantısı ayrıca
+bulunur. SQL çalıştırılmaz. Eski arşivin planı ve dosyaları değişmez.
+
+Açık ve koyu tema ile mobil CSS düzeni bulunur. Özgün kurumsal logo
+aynı kalır, arkasında ayrı açık yüzey kullanılır. Yerel belge renderı
+yazı ve varlık kontrolü sağlar. Gerçek tarayıcıdaki filtre, seçim ve
+mobil görünüm kabulünün yerini almaz. Bu aşamada dağıtım yapılmadı.
+
+## 9 Kasım 2026 Kaynak ve Hedef Alan Karşılaştırması
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Nesne ayrıntısında Özellik, Kaynak ve Hedef sütunları bulunur. Alanlar
+kolon, kısıt veya nesne özelliği başlığıyla gösterilir. Planın after
+değeri kaynak, before değeri hedeftir. Yeni fark hesaplanmaz ve SQL
+kararı değiştirilmez. Bilgi Doğrulanamadı, Alan Bulunmuyor, NULL, Boş
+Metin ve Hayır farklı durumlardır. Renk yanında durum metni de bulunur.
+
+Sağ nesne paneli ilk üç alanı kısa gösterir. Kaynak ve Hedefi Karşılaştır
+bağlantısı nesnenin bütün kayıtlı alanlarını açar. Tüm Kaynak ve Hedef
+Farkları dizini işlem oluşturulmamış kayıtları da kapsar. Nesneler ad
+tahminiyle birleştirilmez, kanonik kimlik ve açık change_ids bağları
+kullanılır. İki taraf için bulunmayan özgün tanım uydurulmaz.
+
+Uzun değerler 2.000 karakterlik parçalara ayrılır ve tüm parçalar aynı
+fark kimliğiyle sıralı HTML sayfalarında korunur. Her sayfa en fazla
+200 KiB olur. Özetin kısa gösterildiği açıkça belirtilir. İçerik HTML
+kaçışıyla gösterilir ve baştaki boş satır korunur. Token biçimindeki
+kayıtlı SQL alanları okunabilir sunulur, açıklama metni aynı biçime
+benziyor diye dönüştürülmez. Özgün SQL dosyaları değiştirilmez.
+
+Dar ekranda iki taraf aynı tabloda kalır ve yatay kaydırılır. CSS açık
+ve koyu yüzey renkleri içerir. Bu çalışma yalnız yerel önizlemedir.
+Gerçek tarayıcı ve mobil etkileşim kabulü ayrıca yapılır. Jenkins,
+Oracle ve mail işlemi bu değişikliğin kapsamında değildir.
+
+## 9 Kasım 2026 Epostada Tek Arşiv Bağlantısı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Epostada aynı çalışma arşivine yönlendiren tek bağlantı bulunur.
+Raporu ve DDL Dosyalarını Aç bağlantısı karşılaştırmanın sabit çalışma
+numarasına bağlı genel raporunu açar. Üst bölümde hedef başına Genel DDL
+bağlantıları tekrarlanmaz. Çok hedefli epostada da tek bağlantı kullanılır.
+Nesne ve DDL indirme bağlantıları genel HTML raporunda bulunur.
+
+Doğrulanmış arşiv bağlantısı olmayan yerel eposta için Jenkins URL'si
+oluşturulmaz. Yayın veya bağlantı doğrulama açıklaması düz metin olarak
+korunur. Özgün logo, renkler, özet kartlar ve DDL sayıları değişmez.
+## 9 Kasım 2026 Ürün Adı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcının son adlandırma kararı Schema Compare olur. Eposta, ana
+rapor ve HTML belge başlığı Schema Compare Raporu olarak yazılır.
+Mail konusu SKY | Schema Compare | durum | Build #numara biçimindedir.
+Türkçe açıklamalar ve kaynak hedef etiketleri çevrilmez. Özgün kurumsal
+logo, renkler, düzen ve tek arşiv bağlantısı korunur. Geçmişte gönderilen
+mailler ve geçmiş çalışma arşivleri yeniden yazılmaz.

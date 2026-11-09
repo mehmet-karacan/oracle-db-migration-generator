@@ -1,8 +1,11 @@
-"""Verified completed source checkpoints; live metadata is never cached here.
+"""Şema Karşılaştırma aynı Git içeriğinin doğrulanmış kaynak sonucunu saklar.
 
 A PARTIAL checkpoint stays PARTIAL, as with the explicit prepared-source resume.
 Only identical pinned Git bytes, profile, preparation code and Python can reuse it.
 The bounded parser response cache keeps its separate no-timeout-response policy.
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
 """
 from functools import lru_cache
 import hashlib
@@ -15,7 +18,7 @@ import tempfile
 
 from ..config.loader import load_source_profile
 from ..model.serialization import canonical_bytes, digest
-from ..model.snapshot_io import load_snapshot, safe_path, write_source_snapshot
+from ..model.snapshot_io import load_snapshot, safe_path, write_source_snapshot, source_storage_paths
 from ..parsing.fingerprint import parser_artifact_sha256
 from ..parsing.response_cache import _guard_parents, _plain
 
@@ -36,6 +39,11 @@ def preparation_artifact_sha256():
 
 
 class PreparedSourceCache:
+    """Git byte değerleri ve hazırlama sürümü aynıysa kayıtlı sonucu geri verir.
+
+    Author: Mehmet KARACAN
+    Date: 2026-11-06
+    """
     def __init__(self, root, inputs,*,runtime_fingerprint=None,max_entries=None,max_bytes=None):
         self.root = Path(os.path.abspath(root))
         self.inputs = inputs
@@ -81,8 +89,13 @@ class PreparedSourceCache:
                 or document['schema_version'] != 'prepared-source-cache/1.0'
                 or document['binding'] != self.binding or not isinstance(document['files'], dict)):
             return None
-        expected = {a.path for a in self.inputs.artifacts} | {
+        storage = source_storage_paths(self.inputs)
+        expected = {storage.get(a.path, a.path) for a in self.inputs.artifacts} | {
             'source-snapshot.json', 'source-input.json', 'source-profile.json'}
+        if storage:
+            expected.add('source-storage.json')
+            if json.loads((root/'source-storage.json').read_bytes()) != {'schema_version': 'source-storage/1.0', 'paths': storage}:
+                return None
         if set(document['files']) != expected:
             return None
         actual = set()
@@ -105,7 +118,7 @@ class PreparedSourceCache:
         if json.loads((root/'source-input.json').read_bytes()) != expected_manifest:
             return None
         # Compare current Git bytes independently of the cache's own hash manifest.
-        if any(safe_path(root, a.path).read_bytes() != a.raw for a in self.inputs.artifacts):
+        if any(safe_path(root, storage.get(a.path, a.path)).read_bytes() != a.raw for a in self.inputs.artifacts):
             return None
         snapshot = load_snapshot(root/'source-snapshot.json', require_ddl=True)
         return snapshot if self._bound(snapshot) and snapshot.semantic_digest == document['semantic_digest'] else None

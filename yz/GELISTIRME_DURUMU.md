@@ -1,3 +1,387 @@
+## 9 Kasım 2026 Ana Dal Öncesi Arşiv Tutarlılığı Düzeltmesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Ana dala aktarım kontrolünde önceki Git publication hatası yeniden üretildi.
+Aynı planın ilk HTML dosyası Nesne Listesini Aç bağlantısı taşırken ikinci
+çalışmada ortamdan alınan 42 build adresi yazılıyordu. Sadece index.html ve
+bundle-manifest.json farklıydı. Değişmez plan arşivi bu farkı doğru biçimde
+INTEGRITY_CONFLICT olarak reddediyordu. SQL dosyaları aynıydı.
+
+reporting/web.py artık BUILD_URL ve BUILD_NUMBER değişkenlerinden çalışma
+bağlantısı üretmez. Çalışmaya dönüş yalnız render_reports doğrulanmış
+report_context ile verilebilir. Bağlam yoksa nesne listesi bağlantısı kalır.
+Plan kararı, SQL ve arşiv bütünlük kontrolleri gevşetilmedi. Yeni test aynı
+plan sayfalarının Jenkins ortamı değişse de birebir aynı kalmasını ölçer.
+
+Yeni test önce kırmızı çalıştı. test_report_detail_refresh,
+test_jenkins_publication ve test_publication birlikte 59 PASS verdi.
+Eski başarısız ikinci Git push testi gerçek yerel bare Git ile artık geçer.
+Bu küçük düzeltme ana dala alınır. Kurulu Jenkins cbbb70 paketi bu aktarım
+sırasında değiştirilmez. Yeni canlı karşılaştırma ve mail gönderimi yoktur.
+Kanıt .local/push-main-20261109/archive-tests.xml içinde bulunur.
+Son tam doğrulama 1427 PASS, başarısız ve atlanan sıfır. Komut
+PYTHONPATH src ve çalışma kökü ile python -m pytest -q --tb=short.
+Kanıt .local/push-main-20261109/full-final-tests.xml. Önceki arşiv
+hatası giderildi. Starlette bağımlılığından tek deprecation uyarısı var.
+
+## 9 Kasım 2026 Ana Dala Aktarım Kapsamı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcı yapılan değişiklikler için doğrudan origin/main push yetkisi
+verdi. Yeni branch açılmayacak. Bu çalışma dizininin başlangıç HEAD ve
+origin/main değeri 7efb8b47491d0fbed6c5243d9ea2ca79bad214fd. Çalışma
+HEAD'i detached durumdadır. Ana dalın açık olduğu diğer çalışma dizinindeki
+bekleyen dosyalar bu aktarımın dışındadır.
+
+Kapsam Oracle toplama ve SHA karşılaştırma hızlandırmaları, eksik DDL
+önerileri, HTML kaynak hedef karşılaştırması, mail ikonları, mobil ve koyu
+tema düzenlemeleri, üretim sonucu kaydı ve testlerdir. Güncel Jenkins
+alıcısı Innova-SKY@innova.com.tr ve günlük zamanlama Türkiye saatiyle
+08.00 olarak önceki aşamada doğrulandı. Genel Pipeline şablonunda alıcı
+yer tutucusu korunur. Yerel Jenkins kurulum paketleri ve gerçek çalışma
+çıktıları aktarılmaz. Sürüm motoru ile canlı paket durumu ayrı kayıtlıdır.
+
+Dosya incelemesi 250 ürün, test ve belge dosyasında yerel runtime arşivi
+ve anahtar dosyası bulunmadığını doğruladı. Anahtar ve token kalıpları
+bulunmadı. Son test ve uzak dal doğrulama kanıtı .local/push-main-20261109
+altında tutulur. Bu görev yeni Jenkins koşusu veya SQL uygulaması içermez.
+
+## 9 Kasım 2026 Jenkins Ekip Gönderimi Etkin
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcının 114 mail onayı sonrasında tek alıcı Innova-SKY@innova.com.tr
+oldu. İş etkin ve günlük Türkiye saatiyle 08.00 zamanlaması kayıt sonrası
+doğrulandı. Alıcı satırı dışındaki Pipeline birebir aynı. Yeni çalışma
+ve mail tetiklenmedi. SQL uygulaması yok. Yerel genel şablonun NOTIFY_TO
+yer tutucusu korundu. Kanıt .local/sky-recipient-20261109/receipt.json.
+
+## 9 Kasım 2026 DDL Üretimi ve Uyarılar Ayrıldı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcı eksiksiz DDL üretiminin SUCCESS vermesini istedi. Jenkins'in
+önceki 10 ve 20 kodlarını aynı UNSTABLE sonucuna indirmesi ve planın
+kapsam durumunun üretim sonucu olarak kullanılması düzeltildi.
+Normal Pipeline artık yalnız 10 kodunu eksik DDL olarak UNSTABLE yapar.
+20 ve diğer hata kodları FAILURE verir. Metadata uyarısı tek başına
+Jenkins sonucunu değiştirmez. Ekip alıcısı onay bekler.
+
+Yeni runtime/generation.py doğrulanmış plan ve proposal kataloğundan
+DDL üretimini hesaplar. runtime/aggregate.py her arşivi verify_bundle
+ile doğrular ve ddl-generation.json kaydını rapor tamamlandığında yazar.
+Önceki başarı kaydı yeni doğrulama öncesinde kaldırılır. run.json kapsam
+ve plan kararlarını korur. tools/jenkins_run.py Jenkins dönüş kodunu
+aynı run_id taşıyan üretim kaydından alır. SQL uygulama yetkisi doğmaz.
+
+reporting/view.py ve email/run şablonları metadata, bağımlılık ve diğer
+DDL uyarılarını ayrı gösterir. Eksiksiz dosyalarda DDL Üretimi Tamamlandı
+başlığı görünür. Üretilmiş dosya için eski DDL desteği gerekiyor metni
+kullanılmaz. İlgili dosyaların açıklamalarında nedenler korunur.
+Yeni test test_ddl_generation_status.py, güncellenen iki hedef testi
+başarı, eksik DDL, başarısız hedef, bilinmeyen katalog ve bozuk SQL'i sınar.
+
+Kurulu release cbbb70f2b8a0eb45dc3083791a5e030d745bb1554cb9b4732c627627f1445a02.
+DDL motoru, Oracle kodu ve kurumsal logo önceki 15f87 sürümüyle aynı.
+113 ortam doğrulaması SUCCESS. 114, 112 arşivini ayrı dizine kopyalayıp
+doğruladı. 2120 DDL hazır, eksik 0. Kaynak ve kontrol SQL'leri dahil
+2416 SQL dosyası birebir aynı. Plan JSON ve eski manifest aynı kaldı.
+Yeni Oracle bağlantısı sıfır. SQL uygulanmadı. 105 gerçek karşılaştırma
+süresi 18 dk 29 sn olarak korundu. Yeni canlı koşu yapılmış gibi sunulmadı.
+
+114 sonucu SUCCESS. Plan ve karşılaştırma kapsamı PARTIAL kalır.
+2 metadata belirsizliği, 106 bağımlılık ve 231 diğer DDL uyarısı korunur.
+Mail yalnız mkaracan@innova.com.tr adresine gönderildi. Konu SKY | Schema
+Compare | SUCCESS | Build #114. Tek bağlantı aynı build'in HTML raporuna
+ve DDL dosyalarına gider. Innova-SKY@innova.com.tr onay bekler.
+
+83 kurulu paket testi PASS, başarısız ve atlanan sıfır. Komut PYTHONPATH
+.local/ddl-generation-20261109/release/isolated-product ve çalışma kökü
+olacak şekilde runtime.generation önce import edilerek pytest çalıştırıldı.
+Yeni testler önce kırmızı çalıştı. Tam çalışma PYTHONPATH src ve çalışma
+kökü ile python -m pytest -q --tb=short komutunda 1425 PASS ve 1 eski
+Git publication hatası verdi. Aynı test önceki 95fa pakette de başarısızdı.
+Git publication bu Jenkins yolunda kullanılmıyor. Tam test yeşil denmez.
+Yeni canlı Oracle kabulü NOT_RUN. Jenkins kurulum ve kayıtlı arşiv kabulü
+PASS. Branch, commit ve push yapılmadı. Diğer çalışma değişiklikleri korundu.
+
+Kanıt .local/ddl-generation-20261109/completion-receipt.json ve aynı
+klasörde console, mail, paket manifesti, installed-tests.xml, full-tests.xml
+ve ekran görüntüleridir. Sonraki adım kullanıcı mail onayını beklemektir.
+Ekip alıcısı açık onay olmadan geri açılmaz.
+
+## 9 Kasım 2026 Eksik 238 DDL Tamamlandı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcı 105 sonucundaki 238 eksik DDL'nin tamamlanmasını istedi.
+Oracle DDL ve DML uygulanmadı. Mail yalnız mkaracan@innova.com.tr adresine
+gönderildi. SKY ekip gönderimi kullanıcı onayını bekler. Branch açılmadı,
+commit ve push yapılmadı. Diğer çalışma dizini değişiklikleri korundu.
+
+105 kaydındaki 238 eksikte kaynak nesnesi ve DDL tanımı vardı. 105 işlemde
+bağımlılık kontrolü hazırlanmış SqlIntent'i atıyordu. 133 inceleme kaydında
+üretim yolu eksikti. graph._block hazırlanmış SQL'i proposal olarak korur.
+rules.py graf sonrasında complete_proposals çağırır. Yeni ddl_proposals.py
+kolon tipi, NULL kabulü, collation, constraint durumu ve tanımı, partition,
+indeks ve özel kaynak tanımı için gerekçeli DDL önerisi oluşturur.
+PL/SQL gövdeleri korunur. Eksik kaynak veya belirsiz hedef adı uydurulmaz.
+CTAS ile veri kopyası üretilmez. READY kararı otomatik yükseltilmedi.
+
+Adsız constraint eşleştirmesi tür, tablo ve sıralı kolonlarla yapılır.
+F_CMS_RESULT_ITEM için gerçek SYS_C00150251 adı katalogdan doğrulandı.
+Aynı özellikte birden fazla aday varsa bir ad seçilmez. Durum değişimi
+ALTER TABLE MODIFY CONSTRAINT olarak üretildi. İndeks değişimi ayrı
+öneride DROP INDEX ve özgün CREATE içerir. Yeni tablo ve LOB tanımı
+sadeleştirilmez. Eksik projection durumunda özgün kaynak SQL korunur.
+
+Değişen ürün dosyaları planning/graph.py, planning/rules.py ve yeni
+planning/ddl_proposals.py. Yeni test tests/unit/test_complete_ddl_proposals.py.
+Mevcut test_review_ddl_proposals.py assertion'ı mevcut SQL görüntüleyici
+bağlantı yolunu doğrulayacak şekilde düzeltildi. Yazar ve ilk tarihler korundu.
+Plan docs/superpowers/plans/2026-11-09-complete-ddl-output.md içindedir.
+
+17 yeni test önce kırmızı sonra yeşil çalıştı. Son kurulu paketle 64 ilgili
+test geçti, başarısız ve atlanan sıfır. Komut PYTHONPATH release-v4/isolated-product
+ve çalışma kökü olacak şekilde planning.rules önce import edilerek pytest
+çalıştırıldı. installed-tests.xml aynı motorun kullanıldığını doğrular.
+Tam son test python -m pytest -q --tb=short --junitxml=.local/missing-ddl-20261109/full-final-tests.xml.
+Sonuç 1417 PASS, 1 FAIL ve mevcut Starlette uyarısı. Tek hata
+jenkins_publication yerel bare Git tekrar yayın testinde INTEGRITY_CONFLICT.
+Aynı test yeni DDL kodu olmayan 95fa paketinde de başarısız oldu.
+publication-baseline.xml kanıttır. Tam testin tamamı yeşil gösterilmez.
+Bu görevde kullanılmayan yayın kodu veya global Git ayarı değiştirilmedi.
+
+Kurulu release SHA256
+15f87a51de1baabaced1c62a9c3100e2fc90d05c1801ad8bccf2dc8bd6a4f0cf.
+Yalnız üç planlama dosyası değişti. Karşılaştırma, SQL renderer, bağlantı,
+rapor şablonları, bağımlılıklar ve özgün logo 95fa sürümüyle aynı.
+Önceden çalışma dizinindeki performans değişiklikleri bu pakete karıştırılmadı.
+111 ortam kontrolü SUCCESS, Oracle bağlantısı ve mail sıfır.
+
+112 gerçek 105 kaynak ve hedef snapshot'larıyla kabul çalışması yaptı.
+Yeni Oracle bağlantısı açılması kodda yasaklandı. Kaynak digest
+fd90b29feac875437ab978f093bd29ff2f24c1466c87514b1f0134ec8d0109eb,
+hedef digest 5b5d90d906f40785b7ee9d3a36f0ffd8481896f445546030f9d97bfad58862b3
+özgün planla eşit bulundu. Bütün farklar, işlem kimlikleri, kararlar ve
+bağımlılıklar aynı kaldı. 1783 READY SQL gövdesi yalnız plan kimliği
+başlıkları dışında byte düzeyinde aynı. 105 arşiv ve girdileri değişmedi.
+
+Önceki 99 öneri 337 oldu. 238 yeni DDL, toplam 2120 SQL dosyası,
+eksik DDL 0. Paket manifesti ve hash doğrulamaları geçti. Genel hazır
+betik 1783 READY dosyasını çağırır. Uyarı taşıyan 337 SQL proposals altında
+nesneye göre yer alır ve toplu hazır betiğe otomatik eklenmez. HTML ve mail
+toplamları bu dosyaların tamamını sayar. Son adsız FK dosyası da açıldı.
+Jenkins ham SQL görünümü Türkçe yorumları yanlış charset ile gösterebiliyor.
+Dosyalar UTF-8 üretilir. Bu görüntü kaynak byte hatası diye sunulmaz.
+
+105'in 11895 doğrulanmış farkı ve 3805 kaynak nesnesi değişmedi. 2 kayıt
+metadata açısından hâlâ doğrulanamıyor. Kaynak kapsamı PARTIAL kalır.
+Bu nedenle run PARTIAL ve Jenkins UNSTABLE. Eksik DDL nedeniyle değildir.
+Mailde DDL Üretildi, 2120 DDL ve eksik 0 görünüyor. 18 dk 29 sn özgün 105
+canlı karşılaştırmasının süresidir. Yeni canlı koşu veya yeni beş dakika
+performans kabulü iddiası yoktur. Mailin notu kayıtlı girdilerin yeniden
+üretildiğini açıklar. 112 planlama 83.90 sn, karşılaştırma 11.87 sn,
+paketleme 49.19 sn. Bunlar Oracle toplama süresi içermez.
+
+112 emailext yalnız mkaracan@innova.com.tr adresine gönderimi bitirdi.
+Konu SKY | Schema Compare | UNSTABLE | Build #112. Mailde tek bağlantı
+112/artifact/output/runs/build-112/index.html adresini açar. Başlık Schema
+Compare. Normal Pipeline son kez yeniden okunup v4 ile birebir doğrulandı.
+Günlük saat 08.00, kapsam TTBP ve alıcı yalnız kullanıcı olarak kaldı.
+Ekip PENDING_APPROVAL, gelen kutusu kabulü USER_CONFIRMATION_PENDING.
+
+Offline DDL kabulü PASS. Jenkins kurulumu PASS. Kullanıcı mail gönderimi
+EMAILEXT_COMPLETED. Yeni canlı Oracle toplamayı tekrar etme NOT_RUN.
+Veritabanı uygulaması NOT_EXECUTED. Bu görevde eksik DDL kalmadı.
+Bağımsız açık işler Git yayın testi, iki metadata belirsizliği ve kullanıcı
+mail onayıdır. Kullanıcı onayı olmadan ekip alıcısı açılmaz.
+
+Kanıt .local/missing-ddl-20261109 altında completion-receipt.json,
+missing-105.json, ddl-completion-112.json, accept-112-console.txt,
+release-v4/package-proof.json, release-v4/installed-tests.xml,
+full-final-tests.xml, publication-baseline.xml, pipeline-final-readback.groovy,
+last-constraint-112.sql, report-112.png ve mail-sent-112.png dosyalarındadır.
+Gerçek SQL ve yerel tanı çıktıları Git'e taşınmaz.
+
+## 9 Kasım 2026 Hedef Envanter Tutarlılığı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcı gerçek karşılaştırmanın tamamlanmasını ve mailin yalnız kendisine
+gitmesini istedi. SKY ekip gönderimi onay bekler. Yeni branch veya push yok.
+DDL ve DML uygulanmaz. İşlemler mevcut Jenkins işi ve yetkili arşiv içindedir.
+
+Envanter sorgusu tür ve ad ile sıralanıyor. Bölüm satırlarında bu anahtar
+tekil değil. Eski liste eşitliği yalnız sıra değişimini de hata sayabiliyordu.
+inventory_consistency.py aynı satırların çoklu kümesini karşılaştırır.
+Tekrar sayısı, durum, tarih ve nesne bilgisi korunur. Gerçek değişiklikte
+iki deneme sınırı değişmedi. En fazla sekiz eklenen ve çıkarılan örnek,
+bütün fark sayıları ve iki digest hata veya başarı kaydında saklanır.
+
+101 kısa canlı tanı altı okumada 5336 satır ve 26 tekrar eden tür ile ad
+gösterdi. Bu okumalar sabitti. 97 hatasının kesin nedeni kanıtlanmadı.
+Sentetik sıra değişimi testi eski kodda engellendi ve yeni kodda geçti.
+Kurulu motoru içeren izole pakette 99 toplama testi ve 214 ilgili rapor
+testi geçti. Her iki JUnit kaydında hata, başarısız veya atlanan test sıfır.
+
+Yeni release SHA256
+95fa2020ebaf6e7de66021c8d4a5ad21e132dee9d4e827ea3ff4c3c2ca84e416.
+Önceki 12dcc paketine göre yalnız collector ve yeni yardımcı modül değişti.
+Önceden çalışma dizininde bulunan performans değişiklikleri dağıtılmadı.
+102 ENVIRONMENT_CHECK SUCCESS, Oracle bağlantısı ve mail sıfır.
+Normal Pipeline sürümü ve yalnız kullanıcı alıcısı kaydedilip tekrar okundu.
+
+103 Replay yükleme stash kaydı taşınmadığından Oracle öncesinde durdu.
+Bu başarısızlık maili yalnız kullanıcıya gitti. 104 betik tırnak hatasıyla
+Oracle öncesinde durdu. 105 kurulu SHA doğrulamasını koruyan bir defalık
+Replay ile gerçek karşılaştırmayı başlattı. Kaynak SHA aynı olduğundan 97
+kaynağı snapshot SHA256, profil ve bütün Git girdileriyle tekrar doğrulandı.
+Kaynak PARTIAL kapsamı yükseltilmedi. Canlı kaynak metadata yeniden okundu.
+
+105 hedef toplaması CAPTURED. Tek denemede 5336 başlangıç ve bitiş satırı
+eşit bulundu. Eklenen ve çıkarılan satır sıfır, row_order_changed false.
+Bu canlı denemede envanter değişimi yoktu. Hedef snapshot kaydedildi.
+Toplama 652.9088401850313 saniye sürdü. Gerçek karşılaştırma ve rapor
+1108.615047 saniyede tamamlandı. Bu 18 dakika 29 saniyedir. Planlama
+256.36 saniye, DDL paketi 49.71 saniye, karşılaştırma 10.95 saniyedir.
+
+105 sonucu UNSTABLE, run PARTIAL. Plan üretildi, error_code null.
+11895 fark, 1882 DDL işlemi ve kaynakta 3805 nesne raporlandı. Genel
+partial-ready.sql betiğinde 1783 nesne dosyası çağrısı var. Ayrı inceleme
+önerileri toplam DDL sayısına dahildir. Örnek gerçek CREATE SEQUENCE
+SQL dosyası açıldı. SQL uygulanmadı. Tamamı üretildi iddiası yoktur.
+238 eksik DDL ve 2 doğrulanamayan kayıt açık kalır. Beş dakika hedefi
+bu kurulu motorla sağlanmadı. 97 hatasının kesin nedeni de kanıtlanmadı.
+
+Mail başlığı Schema Compare, konu SKY | Schema Compare | UNSTABLE |
+Build #105. Kaynak TTBP - UAT, hedef TTBP - PROD. Mailde tek bağlantı
+105/artifact/output/runs/build-105/index.html adresini gösterir. Ana DDL,
+HTML SQL görüntüleyici ve ANKET_EMAIL_GONDERIM tablosunun 22 alan farkı
+salt okunur açılıp doğrulandı. Tarayıcı otomasyonunda bazı semantik link
+tıklamaları zaman aşımına uğradı. Görünür bağlantı adresleri doğrudan
+açılarak sayfalar doğrulandı. Bu kayıt tıklama başarısı diye sunulmaz.
+
+Jenkins emailext yalnız mkaracan@innova.com.tr adresine gönderimi
+bitirdi. Gelen kutusuna teslim kullanıcı teyidi bekler. SKY alıcısı,
+CC, BCC ve recipient provider yoktur. Normal Pipeline son kez yeniden
+okundu. Kalıcı tanım yeni release ve kullanıcı alıcısıyla birebir aynı.
+08.00 zamanlaması ve TTBP kapsamı korunur. Ekip PENDING_APPROVAL.
+
+Offline uygulama doğrulaması 313 PASS. Canlı hedef toplama doğrulaması
+PASS. Gerçek karşılaştırma PARTIAL, DDL ve HTML arşivi mevcut. Jenkins
+kurulumu ve kullanıcı mail gönderimi doğrulandı. Oracle DDL/DML NOT_EXECUTED.
+Sonraki somut adım kullanıcı mail onayıdır. Ekip alıcısı bu onaydan önce
+açılmaz. Eksik DDL kayıtlarının çözümü ve performans sürümünün Jenkins
+kabulü ayrı açık işlerdir. Yeni branch, commit veya push yapılmadı.
+
+Kanıtlar .local/capture-consistency-20261109 altında package-proof.json,
+installed-collector-tests.xml, report-tests.xml, pipeline-updated.groovy,
+install-102-console.txt, live-105-console.txt, target-receipt-105.json,
+performance-105.json, run-105.json, completion-receipt.json, report-105.png
+ve mail-sent-105.png.
+
+## 9 Kasım 2026 Başarısız Toplamada Rapor Bilgisi ve Mail Onayı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcı sabahki 97 mailinde Raporu ifadesinin kaldırılmasını ve kaybolan
+bilgilerin düzeltilmesini istedi. Test maili yalnız mkaracan@innova.com.tr
+adresine gidecek. Ekip gönderimi kullanıcı onayına kadar durduruldu.
+Normal Pipeline alıcısı ve iş açıklaması buna göre kaydedilip yeniden okundu.
+Günlük saat Europe/Istanbul 08.00 kaldı. Önceki Innova-SKY alıcısı bu onay
+sürecinde etkin değildir. Kullanıcı onayı gelmeden geri alınmaz.
+
+Gerçek 97 sonucu FAILED, hedef INCONSISTENT, hata CHANGED_DURING_CAPTURE.
+İki hedef okumasında envanter değiştiği için plan ve DDL oluşmadı.
+Bilinmiyor alanlarının nedeni raporun kaynak ve hedef bilgisini yalnız
+başarılı plana bağlı özetten almasıydı. Bağımsız kaynak kaydı yoktu.
+
+reporting/context.py hazır kaynaktan ad, şema, SHA ve tür sayılarını alır.
+Bağlantı bilgisi taşımaz. inventory.py aynı sayım kuralını paylaşır.
+view.py aynı SHA ve hedef kimlikleriyle doğrulanan bağlamı kullanır.
+jenkins_run.py bağlamı hedef okumadan önce report-context.json dosyasına
+yazar. jenkins_notification.py başarısız planda da bu kaydı okuyabilir.
+Başlık email, email_header, run, report şablonları ve Pipeline hata
+gövdesinde yalnız Schema Compare olur. Hesaplanamayan fark ve eksik DDL
+sayısı sıfır gibi gösterilmez. SQL üretildi iddiası boş sonuçtan kaldırıldı.
+
+Sekiz yeni test başarısız hedef, çok hedef, eski SHA, yanlış hedef,
+negatif sayaç, tekrar kayıt ve başarılı planla sayım eşitliğini sınar.
+İlk kırmızı turda yeni modül yoktu. Son test komutu PYTHONPATH kurulu
+motoru taşıyan isolated-product ve çalışma kökü olacak şekilde
+python -m pytest -q tests/unit -k 'report or bundle or jenkins_runtime'
+--tb=short --basetemp=.local/jenkins-mail-repair-20261109/test-temp
+--junitxml=.local/jenkins-mail-repair-20261109/isolated-tests.xml.
+Sonuç 214 PASS, bir mevcut Starlette uyarısı. Önceki sonuç metnine bağlı
+tek assertion yeni Karşılaştırılamadı etiketiyle güncellendi.
+
+Paket 12dcc7683f9647f638e0c24d86c9aabd42fa3b34f8e6438f27c67bd993736aa5.
+98 ENVIRONMENT_CHECK SUCCESS, Python 3.12.15, Oracle bağlantısı sıfır.
+Yeni rapor dosyaları dışında motor, SQL üretimi, kurallar, bağlantı ayarları,
+bağımlılıklar ve özgün logo byte düzeyinde aynı. Jenkins runner değişikliği
+yalnız rapor bağlamını hedef okumadan önce kaydeden iki satır ve ürün adıdır.
+
+99 Replay yalnız 97 arşivini ve 97 kaynak snapshot dosyasını okudu.
+Kaynak SHA 0598ba1f689dcb1b3640ecd7b0169ba72600a7a7, kaynak snapshot SHA256
+ d34c3aea57bdca46832620c058713930ad5db34080b05182a5a954249ae88e01.
+Kaynak kapsam digest değeri özgün source-scopes.json ile aynı bulundu.
+75 özgün arşiv dosyası ve kaynak snapshot değişmedi. Gerçek kaynak sayısı
+3805. Tablo 1271, görünüm 193, saklanan görünüm 1, indeks 1516, fonksiyon
+19, prosedür 64, paket tanımı 75, paket gövdesi 71, veri tipi 9, sıra
+numarası 571, tetikleyici 15. Kaynak kapsamı PARTIAL, gözlenen alt sınır
+notu korunur. Hedef farkı ve DDL bu başarısız çalışmada hesaplanmadı.
+
+99 SUCCESS, emailext yalnız mkaracan@innova.com.tr adresine gönderdi.
+Konu SKY | Schema Compare | UNSTABLE | Build #97 | Onay Önizlemesi.
+Mailde tek düğme 99/artifact/output/report-repair/build-99/index.html
+adresini gösteriyor. Tarayıcıda düzeltilmiş mail ve bu rapor açıldı.
+Yeni karşılaştırma, Oracle bağlantısı veya SQL uygulaması yoktur.
+İlk semantik link tıklaması zaman aşımına uğradı. Aynı görünür bağlantı
+adresi doğrudan açılarak başlık ve 3805 sayısı doğrulandı. Gelen kutusu
+kabulü kullanıcıdan beklenir. Ekip gönderimi PENDING_APPROVAL.
+
+Kanıt .local/jenkins-mail-repair-20261109 altında completion-receipt.json,
+package-proof.json, isolated-tests.xml, build-97-console.txt, run-97.json,
+source-scopes-97.json, install-98-console.txt, preview-99-console.txt,
+pipeline-before.groovy, pipeline-readback.groovy, mail-body.txt,
+mail-links.json, report-preview.png ve mail-sent-proof.png.
+Sonraki adım kullanıcının mail onayıdır. Hedefteki gerçek envanter değişimi
+bu rapor düzeltmesiyle giderildi diye bildirilmez. Tutarlılık kontrolü
+gevşetilmedi. Commit, push ve yeni branch yoktur.
+
+## 9 Kasım 2026 Jenkins SKY Mail Alıcısı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kullanıcının son açık talimatıyla sky/oracle-db-migration-generator
+Pipeline mail alıcısı yalnız Innova-SKY@innova.com.tr oldu. Bu karar
+önceki yalnız mkaracan@innova.com.tr alıcı tanımının yerini alır.
+CC, BCC ve ek alıcı sağlayıcısı yoktur. Konu SKY | Schema Compare |
+durum | Build #numara biçiminde kalır. Saat Europe/Istanbul 08.00,
+TTBP kapsamı ve kurulu 60377c6a paketi değişmedi.
+
+Chrome tarayıcı eklentisinde Pipeline kaydedilip tekrar okundu.
+Önceki tanımla tek fark emailext alıcısıdır. İş açıklamasındaki mail
+adresi de güncellendi. Bütün karşılaştırma ve arşiv adımları aynı.
+Yeni karşılaştırma veya mail başlatılmadı. Test NOT_RUN, yalnız ayar
+kontrolü yapıldı. Kayıttan okunan tanımın birebir eşitliği doğrulandı.
+Kanıt .local/jenkins-sky-recipient-20261109 altında pipeline-before.groovy,
+pipeline-after.groovy, pipeline-readback.groovy, receipt.json ve
+recipient-saved.png. Genel şablondaki NOTIFY_TO yer tutucusu korunur.
+Bu iş için doldurulacak değer Innova-SKY@innova.com.tr olur.
+Sonraki normal çalışmanın maili bu dağıtım adresine gider.
+
 ## 2 Kasım 2026 - Kaynak DDL görünürlüğü
 
 Author: Mehmet KARACAN
@@ -2405,3 +2789,793 @@ tamamlanmadı. Beş dakika hedefi ve canlı kabul henüz sağlanmadı.
 Kapanma hatası için regresyon testi ve sınırlı tekrar uygulandı.
 Parser, lifecycle, kaynak ve cache grubu 52 PASS. UI ilerleme grubu 9 PASS.
 Bu son düzeltmeden sonra tam kaynak ve canlı Oracle kabulü NOT_RUN.
+
+## 6 Kasım 2026 Paket SHA Kontrolü
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Hedef paketlerde önce ham SHA-256, sonra korunan literal ve hint değerleriyle
+içerik SHA kontrolü uygulanır. Aynı kimlikteki doğrulanmış kaynak paket eşleşirse
+ikinci grammar çözümlemesi atlanır. Farklı veya eksik kanıtlı paket mevcut yoldan
+çözülür. Hedefin ham DDL dosyası ve dictionary bilgisi korunur.
+
+Windows kaynak arşivinde harf büyüklüğüyle ayrılan Git yollarının çakışması
+giderildi. Böyle bir kapsamda source-storage.json mantıksal yolları benzersiz
+fiziksel dosyalara eşler. Snapshot kimliği ve SQL gövdeleri değişmez. Önbellek
+aynı Git byte değerlerini yeniden doğrular.
+
+Değişen ürün dosyaları oracle/ddl_model.py, oracle/collector.py,
+model/snapshot_io.py ve source/prepared_cache.py. Ölçüm aracı
+tools/benchmark_package_sha.py. Yeni testler test_package_sha_reuse.py ve
+test_source_case_storage.py. Tam grup 1.301 PASS, son klasör adı genişletmesi
+sonrasında snapshot ve cache grubu 23 PASS.
+
+Canlı yerel çalışma 84ec33119577412eac05337c3c2b5218, kaynak commit
+881ad00a06474bc737e022f2185bc9fce7307c6b. Kaynak hazırlığı 475,52 saniye.
+Hedef toplama 747,11 saniye, 69 paket içerik özetiyle yeniden kullanıldı.
+Ham SHA eşleşmesi sıfır. DDL okumaları 301,77 saniye sürdü.
+Sabit Git içeriğiyle ayrı doğrulanan kaynak .local/package-sha-source-verified-20261106
+altında. Önbelleğe geri yükleme 55,00 saniye ve aynı snapshot sonucu verdi.
+SQL uygulanmadı. Aynı kaynak ve hedef kayıtlarıyla rapor tekrar üretildi.
+Planlama 624,99 saniyeden 76,03 saniyeye, paketleme 161,19 saniyeden
+48,93 saniyeye indi. Yükleme dahil tekrar çalışma 210,34 saniye sürdü.
+2.007 SQL dosyasının gövdeleri aynı. Yalnız plan kimliği satırları farklı.
+Fark ve karar sayıları aynı. Son tam test 1.304 PASS, son tip denetimi
+sonrasında paket, bundle, kural ve kaynak arşivi grubu 74 PASS.
+Yalnız paket çözümlemesinde izole eski yöntem 463,05 saniye, SHA yöntemi
+456,49 saniye sürdü. 107 paketin 69'u yeniden kullanılmasına rağmen kalan
+büyük paketler süreyi belirliyor. İki yöntem arasında 1.285 hazır SQL ve
+öneri gövdesinin tamamı aynı. SQL üretmeyen altı metadata belirsizliği kalktı,
+iki bağımlılık kaydı eklendi. Sıkı fark listesi eşitliği bu nedenle geçmedi.
+SQL eşitliği ayrı doğrulandı. Kanıt .local/package-sha-controlled-sql-verification.json.
+Beş dakika uçtan uca hedefi sağlanmadı.
+
+## 6 Kasım 2026 Canlı Oracle Toplama Checkpoint
+
+Author: Mehmet KARACAN
+Date: 2026-11-06
+
+Kullanıcı checkpoint istedi. Bu aşamadan sonra çalışma durdurulur.
+Yeni canlı yerel koşu 13e0c68e39334091aadde9cc7608c37e tamamlandı.
+Kaynak commit'i 881ad00a06474bc737e022f2185bc9fce7307c6b.
+Aynı profil b744f2e65526414bb92ff58b09117608 kullanıldı.
+Canlı uçtan uca süre 322,67 saniye, yaklaşık 5 dakika 23 saniye.
+Kaynak hazırlığı HIT_VERIFIED ile 29,90 saniye sürdü. Bu sonuç aynı kaynak
+commit'i ve doğrulanmış kaynak/parser önbellekleriyle alındı. Bu kodun ilk
+kaynak hazırlığı ayrıca 395,40 saniye sürdü. Soğuk başlangıç beş dakika değildir.
+
+Oracle toplama 747,33 saniyeden 130,57 saniyeye indi. Dört ayrı salt okunur
+DDL okuyucusu kullanılıyor. Her çalışan kendi oturumunu doğrulayıp kapatıyor.
+Yetki ve kimlik hatası, deadline ve cleanup hataları sessizce başarı sayılmıyor.
+Parser kuyruğu tamamlanma sırasıyla ilerliyor, son metadata/evidence sırası
+envanter sırasına geri konuyor. Önce ve sonra envanter kontrolü korunuyor.
+Sidecar byte ve satır konumları artık tek geçişte hesaplanıyor.
+Sidecar birleştirme 61,17 saniyeden 5,78 saniyeye indi.
+Arşiv dosyaları dört yazıcıyla yazılıyor. Snapshot kaydetme 98,43 saniyeden
+30,02 saniyeye indi. Planlama 65,46 saniye, paketleme 42,83 saniye,
+karşılaştırma 7,47 saniye sürdü. Kalan büyük maliyet planlama aşamasıdır.
+
+1.321 test PASS. Canlı 80 nesneli okuma örneği tek oturumla 8,30 saniye,
+dört oturumla 2,44 saniye sürdü ve DDL byte değerleri aynıydı.
+Tam canlı okuma kaydı tek okuyucuyla ve eski sidecar konum algoritmasıyla
+tekrar işlendi. Snapshot, evidence ve tüm ham DDL byte değerleri birebir aynı.
+Önceki ve yeni rapordaki 2.007 SQL dosyası, yalnız plan kimliği satırı hariç
+aynı. Fark, hazır SQL, inceleme ve engel sayıları değişmedi.
+Mevcut PARTIAL kaynak ve BLOCKED hedef durumu korunuyor. DDL/DML uygulanmadı.
+
+Değişiklikler henüz commit veya push edilmedi. Önceki SHA çalışmasının diff'i
+de çalışma alanında duruyor. Yeni dosyalar oracle/ddl_reads.py,
+tools/benchmark_oracle_collection.py ve ilgili testler. Diğer değişiklikler
+oracle/collector.py, source/sidecars.py, runtime/worker.py ve doğrulanmış
+kaynak birimleri için planning/object_rules.py, emission/sql.py,
+artifacts/bundle.py dosyalarında. Sonraki somut adım 65,46 saniyelik planlamayı
+profil ile açmak ve kalan yaklaşık 23 saniyeyi azaltmak. Önce workspace diff'i
+ve aşağıdaki devir kaydındaki kanıtlar kontrol edilir.
+
+## 7 Kasım 2026 Planlama Ve Sekiz Okuyuculu Canlı Kabul
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcının devam talimatıyla 65,46 saniyelik planlama profillendi.
+Tekrarlanan kolon çıkarımı ve aynı SQL'in tekrar token'lara ayrılması
+kaldırıldı. PlanningContext alanları tek plan içinde, kaynak ve hedef
+ayrımıyla saklar. Değiştirilmiş nesne örnekleri ayrı değerlendirilir.
+graph.py ve index_rules.py bu alanları kullanır. object_rules.py aynı
+ham metnin token'larını tekrar kullanır. DDL gövdesi değiştirilmedi.
+
+Kayıtlı tam girdilerde planlama 35,48 saniye, 8.486 işlemin SQL'i, kararı,
+sırası, gerekçesi ve bağımlılığı aynı. İlk canlı tekrar 7d9976656be04fe4858a04e19e86ef4c
+6 dakika 25 saniye sürdü. Bu koşuda Oracle ve yerel dosya süreleri yükseldi.
+Sonuç başarısız bir performans ölçümü olarak gizlenmedi.
+
+DDL okuyucu üst sınırı ve yerleşik connector varsayılanı 8 oldu.
+Dışarıdan verilen connector varsayılanı 1 kalır. Açık ayar 1 ile 8 arasıdır.
+Sekiz ayrı oturumun READ ONLY, kimlik, kapanış ve seri snapshot eşitliği
+sentetik testte doğrulandı. Son gerçek koşu eb3f0cb0a4314c9a8b7806b146f5d18a
+292,44 saniye, yani 4 dakika 52 saniyedir. Kaynak hazırlığı 30,61,
+Oracle toplama 110,94, snapshot yazımı 34,95, karşılaştırma 8,22,
+planlama 38,69 ve hedef paketleme 49,27 saniye. Genel rapor dahil toplam
+ölçüldü. Aynı sabit kaynak doğrulanmış önbellekten geldi. Soğuk başlangıç
+beş dakika kabulü yapılmadı.
+
+Her iki yeni canlı koşuda 2.007 SQL dosyası yalnız üretilen plan kimliği
+yorumu dışında öncekiyle aynı. Karar ve fark sayıları korundu. Her koşunun
+kendi okuma kaydı seri tekrarlandı. Snapshot, evidence ve ham DDL aynı,
+eksik sorgu sıfır. Koşular arasında sequence sayaçları ilerledi. Ayrı canlı
+snapshot digest'lerinin aynı olduğu söylenmez. SQL uygulanmadı, mail yok.
+
+Son sekiz okuyuculu tam test 1.325 PASS, 196,40 saniye. Önceki tam tekrar
+1.324 PASS. Yeni oturum sınırıyla ilgili 15 test de geçti. Tek uyarı mevcut
+Starlette/AnyIO kullanım dışı kalma bildirimidir. git diff --check geçti.
+Detay docs/PERFORMANS_20261106.md, özel kanıtlar .local altındadır.
+Commit, push, Jenkins değişikliği yapılmadı. Önceki turun diff'i korunur.
+
+## 7 Kasım 2026 Kurumsal Rapor İkonları
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı ikonları ekleyip HTML önizlemesini açmamızı istedi. Yeni
+karşılaştırma ve mail gönderimi açıkça yasaklandı. Sonraki tercihle Font
+Awesome yerine İnnova kurumsal sunum skill'indeki özgün ikonlar kullanıldı.
+Sekiz SVG kaynakla byte olarak aynı. Kaynak hash ve sayfa kaydı
+reporting/assets/innova-icons.json içindedir. PNG türevleri 96 x 96,
+saydam ve oranı korunmuş görsellerdir.
+
+reporting/icons.py özet ve bölüm ikonlarını seçer. Mailde görseller
+gömülüdür. Web raporunda kendi paketindeki dosyalar kullanılır. Harici
+font, CDN veya script yok. Nesne türüne ilgisiz ikon eklenmedi. Eski
+görünür metinler, sayılar ve süre aynı. Kontrol edilen 36.736 arşiv dosyası
+değişmedi. Önizleme .local/corporate-icons-preview-20261107 altında ayrı.
+
+İlgili 51 test geçti. İlk tam tekrarda tek uzun açıklama boyut testi hata
+verdi. Web ikonlarının paket içi dosyalara alınmasıyla içerik kırpılmadan
+düzeldi. Son tam test 1.327 PASS, 202,81 saniye. Tek uyarı mevcut
+Starlette/AnyIO kullanım dışı kalma bildirimidir. Mobil nowrap taşması da giderildi.
+Tarayıcı file:// protokolünü engelledi. Otomatik açılış BLOCKED,
+çevrimdışı HTML render ile görsel kontrol yapıldı. Gerçek mail istemcisi
+NOT_RUN. Oracle, Jenkins, SMTP, commit ve push yapılmadı.
+
+Son test kaydı .local/corporate-report-icons-tests-final.xml. git diff --check
+geçti. Son önizleme 152.376 byte. Browser açılış sınırı dışında uygulama ve
+çevrimdışı doğrulama tamamlandı. Kullanıcı HTML bağlantısından inceleyebilir.
+
+## 7 Kasım 2026 Tema İle Uyumlu Lucide Rapor İkonları
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı kurumsal sunum ikonlarını beğenmedi ve tema, isim ve renk anlamıyla
+uyumlu ikon ailesi seçilmesini istedi. Son görünüm arayüzde kurulu Lucide
+1.61.0 kullanır. Veritabanı, dosya farkı, kod dosyası, arama, saat, dosya
+uyarısı, ayrıntı listesi ve kaynak akışı kendi anlamlarına göre eşleştirildi.
+Renkler tema mavisi, amber, petrol yeşili, nötr gri ve uyarı kırmızısıdır.
+İkonlar hafif zeminlidir. Mail kartlarında ikon ve başlık üstte, sayı ayrı
+satırdadır. Dar ekranda iki kolon kullanılır. Tür ve başlık metinleri korunur.
+
+reporting/icons.py ve rapor şablonları güncellendi. Kaynaklar ve renkler
+reporting/assets/report-icons.json içinde, lisanslar aynı klasörde korunur.
+Sunum varlıkları .local/rejected-corporate-icon-assets-20261107 altında
+özel olarak saklandı. Önceki önizleme değişmedi.
+
+Son önizleme .local/lucide-icons-preview-20261107/report-email.preview.html.
+88.821 byte. Kart metinleri ve sayıları, diğer görünür metinler ve kaynak
+koşudaki 36.736 dosya aynı. Yeni run, Oracle, Jenkins veya SMTP yok.
+1.328 test PASS. Son hizalama kontrolünde ilgili 18 test PASS.
+Tarayıcı dosya protokolü engeli aşılmadı. Offline HTML render ile görsel
+kontrol yapıldı. Commit ve push yapılmadı.
+
+## 7 Kasım 2026 Ortam Etiketleri Ve Nesne Türü İkonları
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcının son isteğiyle seçili raporda kaynak TTBP - UAT ve hedef
+TTBP - PROD gösterilir. Ortam etiketleri kullanıcının sunum bilgisidir.
+build_run_view içindeki isteğe bağlı display_context run_id, kaynak
+commit'i ve hedef kimlikleriyle bağlıdır. Başka koşuda veya projede
+kullanılamaz. Bağlantı hesabı ve şema kimlikleri değiştirilmedi.
+
+Toplam taranan nesne ve toplam DDL kutularına, tablo ve kolon dahil tür
+satırlarına Lucide ikonları eklendi. Tür ikonları 48 x 48 saydam PNG,
+görünür ölçüsü 16px ve aynı nötr tondadır. Özet ikonları mevcut paleti korur.
+Sayılar ve dağılımlar aynı. Değişen kaynaklar reporting/view.py, icons.py,
+render.py ve mail/dağılım şablonlarıdır. Yeni ortam ve tür testleri var.
+
+Önizleme .local/schema-type-icons-preview-20261107/report-email.preview.html.
+132.341 byte. Korunan 36.736 arşiv dosyası aynı. İlgili 49 ve tam 1.333 test
+PASS. Yeni run, Oracle, Jenkins ve mail yok. Tarayıcı engeli aşılmadı,
+yerel HTML render ile görsel kontrol yapıldı. Commit ve push yapılmadı.
+
+## 7 Kasım 2026 Tür İkonlarının Renklendirilmesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı küçük tür ikonlarının karanlık modda da görünmesi için renk
+istedi. 19 Lucide tür ikonuna anlamına uygun renk ve açık rozet zemini
+uygulandı. report_type_icon semantic PNG seçer. Renkler report-icons.json
+içindedir. İkon yolları, metinler, sayılar ve ortam etiketleri aynı.
+
+Kontrast testi kırmızıdan yeşile geçti. Çizgi/rozet kontrastı en az 4.75.
+PNG'ler açık ve koyu zeminde görsel olarak kontrol edildi. İlgili 31 test
+PASS. Tam paket renk revizyonunda tekrar çalıştırılmadı. Önceki tam
+1.333 PASS sonucu korunur. Yeni HTML 138.034 byte. 36.736 arşiv dosyası aynı.
+Önizleme .local/color-type-icons-preview-20261107/report-email.preview.html.
+Yeni karşılaştırma, Oracle, Jenkins, SMTP, commit veya push yok.
+
+
+## 7 Kasım 2026 Güncel HTML Taslağının Tek Alıcıya Gönderimi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı güncel renkli ikonlu taslağın yalnız kendisine gönderilmesini istedi.
+Jenkins tarayıcı oturumu kullanıldı. Kalıcı iş tanımı değiştirilmeden Replay
+üzerinden yalnız emailext adımı çalıştırıldı. Yeni karşılaştırma, Oracle
+bağlantısı ve SQL uygulaması yapılmadı.
+
+Gönderilen dosya .local/color-type-icons-preview-20261107/report-email.preview.html.
+TTBP - UAT ve TTBP - PROD etiketleri korundu. Konu SKY - Şema Karşılaştırma -
+HTML Önizleme - TTBP UAT ve PROD. Tek alıcı mkaracan@innova.com.tr.
+Alıcı sağlayıcısı boş. SQL, HTML veya log dosyası eki gönderilmedi.
+Görseller HTML içinde PNG data URI olarak bulunur. Mail istemcisi görünümü
+ve gelen kutusuna teslim henüz doğrulanmadı.
+
+İlk deneme #80 decodeBase64 izni nedeniyle posta adımından önce durdu.
+Güvenlik ayarları değiştirilmedi. HTML doğrudan gövde olarak verildi.
+#81 HTML Önizleme konsolunda tek alıcıya gönderim ve Finished SUCCESS görüldü.
+cc ve bcc alanları bu eklenti adımında desteklenmediği için boş değerleri
+yok sayıldı. Tek alıcı explicit to ve boş recipientProviders ile korundu.
+Kanıt .local/color-type-icons-preview-20261107/mail-send-receipt.json.
+
+Sonraki adım kullanıcının gerçek mail görünümünü kontrol etmesi.
+Yeni test, commit, push veya branch oluşturma yapılmadı.
+
+
+## 7 Kasım 2026 Mobil Eposta Ve Koyu Tema Düzeltmesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı iPhone ekranlarından sonra mobil düzenin düzeltilmesini istedi.
+Kaynak Şema ve Hedef Şema etiketleri eşitlendi. Süre simgesi ile metin
+ayrı hücrelere alındı. 30 px hücrede 20 px ikon kullanılır, boşluk görsel
+marjına bağlı değildir. Tüm rapor ikonları varsayılan renkli seçilir.
+Saat mavi, izlenebilirlik mor, açıklama ve diğer belge simgeleri mavi oldu.
+Özgün Lucide yolları, lisanslar ve onaylı logo byte'ları korundu.
+
+email_styles.html.j2 açık ve koyu renkleri, Outlook veri özniteliği
+seçicilerini ve mobil düzeni tanımlar. Logo açık bir yüzey üzerinde kalır.
+Küçük açıklamalar büyütüldü. Mobilde özetler iki sütun ve son kart tam
+satır olur. Detay hücreleri alan etiketleriyle alt alta gelir. İzlenebilirlik
+ve alt bilgi dar ekranda tek sütuna geçer. Tablo çizgileri yumuşatıldı.
+
+Değişen kaynaklar reporting/icons.py, email.html.j2, ddl_types_email.html.j2,
+scan_scope.html.j2, yeni email_styles.html.j2 ve beş semantic SVG/PNG çifti.
+Renk kataloğu ve ikon testleri güncellendi. Yeni test_report_email_theme.py
+etiket, fiziksel boşluk, tema, mobil sözleşme ve gerçek renk kontrastını sınar.
+İlk kırmızı sonuç 6 FAIL ve 4 PASS. Son komut PYTHONPATH=src ile
+python -m pytest -q tests/unit -k report --tb=short
+--junitxml=.local/email-mobile-dark-tests.xml. Sonuç 113 PASS, 45,16 saniye.
+Tek uyarı mevcut Starlette/AnyIO kullanım dışı kalma bildirimidir.
+Tam ürün test paketi bu sunum düzeltmesinde tekrar çalıştırılmadı.
+
+Yeni önizleme .local/mobile-dark-preview-20261107/report-email.preview.html.
+143.968 byte. Mevcut kayıttan üretildi. 36.736 arşiv dosyası hash kontrolünde
+aynı kaldı. Sayılar, tür dağılımı, süre ve SQL dosyaları değişmedi.
+Yerel belge renderında açık ve koyu renkler görsel olarak kontrol edildi.
+Yerel renderer mobil table-cell inline-block davranışını tarayıcıyla aynı
+uygulamaz. Mobil yerleşim tarayıcı kabulü ve gerçek iPhone istemcisi NOT_RUN.
+Bu sınırlama .local/mobile-dark-preview-20261107/preview-verification.json
+ve aynı dizindeki offline-theme-render-notes.json içinde kayıtlıdır.
+
+Bu aşamada yeni karşılaştırma, Oracle, Jenkins, SMTP, commit, push veya yeni
+branch yok. Önceki #81 gönderimi eski taslaktır, yeni dosya gönderilmedi.
+Sonraki somut adım güncel önizlemenin ve gerçek iPhone epostasının kontrolü.
+
+
+## 7 Kasım 2026 Mobil Ve Koyu Taslağın Tek Alıcıya Gönderimi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcının açık isteğiyle güncel 143.968 byte HTML önizlemesi gönderildi.
+Jenkins #82 Mobil HTML Önizleme yalnız emailext adımını çalıştırdı.
+Tek alıcı mkaracan@innova.com.tr. recipientProviders boş, başka alıcı veya
+dosya eki yok. Konu SKY - Şema Karşılaştırma - Mobil ve Koyu Tema Önizlemesi.
+Konsolda tek alıcı, gönderilen HTML hash'i ve Finished SUCCESS doğrulandı.
+
+Kanıt .local/mobile-dark-preview-20261107/mail-send-receipt.json,
+jenkins-mail-console.txt ve jenkins-mail-send.png dosyalarıdır.
+Normal iş tanımı ve zamanlaması değiştirilmedi. Yeni karşılaştırma, Oracle
+ve SQL uygulaması yapılmadı. Commit, push veya branch oluşturulmadı.
+Sonraki adım kullanıcının gerçek iPhone mail görünümünü kontrol etmesi.
+Gelen kutusuna teslim ve gerçek istemci görünümü henüz doğrulanmadı.
+
+
+## 7 Kasım 2026 Outlook Logo Ve Bölüm Başlığı Boşluğu
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcının iPhone ve masaüstü Outlook ekranları önceki HTML zeminini
+istemcinin koyulaştırdığını gösterdi. Transparan siyah logo bu zeminde
+kayboluyordu. Epostaya özel innova-logo-email.png opak açık zemin taşır.
+Asıl innova-logo.png byte'ları ve web logosu korunur. Özgün logo aynı
+ölçülerde açık zeminin üzerinde sunuldu. Yeni bağımlılık eklenmedi.
+PNG şeffaflık içermediği için açık zemini HTML renk kuralına bağlı değildir.
+SVG sunum kaynağı ve PNG türevi reporting/assets içinde bulunur.
+CID gönderen tüketici innova-logo kimliğine innova-logo-email.png bağlamalıdır.
+Mevcut Jenkins bildirimi gömülü görselli preview çıktısını kullanır.
+
+email_heading.html.j2 bütün bölüm başlıklarında 32 px ikon hücresi ve
+22 px ikon kullanır. Boşluk resim marjına bağlı değildir. Üretilen DDL,
+Tarama Kapsamı, Hedef Ortam Özeti, Değişiklik Detayları ve Kaynak ve
+İzlenebilirlik bu ortak düzeni kullanır. Mobil son kartta Outlook'ta
+etkisiz kalan last-child seçicisi yerine açık metric-final sınıfı vardır.
+Kaynak ve hedef şema etiketlerinden sonra bölünmeyen boşluk eklendi.
+
+Testler önce 4 FAIL ve 4 PASS gösterdi. Düzeltmeden sonra rapor grubunda
+116 PASS, 30,14 saniye. Komut PYTHONPATH=src ile python -m pytest -q
+tests/unit -k report --tb=short --junitxml=.local/outlook-spacing-tests.xml.
+Tam ürün testleri bu sunum revizyonunda tekrar çalıştırılmadı.
+git diff --check geçti. Tek uyarı mevcut Starlette/AnyIO bildirimidir.
+
+Önizleme .local/outlook-spacing-preview-20261107/report-email.preview.html.
+163.840 byte ve boyut sınırı içinde. 36.736 arşiv dosyası değişmedi.
+Sayılar, dağılımlar, süre ve SQL aynı. Açık ve koyu görünüm yerel belge
+renderında kontrol edildi. Bu renderer gerçek Outlook mobil yerleşiminin
+kabul kanıtı değildir. Gerçek istemci görünümü kullanıcı kontrolünde kalır.
+
+Devam eden mail kontrolü için yeni taslak yalnız mkaracan@innova.com.tr
+adresine gönderildi. Jenkins #83 Logo ve Başlık Önizleme SUCCESS.
+Normal iş tanımı ve zamanlaması değiştirilmedi. Konu SKY - Şema
+Karşılaştırma - Logo ve Başlık Önizlemesi. Yeni karşılaştırma ve Oracle yok.
+Kanıt aynı dizindeki mail-send-receipt.json, jenkins-mail-console.txt ve
+jenkins-mail-send.png dosyalarıdır. Sonraki adım kullanıcının Outlook ve
+iPhone görünümünü kontrol etmesi. Commit, push veya branch oluşturulmadı.
+
+
+## 7 Kasım 2026 Outlook İçin Yerel Tablo Özeti Ve Resmî Beyaz Logo
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı #83 mailinde mobilde hem logo hem kart yerleşiminin bozuk
+kaldığını bildirdi ve güncel iPhone ekranını paylaştı. Önceki tam satır
+çözümü CSS yorumlamasına bağlıydı. Aynı beş değer yeni email_metrics.html.j2
+ile sunulur. Hedef Ortam bir colspan 2 satırıdır. Kalan dört ölçü gerçek
+iki satır ve iki yüzde 50 hücredir. Mobil display ve genişlik kuralları,
+metric-final ve last-child kaldırıldı. Kart etiketlerinde 38 px yükseklik
+sayıları aynı hizada tutar. Kart düzeni CSS media olmadan da korunur.
+
+Logo için web/public/innova-logo-white.svg dosyasının değiştirilmemiş
+kopyası reporting/assets/innova-logo-white-approved.svg içine alındı.
+Özgün yollar korunarak koyu #17283F yüzey üzerinde opak PNG oluşturuldu.
+Asıl transparan siyah logo ve arayüzdeki logolar değiştirilmedi. PNG ve
+HTML yüzeyi aynı renktedir. İstemcinin ters renk üretmesine güvenilmez.
+
+Yerel SVG dönüştürücünün sınıf fill renklerini yok saydığı gerçek piksel
+kontrolünde yakalandı. Sınıf renkleri aynı SVG yollarının açık fill
+alanlarına aktarıldı. Harf yolları aynı kalır. Son PNG'de arka plan
+23,40,63 ve harf 255,255,255 olarak gerçek PNG çözümüyle doğrulandı.
+Yeni png_pixel test yardımcısı standart kütüphaneyle RGB PNG filtrelerini
+çözer. Yalnız katalog rengine bakarak başarılı sayılmaz.
+
+İlk düzen testleri 3 FAIL ve 6 PASS. Gerçek beyaz harf testi siyah pikselde
+ayrıca kırmızı oldu. Son rapor grubu 118 PASS, 37,73 saniye. Komut
+PYTHONPATH=src ile python -m pytest -q tests/unit -k report --tb=short
+--junitxml=.local/outlook-native-grid-tests.xml. Tam ürün test paketi
+tekrarlanmadı. Mevcut Starlette/AnyIO uyarısı dışında test uyarısı yok.
+git diff --check geçti.
+
+Yeni önizleme .local/outlook-native-grid-preview-20261107/report-email.preview.html.
+146.835 byte. 36.736 eski koşu dosyası hash kontrolünde aynı kaldı.
+Sayılar, dağılımlar, süre ve SQL değişmedi. Yerel belge renderında gerçek
+tablo özeti ve logo kontrol edildi. Render gerçek Outlook istemcisinin
+kabulü değildir. Gerçek mobil ve masaüstü görünüm kullanıcı kontrolündedir.
+
+Devam eden mail kontrolü kapsamında Jenkins #84 İki Sütunlu Özet Önizleme
+SUCCESS. Yalnız mkaracan@innova.com.tr adresine gönderildi. Konu SKY - Şema
+Karşılaştırma - İki Sütunlu Özet ve Resmî Logo. Recipient providers boş.
+Dosya eki, yeni Oracle bağlantısı, yeni karşılaştırma veya SQL uygulaması
+yok. Normal iş tanımı ve zamanlama değişmedi. Kanıt aynı dizindeki
+mail-send-receipt.json, jenkins-mail-console.txt ve jenkins-mail-send.png.
+Görsel kaynak kanıtı .local/email-dark-brand-proof.json. Sonraki adım
+kullanıcının #84 mailini iPhone ve masaüstü Outlook'ta kontrol etmesi.
+Commit, push veya branch oluşturulmadı.
+
+
+## 7 Kasım 2026 Özgün Kurumsal Logo Ve Sağ Üst Kapsam Bilgisi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı logonun kesinlikle değiştirilmemesini istedi. Önceki türev logo
+kullanımı kaldırıldı. render_email özgün assets/innova-logo.png dosyasını
+aynen gömer. Dosyanın hash'i a2c9bf53db4c693d39ea8b746a6dd8a5866e592084976d04b8fbac6ab3539ad1.
+Gömülü PNG'nin byte'ları özgün dosyayla karşılaştırılır. Görsele renk,
+filtre, opaklık veya dönüşüm uygulanmaz. Logo türevi dosyalar ürün
+paketinden çıkarılarak .local/retired-logo-drafts-20261107 içine taşındı.
+Özgün kurumsal varlıklar ve geçmiş mail çıktıları değiştirilmedi.
+
+Eposta ve HTML raporlarının başlığı Şema Karşılaştırma Raporu oldu.
+Yeni email_header.html.j2 logo ve başlığı solda, kaynak ve hedef şemaları
+renkli Lucide ikonlarıyla sağda gösterir. Kaynak ve hedef bilgisi aşağıda
+tekrarlanmaz. Mobilde logo ve başlığın ardından kapsam bilgisi gelir.
+Bağlam paneli uzun hedef listesinde ilk beş adı ve kalan hedef sayısını
+gösterir. Süre ve iki sütunlu özet korunur. Şema veya hesap tanımı değişmez.
+
+İlk test 3 FAIL ve 7 PASS. Son tam rapor grubu 118 PASS, 28,97 saniye.
+Komut PYTHONPATH=src ile python -m pytest -q tests/unit -k report
+--tb=short --junitxml=.local/corporate-header-tests.xml. Son ikon hücresi
+boşluğu düzeltmesinden sonra tema ve ortam grubu 14 PASS, 1,71 saniye.
+Tam ürün test paketi tekrarlanmadı. Mevcut Starlette/AnyIO uyarısı korunur.
+git diff --check geçti.
+
+Önizleme .local/corporate-header-preview-20261107/report-email.preview.html.
+152.427 byte. Kaynak arşivdeki 36.736 dosya aynı. Sayılar, dağılımlar,
+süre ve SQL değişmedi. header-preview.png yerel belge renderıdır.
+Gerçek Outlook ve iPhone istemcisi kontrolü NOT_RUN. Bu adımda yeni mail,
+Jenkins çalışması, Oracle bağlantısı, karşılaştırma, commit, push veya
+branch yok. Sonraki somut adım kullanıcının güncel taslağı incelemesi.
+
+
+## 7 Kasım 2026 Snapshot Referansına Göre Sade Eposta Üst Alanı
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı sağ üst şema kutusunu beğenmedi ve DDL Snapshot örneğinin daha
+profesyonel olduğunu belirtti. Hedef Ortam sayısının ayrı satırda ve en sağda
+olmasını gereksiz buldu. Hedef sayısı satırı kaldırıldı. Özet artık dört
+ölçüyü gerçek iki sütunlu tabloda sunar. Hedef sayısı motor verisinden
+silinmedi, yalnız eposta özetindeki satır kaldırıldı.
+
+email_header.html.j2 referanstaki logo, iki kurumsal mesaj alanı, rapor
+başlığı ve açıklama hiyerarşisini kullanır. Sağ üst şema kutusu kaldırıldı.
+Kaynak ve hedef adları başlığın altındaki doğal Türkçe açıklamada görünür.
+Kaynak ve hedef rolleri metinde açıktır. Çoklu hedefte ilk beş ad ve ek
+hedeflerin ayrıntılı raporda bulunduğu bilgisi korunur. Logo aynı özgün PNG
+byte'larıyla kullanılır. Görsele müdahale veya yeni logo türevi yoktur.
+
+İlk test sonucu 3 FAIL ve 13 PASS. İlgili geniş grup 54 PASS. Son rapor
+paketi 118 PASS, 31,62 saniye. Komut PYTHONPATH=src ile python -m pytest -q
+tests/unit -k report --tb=short --junitxml=.local/snapshot-style-tests.xml.
+Tam ürün test paketi tekrarlanmadı. Mevcut Starlette/AnyIO uyarısı dışında
+uyarı yok. git diff --check geçti.
+
+Önizleme .local/snapshot-style-preview-20261107/report-email.preview.html.
+142.006 byte. header-preview.png yerel belge renderıdır. 36.736 kaynak
+arşiv dosyası aynı kaldı. Dört görünen ölçü, DDL dağılımı, SQL ve özgün süre
+aynı. Gerçek Outlook veya iPhone istemcisi kabulü NOT_RUN.
+Bu aşamada mail, Jenkins, Oracle, karşılaştırma, commit, push veya yeni
+branch yok. Sonraki somut adım kullanıcının güncel taslağı incelemesi.
+
+
+## 7 Kasım 2026 Onaylanan Snapshot Düzeninin Tek Alıcıya Gönderimi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı güncel taslağı onaylayarak mobil ve masaüstü kontrolü için
+yalnız kendisine gönderilmesini istedi. Onaylanan 142.006 byte HTML
+aynen gönderildi. Kurumsal logo özgün dosya, kaynak ve hedef açıklama
+satırında, özet dört kart. Tasarım gönderim sırasında değiştirilmedi.
+
+Jenkins #85 Onaylanan HTML Taslağı yalnız emailext adımıyla SUCCESS.
+Tek alıcı mkaracan@innova.com.tr. Recipient providers boş, CC/BCC veya
+dosya eki yok. Konu SKY - Şema Karşılaştırma Raporu - Onaylanan HTML Taslağı.
+Konsolda tek alıcı ve HTML hash'i doğrulandı. Kanıt
+.local/snapshot-style-preview-20261107/mail-send-receipt.json,
+jenkins-mail-console.txt ve jenkins-mail-send.png dosyalarıdır.
+
+Normal iş tanımı ve zamanlaması değiştirilmedi. Yeni karşılaştırma,
+Oracle bağlantısı ve SQL uygulaması yok. Commit, push veya branch yok.
+Sonraki adım kullanıcının mobil ve masaüstü görünümünü kontrol etmesi.
+Gelen kutusuna teslim ve gerçek istemci görünümü henüz doğrulanmadı.
+
+
+## 7 Kasım 2026 Rapor Etiketleri, Logo Zemini ve Genel DDL Bağlantısı
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Rapor türleri, işlem adları, durumlar ve alan başlıkları ortak yazım
+biçimine alındı. Veri Tipi, Paket Tanımı, Paket Gövdesi ve Sıra Numarası
+gibi etiketlerde sözcük başları büyük olur. Açıklama cümleleri, SQL,
+nesne adları ve teknik anahtarlar değiştirilmedi. Ortak etiket kaynağı
+reporting/labels.py dosyasıdır. view.py ve render.py aynı etiketleri kullanır.
+İlgili rapor şablonları ve etiket beklentileri güncellendi.
+
+Kurumsal innova-logo.png dosyası aynen kullanılır. SHA256 değeri
+a2c9bf53db4c693d39ea8b746a6dd8a5866e592084976d04b8fbac6ab3539ad1.
+Logo arkasına ayrı 1 piksel açık zemin görseli eklendi. Bu dosya
+brand-surface-light.png adında, 69 byte ve RGB 245 245 245 değerindedir.
+Logo pikselleriyle birleştirilmez. email_header.html.j2 zemin görselini
+CSS ve klasik Outlook için VML ile taşır. Doğal alan yüksekliği 46 pikseldir.
+Gerçek Outlook koyu tema kabulü bu değişiklik için NOT_RUN.
+
+email_ddl_links.html.j2 aynı Jenkins çalışmasının arşivindeki SQL için
+Genel DDL butonu gösterir. Bağlantı mevcut aggregate_view_path alanından
+alınır ve SQL metin görünümüne gider. Gösterim kritik hedef sınırı olan
+beş hedefi korur. Yerel sonuç için Jenkins adresi uydurulmaz ve yerel
+arşiv Jenkins'e yüklenmez. Normal Jenkins bildirim bağlantı üretimi korunur.
+
+Yeni testler test_report_label_case.py ve test_report_logo_surface.py.
+test_report_jenkins_access.py aynı çalışma bağlantısını, yerel sonuçta
+bağlantı üretilmemesini ve hedef sınırını doğrular. İlk kırmızı sonuçlar
+logo için iki, bağlantı için bir, hedef sınırı için bir ve etiketler için
+sekiz başarısız testtir. Son doğrulamada 154 test geçti. Hata ve atlama yok.
+Süre 50,254 saniye. Komut PYTHONPATH=src ile python -m pytest -q tests/unit
+-k 'report or review_ddl_proposals or sidecar_display_labels or oracle_source'
+--tb=short --junitxml=.local/report-logo-links-labels-tests.xml.
+
+Önizleme .local/logo-surface-labels-preview-20261107/report-email.preview.html.
+143.057 byte. Açık ve koyu yerel belge renderı üretildi. Bu render gerçek
+Outlook veya iPhone doğrulaması sayılmaz. Kaynak arşivdeki 36.736 dosyanın
+hash değeri aynı kaldı. Sayısal özet, DDL dağılımı ve özgün süre değişmedi.
+
+Yerel rapor uygulama doğrulaması PASS. Canlı Oracle kabulü NOT_RUN.
+Jenkins kurulumu ve yeni şablonun canlıya alınması NOT_RUN. Mail, yeni
+karşılaştırma, Oracle bağlantısı, SQL uygulaması, commit, push veya yeni
+branch yok. Sonraki somut adım güncel taslağın incelenmesidir.
+
+
+## 7 Kasım 2026 Güncel HTML Taslağının Tek Alıcıya Gönderimi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı güncel taslağın mobil ve masaüstü kontrolü için yalnız kendisine
+mail gönderilmesini istedi. Chrome tarayıcı eklentisindeki Jenkins oturumu
+kullanıldı. #85 mail adımı Replay üzerinden güncel 143.057 byte HTML ile
+yeniden çalıştırıldı. HTML SHA256 değeri
+52c64d006289340651fcf346d8f7b528cd5053e6ba93f9cc5aa8e44852290055.
+Editör içeriği gönderim öncesinde satır sonları normalize edilerek yerel
+mail betiğiyle aynı bulundu. Yeni #87 Güncel HTML Taslağı SUCCESS.
+Konsolda yalnız mkaracan@innova.com.tr alıcısı ve aynı HTML hash'i doğrulandı.
+Konu SKY - Şema Karşılaştırma Raporu - Güncel HTML Taslağı.
+CC, BCC, recipient provider ve ek yok. Genel DDL bağlantısı olmayan bu
+yerel taslak için Jenkins SQL adresi oluşturulmadı. Gerçek Jenkins
+karşılaştırma raporu kendi arşiv bağlantısını kullanmayı sürdürür.
+
+Kanıt .local/logo-surface-labels-preview-20261107/mail-send-receipt.json
+ve jenkins-mail-console.txt. Yeni karşılaştırma, Oracle bağlantısı, SQL
+uygulaması, normal iş ayarı değişikliği, commit, push veya branch yok.
+Gelen kutusuna teslim ve gerçek istemci görünümü henüz doğrulanmadı.
+Sonraki adım kullanıcının mobil ve masaüstü kontrolüdür.
+
+
+## 7 Kasım 2026 Onaylanan Raporun Jenkins Standardına Alınması
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı onayladığı HTML taslağının normal Jenkins raporu olmasını istedi.
+Chrome tarayıcı eklentisindeki yetkili oturum kullanıldı. Mevcut günlük işin
+Pipeline tanımı önce kaydedildi. Saat Europe/Istanbul 08.00, TTBP varsayılan
+kapsamı ve yalnız mkaracan@innova.com.tr alıcısı korundu. CC ve BCC yok.
+Recipient providers boş liste olarak açıkça tanımlandı. Mail konusu
+SKY - Şema Karşılaştırma Raporu - durum - çalışma numarası biçimine alındı.
+Bildirim hatası metni ve çalışma açıklaması aynı sade adlandırmayı kullanır.
+
+Yeni sabit paket yalnız reporting dizinini ve jenkins_notification.py
+sunum bağlamını günceller. Kaynak ve hedef ortam adları iş ayarlarındaki
+GENERATOR_REPORT_SOURCE_ENVIRONMENT ve GENERATOR_REPORT_TARGET_ENVIRONMENT
+alanlarından alınır. Günlük işte UAT ve PROD tanımlıdır. Şema adı gerçek
+sonuçtan okunur. Ortam bilgileri aynı run_id, source_commit ve hedeflere
+bağlanır. Eksik çift tanımı hata verir. Plan, SQL ve nesne kimliği değişmez.
+Yerel templates/jenkins-generator.groovy de bu bildirim biçimiyle yenilendi.
+
+Temel paket SHA256
+e5b7513b29ad72520accccc84a4e016686262c771215ce740c1ced643f5fb534.
+Kurulan rapor paketi SHA256
+ac3e8d08061988b38beda60f90d705c26465d178896b10e9bf204ff0f53d9dd9.
+Motor dosyaları, bağlantı ayarları, üçüncü taraf bağımlılıklar ve özgün
+kurumsal logo byte düzeyinde aynı. Yerelde bekleyen performans değişiklikleri
+bu dağıtıma eklenmedi. Wheel RECORD, kilit dosyası ve dış manifest doğrulandı.
+
+Önce ortam bağlamı için iki kırmızı test görüldü. Bunlar düzeltildi.
+Şablonun konu ve alıcı beklentileri için iki kırmızı test görüldü, şablon
+aynı biçime alındı. İzole dağıtım wheel dosyasıyla rapor grubu 135 PASS.
+Son rapor ve Jenkins runtime grubu 151 PASS, hata ve atlama yok.
+Süre 23,87 saniye. Komut PYTHONPATH=.local/standard-report-deployment-20261107/isolated-product
+ile python -m pytest -q tests/unit -k 'report or jenkins_runtime' --tb=short
+--junitxml=.local/standard-report-deployment-20261107/final-tests.xml.
+Mevcut Starlette AnyIO kullanımdan kaldırma uyarısı var. git diff --check geçti.
+
+Jenkins #88 ENVIRONMENT_CHECK SUCCESS. Python 3.12.15, bağımlılıklar ve
+TTBP kapsamı doğrulandı. Oracle bağlantısı sıfır. Yeni karşılaştırma ve
+mail yok. Paket ve runtime Jenkins agent workspace alanında korunmuştur.
+Jenkins #89 Rapor Kurulum Kabulü SUCCESS. Yeni kurulu runtime, önceki #86
+kayıtlarından yeni HTML üretti. Özgün logo, açık zemin, başlık yazımı, iki
+sütunlu özet ve aynı #86 SQL arşivine giden Genel DDL bağlantısı doğrulandı.
+Kontrol sırasında 26.689 SQL ve çalışma dosyasının hash değeri aynı kaldı.
+Kabul HTML dosyası 143.587 byte. Normal iş ayarı kabulden sonra yeniden
+okundu ve kaydedilen yeni Pipeline tanımıyla birebir aynı bulundu.
+
+Son gerçek karşılaştırma #86. DDL dizini
+output/runs/build-86/targets/LOCAL-TTBP.
+Toplu dosya partial-ready.sql. Nesne dosyaları objects/TTBP, öneriler
+proposals/TTBP ve kaynak metinleri source-ddl altında bulunur. Teknik hedef
+klasörü LOCAL-TTBP adını korur, rapordaki ortam adı PROD olur. #87 yalnız
+mail taslağı, #88 kurulum ve #89 rapor kabulüdür. Bu işler yeni DDL üretmez.
+Son 20 build için mevcut saklama politikası korunur. Kaynak dosyaları ve
+üretilen DDL yalnız Jenkins arşivi politikasında kalır. Geçmiş arşivler
+bu tasarım için değiştirilmedi.
+
+Kanıt .local/standard-report-deployment-20261107 altında package-proof.json,
+deployment-receipt.json, pipeline-before.groovy, pipeline-after.groovy,
+pipeline-readback.groovy, final-tests.xml, jenkins-install-console.txt,
+jenkins-report-acceptance-console.txt ve jenkins-report-acceptance.png.
+
+Yerel rapor doğrulaması PASS. Jenkins kurulum ve kayıtlı sonuçla rapor
+kabulü PASS. Yeni canlı Oracle karşılaştırması NOT_RUN. Yeni mail NOT_RUN.
+Kullanıcı #87 taslağının mobil ve masaüstü görünümünü onayladı. Yeni günlük
+akışın ilk otomatik mail teslimi bir sonraki 08.00 çalışmasında kontrol edilir.
+Commit, push ve yeni branch yok.
+
+
+## 7 Kasım 2026 Güncel Standart Raporla Manuel Canlı Çalışma
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı normal Jenkins işinin tetiklenmesini ve gelen maili kendisinin
+kontrol etmesini istedi. Chrome tarayıcı eklentisindeki Build with Parameters
+formunda SCHEMA_SCOPE TTBP ve RUN_MODE COMPARE görüldü. Yeni dosya yüklenmeden
+kurulu ac3e8d08061988b38beda60f90d705c26465d178896b10e9bf204ff0f53d9dd9
+rapor paketiyle normal iş başlatıldı. Replay veya mail taslağı işi değildir.
+
+Jenkins #90, 7 Kasım 2026 Türkiye saatiyle 17.13.40 başlangıçlıdır.
+Kaynak Git master commit değeri 0598ba1f689dcb1b3640ecd7b0169ba72600a7a7.
+Python, kapsam ve kaynak checkout adımları geçti. Son gözlemde kaynak
+ayrıştırma 50 / 5687 kayıttadır. Durum RUNNING. Çalışma tamamlandı veya
+mail gönderildi sonucu verilmedi. Normal bildirim yalnız
+mkaracan@innova.com.tr adresine gidecek. Gerçek teslim kullanıcı tarafından
+teyit edilecek. Oracle SQL uygulaması yok. İş ayarı ve saat değiştirilmedi.
+
+Kanıt .local/standard-report-live-build-90/start-receipt.json,
+start-console.txt, latest-console.txt ve jenkins-started.png.
+Sonraki adım #90 sonucu ile report-email.jenkins.html ve tek alıcılı
+emailext konsolunu kontrol etmektir. Kaynak hazırlama ve canlı Oracle
+karşılaştırmasının nihai sonucu henüz doğrulanmadı. Commit ve push yok.
+
+
+## 7 Kasım 2026 Mail Konusu ve 90 Numaralı Çalışmanın Sonucu
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı mail konusunun GPU | DDL Snapshot | SUCCESS | Build #105 örneğiyle
+aynı sırayı kullanmasını istedi. Şema Karşılaştırma için konu
+SKY | Şema Karşılaştırma | durum | Build #numara biçimine alındı.
+Jenkins normal Pipeline tanımında yalnız subject satırı değiştirildi.
+Kaydedilen tanım yeniden okunarak tek satır farkı doğrulandı. Alıcı, saat,
+paket, kapsam ve SQL davranışı korunur. Yerel templates/jenkins-generator.groovy
+ve test beklentisi aynı biçime alındı. Önce bir kırmızı test, sonra ilgili
+23 test PASS. Kaydı .local/jenkins-mail-subject-20261107/tests.xml.
+
+#90 çalışması başlangıçtaki eski konu tanımını korur. Devam eden Pipeline
+iptal edilmedi veya yeniden başlatılmadı. Güncel konu sonraki çalışmalarda
+geçerlidir. Bu değişiklik ayrıca mail veya karşılaştırma başlatmaz.
+
+Önceki mail gecikmesi kontrolünün son gözleminde #90 tamamlanmış bulundu.
+Kaynak ayrıştırma ve hedef metadata aşamaları tamamlandı, sonuç PARTIAL,
+Jenkins sonucu UNSTABLE. Run kimliği 0631f98c-bac6-47d9-8a01-aef261a1190f.
+Konsolda emailext adımı ve Sending email to: mkaracan@innova.com.tr görüldü.
+Gönderim adımı sonrası hata yok, son satır Finished: UNSTABLE. Bu bilgi
+SMTP adımının tamamlandığı kanıtıdır. Gelen kutusuna teslim ve kullanıcı
+okuması doğrulanmış değildir. Mail eski konu biçimiyle gönderilmiştir.
+SQL execution NOT_EXECUTED. Yeni mail gönderilmedi.
+
+Kanıt .local/jenkins-mail-subject-20261107 altında pipeline-before.groovy,
+pipeline-after.groovy, pipeline-readback.groovy, receipt.json ve tests.xml.
+#90 kanıtı .local/standard-report-live-build-90/latest-console.txt ve
+completion-receipt.json. Sonraki adım kullanıcıdan gerçek teslim teyididir.
+Commit, push veya yeni branch yok.
+
+
+## 7 Kasım 2026 Ayrıntılı HTML Rapor İncelemesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Kullanıcı Ayrıntılı Raporu Aç bağlantısındaki sayfaları kontrol etmemizi
+istedi. #90 ana raporu, LOCAL-TTBP hedef özeti ve ilk fark sayfası Chrome
+eklentisinde incelendi. Sunum şablonları ve ortak view hesapları okundu.
+Ana rapor ile hedef detaylarının tasarım, kaynak hedef bilgisi ve sayım
+etiketleri farklı. Ana karttaki 238 DDL Dosyası Eksik ile hedef kartındaki
+164 Üretilemeyen DDL farklı ölçüleri anlatıyor. İkincisi planın engelli
+kararı sayısıdır. Hedef şablonu modelde mevcut dosya eksikliği alanını
+kullanmıyor. 50 fark sayfasında sayfa başına 50 işlem kartı var, arama ve
+filtre yok. Hedef SQL bağlantıları ana raporun Jenkins metin görünümü
+bağlantılarıyla aynı davranışı kullanmıyor. DDL tür dağılımı detaylarda
+yok, başlıklar ve uyarı grupları tekrarlı. Koyu tema CSS desteği yok.
+
+İnceleme .local/detailed-report-review-20261107/review.md içinde yedi
+bulgu, kanıt kapsamı ve önerilen düzen olarak kaydedildi. Canlı DOM
+kayıtları ve ekran görüntüleri aynı dizindedir. Mobil ve koyu tarayıcı
+kabulü NOT_RUN. Bu aşamada yalnız inceleme yapıldı, ürün kodu ve Jenkins
+ayarı değişmedi. Karşılaştırma ve mail yok, test NOT_RUN. Sonraki somut
+adım mailde onaylanan tasarım ailesiyle ortak sayımlar ve bağlamı kullanan
+ayrı ayrıntılı rapor önizlemesini hazırlamaktır. DDL ve plan değişmez.
+
+## 7 Kasım 2026 Ayrıntılı HTML Güncellemesi
+
+Author: Mehmet KARACAN
+Date: 2026-11-07
+
+Yerel rapor uygulaması PASS. Ana ve hedef sayımları ortak ölçülere
+alındı. Üretilen DDL tür dağılımı, gruplanmış sol nesne dizini,
+sağ işlem ayrıntıları ve statik SQL görüntüleyici eklendi.
+Dosyalar ve test komutu yz/DEVIR.md içindeki aynı tarihli kayıttadır.
+Rapor, arşiv ve Jenkins runtime grubu 192 PASS. Eski arşivdeki
+36.736 dosya aynı kaldı. Önizlemede kırık yerel bağlantı yok.
+
+Önizleme .local/detailed-report-preview-20261107/index.html.
+Gerçek tarayıcı ve mobil etkileşim kabulü NOT_RUN. Belge renderı bu
+kabulün yerine geçmez. Canlı Oracle, Jenkins kurulumu, yeni mail ve
+push NOT_RUN. Sonraki adım yerel görünüm kontrolüdür.
+
+## 9 Kasım 2026 Yan Yana HTML Alan Karşılaştırması
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Yerel HTML uygulaması PASS. Nesne ayrıntısına Özellik, Kaynak ve Hedef
+tablosu eklendi. Tam alan değerleri ayrı sınırlı sayfalardan açılır.
+İşlem oluşturulmayan farklar dizinde korunur. Kaynak ve hedef yönü,
+bilinmeyen bilgi, kanonik nesne ayrımı ve metin kaçışı sınandı.
+
+Rapor, arşiv ve Jenkins runtime grubu 206 PASS. Kanıt
+.local/source-target-report-tests-20261109.xml. Ayrı değer grubu
+14 PASS. Eski arşivdeki 36.736 dosya ve özgün logo aynı kaldı.
+19.686 kayıtlı alan farkının tamamı HTML içinde erişilebilir.
+Önizleme .local/source-target-preview-20261109-final/index.html.
+Gerçek tarayıcı ve mobil etkileşim kabulü NOT_RUN. Belge renderı
+yalnız içeriği gösterir. Jenkins kurulumu, yeni Oracle karşılaştırması,
+mail ve push NOT_RUN. Sonraki adım yerel görünümün kullanıcı kontrolüdür.
+
+## 9 Kasım 2026 Jenkins Güncellemesi ve Tek Bağlantılı Mail
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+Kurulu son rapor paketi a6496ce80c9f7dc60ca337f9d407d63453827960360fe3566410349cab1d36d8.
+93 kurulum kontrolü ve 94 kayıtlı sonuçla rapor kabulü SUCCESS.
+Dağıtılan wheel ile 206 test PASS. Alıcı, konu, saat ve kapsam korunur.
+Mailde tek Raporu ve DDL Dosyalarını Aç bağlantısı bulunur. Kaynak ve
+hedef alanları ayrıntılı HTML içinde yan yana açılır.
+
+91 numaralı arşivde 30.279 dosya aynı kaldı. Kayıtlı 11.897 farkın
+tamamı erişilebilir. Yeni Oracle bağlantısı, karşılaştırma ve mail yok.
+Kanıt .local/jenkins-report-final-20261109/deployment-receipt.json.
+Masaüstü görüntüsü kontrol edildi. Mobil ve yeni inbox kabulü NOT_RUN.
+Ana rapordaki Tarama Kapsamı başlığı hizası sonraki görsel kontrolde ele
+alınmalı. Commit, push ve yeni branch yok.
+## 9 Kasım 2026 Gerçek Karşılaştırma ve Schema Compare Adı
+
+Author: Mehmet KARACAN
+Date: 2026-11-09
+
+95 gerçek salt okunur TTBP karşılaştırması UNSTABLE tamamlandı.
+Karşılaştırma 47 dk 25 sn, Jenkins toplam iş süresi arayüzde 48 dk.
+11895 fark, 1882 DDL, 3805 kaynak nesnesi, 238 eksik DDL dosyası ve
+iki doğrulanamayan kayıt var. Kaynak hazırlığı 1080,4 sn, önbellek MISS.
+Mail yalnız izinli alıcıya gitti, kullanıcı ulaştığını doğruladı.
+Tek mail düğmesi doğru 95 raporunu açtı. TTBP.ANKET_EMAIL_GONDERIM
+tablosunun 22 alan farkı kaynak TTBP - UAT, hedef TTBP - PROD olarak
+yan yana açıldı. SQL uygulanmadı.
+
+Kullanıcının sonraki talimatıyla mail ve rapor adı Schema Compare oldu.
+Yeni rapor paketi 60377c6ae668c812fa78c60beb412c369eaf0f6714e4210d1ccbb65e1dac5acb.
+İlgili 206 test PASS. Jenkins 96 yalnız ENVIRONMENT_CHECK, SUCCESS.
+Yeni karşılaştırma, Oracle bağlantısı ve mail yok. Sonraki normal mail
+SKY | Schema Compare | durum | Build #numara konusunu kullanır.
+Kanıt .local/normal-live-build-95-20261109 ve
+.local/schema-compare-brand-20261109 altında. Eski arşivler değiştirilmedi.

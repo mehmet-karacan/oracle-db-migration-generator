@@ -54,7 +54,7 @@ def test_presentation_refresh_preserves_every_non_presentation_byte(tmp_path):
         if name != 'bundle-manifest.json' and not name.endswith('.html') and not name.startswith('assets/'):
             assert (output/name).read_bytes() == raw
         assert (previous/name).read_bytes() == raw
-    assert 'DDL hazır' in (output/'index.html').read_text(encoding='utf-8')
+    assert 'DDL Hazır' in (output/'index.html').read_text(encoding='utf-8')
     assert json.loads((output/'plan.json').read_bytes()) == json.loads(before['plan.json'])
     with pytest.raises(ValueError, match='OUTPUT_ALREADY_EXISTS'):
         refresh_bundle(previous, output)

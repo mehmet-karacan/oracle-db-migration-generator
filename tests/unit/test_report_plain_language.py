@@ -45,10 +45,14 @@ def test_manager_reports_show_plain_status_and_specific_reason_below_it():
              render_reports(plans['TARGET-000'], {})['index.html']]
     for raw in pages:
         text = visible(raw)
-        assert 'DDL üretilemedi' in text
+        assert 'DDL Üretilemedi' in text
         assert not any(code in text for code in ('BLOCKED', '[TABLE]', 'REVIEW_REQUIRED', 'COMMENT', 'AUTO_GENERATED'))
         assert 'APP.ORDERS (PRICE)' in text and 'hedefte bulunamadı' in text
-        assert 'Açıklama' in text and '251' in text and '1.266' in text
+        assert 'Açıklama' in text and '1.266' in text
+        if raw is pages[0]:
+            assert '251' in text
+        else:
+            assert 'DDL Dosyası Eksik' in text
         assert text.index(view['targets'][0]['display_status']) < text.index('APP.ORDERS (PRICE)')
     assert (run, plans) == before
 
@@ -65,10 +69,10 @@ def test_unknown_definition_does_not_become_a_missing_object_claim():
 def test_target_with_ready_sql_is_reported_as_partially_ready():
     run, plans = blocked_inputs()
     view = build_run_view(run, plans)
-    assert view['targets'][0]['display_status'] == 'DDL kısmen hazır'
-    assert 'DDL kısmen hazır' in visible(render_reports(plans['TARGET-000'], {})['index.html'])
+    assert view['targets'][0]['display_status'] == 'DDL Kısmen Hazır'
+    assert 'DDL Kısmen Hazır' in visible(render_reports(plans['TARGET-000'], {})['index.html'])
     plans['TARGET-000']['counts']['ready_operations'] = 0
-    assert build_run_view(run, plans)['targets'][0]['display_status'] == 'DDL üretilemedi'
+    assert build_run_view(run, plans)['targets'][0]['display_status'] == 'DDL Üretilemedi'
 
 
 def test_known_dependency_reason_is_short_unique_and_escaped():

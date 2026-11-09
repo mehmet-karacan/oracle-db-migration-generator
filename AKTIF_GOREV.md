@@ -249,3 +249,71 @@ fark türü filtresi DDL kararından ayrılır. Kaynak/hedef bağlantı ve şema
 Jenkins tanımı uydurulmaz, SQL kuralları değiştirilmez. Plan:
 docs/superpowers/plans/2026-10-25-structured-results.md. Canlı Oracle, Jenkins
 koşusu/job değişimi, SMTP ve Git push yoktur.
+
+9 Kasım 2026 son kullanıcı mail alıcısı kararı
+
+Bu Jenkins Pipeline için kalıcı alıcı yalnız Innova-SKY@innova.com.tr
+adresidir. Önceki yalnız mkaracan@innova.com.tr talimatının yerini alır.
+CC, BCC ve recipient provider yoktur. Konu SKY | Schema Compare | durum |
+Build #numara biçimindedir. Yeni karşılaştırma veya test maili başlatılmaz.
+Canlı tanım tarayıcı eklentisinde kaydedilip yeniden okunarak doğrulandı.
+
+9 Kasım 2026 sonraki kullanıcı mail onayı sınırı
+
+97 mailindeki başarısız hedef bildirimi düzeltildi. Başlık yalnız Schema Compare.
+İlk düzeltme maili yalnız mkaracan@innova.com.tr adresine gönderilir. Ekip
+gönderimi açık kullanıcı onayına kadar bekler. Bu süreçte normal Pipeline da
+yalnız mkaracan@innova.com.tr adresini kullanır. Innova-SKY@innova.com.tr
+alıcısı onay gelmeden geri açılmaz. 98 ortam kontrolü ve 99 mail önizlemesi
+SUCCESS. Yeni Oracle karşılaştırması ve SQL uygulaması yapılmadı.
+
+9 Kasım 2026 hedef okuma düzeltmesi ve canlı karşılaştırma yetkisi
+
+Kullanıcı hedef okuma tutarlılık hatasının düzeltilmesini ve gerçek
+karşılaştırmanın DDL dosyalarıyla tamamlanmasını istedi. Salt okunur Oracle
+toplaması, düzeltilen paketin Jenkins'e kurulması ve sonuç mailinin yalnız
+mkaracan@innova.com.tr adresine gönderilmesi bu kapsamda yetkilidir.
+SKY ekip gönderimi açık kullanıcı onayına kadar kapalı kalır. Oracle DDL
+ve DML uygulanmaz. Yeni branch, commit veya dış Git push yapılmaz.
+Plan docs/superpowers/plans/2026-11-09-capture-consistency.md içindedir.
+
+9 Kasım 2026 eksik DDL üretiminin tamamlanması
+
+Kullanıcı 105 sonucundaki 238 eksik DDL'nin düzeltilmesini ve farklı bütün
+nesneler için DDL oluşturulmasını istedi. Kaynak SQL varsa metadata veya
+bağımlılık uyarısı SQL dosyasını yok etmez. Uyarı dosyanın altında görünür.
+Kayıtlı gerçek kaynak ve hedefle doğrulama, Jenkins sürüm güncellemesi ve
+yalnız mkaracan@innova.com.tr adresine sonuç maili bu kapsamdadır. Oracle
+DDL/DML uygulanmaz. Ekip gönderimi onay bekler. Yeni branch veya push yoktur.
+Plan docs/superpowers/plans/2026-11-09-complete-ddl-output.md içindedir.
+
+9 Kasım 2026 DDL üretimi ve uyarıların ayrılması
+
+Kullanıcı eksiksiz DDL üretiminin Jenkins SUCCESS vermesini istedi.
+Metadata ve bağımlılık uyarıları ayrı gösterilir. Kısmi karşılaştırma
+bilgisi korunur. 112 arşivinin SQL dosyaları değişmeden yeni rapor ve
+yalnız mkaracan@innova.com.tr adresine mail hazırlanır. Jenkins paket ve
+Pipeline güncellemesi bu kapsamdadır. Oracle DDL/DML ve yeni canlı okuma
+yapılmaz. Ekip gönderimi onay bekler. Yeni branch, commit ve push yoktur.
+Plan docs/superpowers/plans/2026-11-09-ddl-generation-status.md içindedir.
+
+9 Kasım 2026 SKY ekip alıcısı için açık onay
+
+Kullanıcı 114 mailini onayladı ve Jenkins alıcısının artık
+Innova-SKY@innova.com.tr olmasını istedi. Normal Pipeline kaydedildi.
+Günlük Europe/Istanbul 08.00 zamanlaması korunur. Önceki yalnız
+mkaracan@innova.com.tr kısıtlaması bu karar ile kaldırılır. Yeni çalışma
+ve test maili tetiklenmez. SQL uygulanmaz. Yeni branch ve push yoktur.
+
+9 Kasım 2026 ana dala gönderim yetkisi
+
+Kullanıcı yapılan değişikliklerin mevcut uzak ana dala push edilmesini
+istedi. Yeni branch oluşturulmaz. Bu çalışma dizinindeki ürün kodu,
+testler ve belgeler origin/main hedefine alınır. Yerel bağlantı, çıktı ve
+çalışma arşivleri Git dışında tutulur. Başka çalışma dizinindeki bekleyen
+değişikliklere dokunulmaz. Önceki push kısıtlaması bu istek için kaldırılır.
+
+Ana dal doğrulamasında aynı planın HTML dosyasının ortam BUILD_URL
+bilgisiyle değiştiği ve Git arşivlemesinin INTEGRITY_CONFLICT verdiği
+saptandı. Kaynaklarda yalnız bu örtük bağlantı kaldırılır. Doğrulanmış
+report_context desteği, SQL içeriği ve arşiv bütünlük kontrolleri korunur.

@@ -30,7 +30,11 @@ def test_dynamic_routine_has_separate_ddl_proposal_and_reason(tmp_path):
     text = proposal.read_text(encoding='utf-8')
     assert 'CREATE OR REPLACE PROCEDURE APP.P' in text
     assert 'Dinamik SQL' in text
-    assert proposal.relative_to(folder).as_posix() in (folder / 'index.html').read_text(encoding='utf-8')
+    relative = proposal.relative_to(folder).as_posix()
+    viewers = [path for path in (folder / 'sql').glob('*.html')
+               if '../'+relative in path.read_text(encoding='utf-8')]
+    assert viewers and any('sql/'+path.name in (folder / 'index.html').read_text(encoding='utf-8')
+                           for path in viewers)
     aggregate = folder / 'partial-ready.sql'
     assert not aggregate.exists() or proposal.relative_to(folder).as_posix() not in aggregate.read_text(encoding='utf-8')
     assert verify_bundle(folder)['status'] == 'VERIFIED'
@@ -49,7 +53,7 @@ def test_namespace_conflict_keeps_source_ddl_as_blocked_proposal(tmp_path):
     assert 'Kaynakta FUNCTION, hedefte aynı adlı TABLE var' in text
     assert '-- Gerekçe ' in text
     report=(folder/'index.html').read_text(encoding='utf-8')
-    assert 'DDL üretildi' in report
+    assert 'DDL Üretildi' in report
     assert 'Üretilen DDL</span><strong>1</strong>' in report
     aggregate=folder/'partial-ready.sql'
     assert not aggregate.exists() or 'proposals/' not in aggregate.read_text(encoding='utf-8')
@@ -72,7 +76,7 @@ def test_email_counts_generated_conflict_sql_without_missing_ddl(tmp_path):
     view=build_run_view(run,{target_id:document},proposal_ids={target_id:{blocked.operation_id}})
     assert view['metrics'][2]['value']=='1'
     assert view['metrics'][4]['value']=='0'
-    assert view['important_objects'][0]['display_status']=='DDL üretildi'
+    assert view['important_objects'][0]['display_status']=='DDL Üretildi'
     html=render_email(view,preview=True).decode('utf-8')
     assert 'Kaynakta fonksiyon, hedefte aynı adlı tablo var.' in html
     assert 'DDL Dosyası Eksik' in html

@@ -1,3 +1,6 @@
+// Schema Compare paketini çalıştırır ve raporu yalnız tanımlı alıcıya gönderir
+// Author: Mehmet KARACAN
+// Date: 2026-11-07
 // Trusted job configuration. Read-only comparison; fixed-recipient Jenkins notification.
 pipeline {
   agent { label 'jenkins-2' }
@@ -17,6 +20,8 @@ pipeline {
     PYTHONDONTWRITEBYTECODE = '1'
     GENERATOR_BUILD_STARTED_AT_MS = "${currentBuild.startTimeInMillis}"
     GENERATOR_CONFIG_DIR = ".runtime/scopes/build-${env.BUILD_NUMBER}"
+    GENERATOR_REPORT_SOURCE_ENVIRONMENT = 'UAT'
+    GENERATOR_REPORT_TARGET_ENVIRONMENT = 'PROD'
     GENERATOR_PARSER_CACHE_DIR = '.runtime/parser-cache'
     GENERATOR_PREPARED_SOURCE_CACHE_DIR = '.runtime/prepared-source-cache'
     GENERATOR_RELEASE_SHA = '@@RELEASE_SHA@@'
@@ -87,8 +92,8 @@ export LD_LIBRARY_PATH="$GENERATOR_ORACLE_CLIENT_DIR:${LD_LIBRARY_PATH:-}"
 ''')
             }
           }
-          if (code == 10 || code == 20) {
-            unstable('Karşılaştırma raporlandı; inceleme/engelli veya UNKNOWN hedef sonuçları var. Hazır SQL dosyaları arşivdedir.')
+          if (code == 10) {
+            unstable('Tespit edilen farkların bazı DDL dosyaları eksik. Metadata ve bağımlılık uyarıları raporda ayrı gösterilir.')
           } else if (code != 0) {
             error("Generator güvenilir sonuç üretemedi; güvenli hata kodu ${code}.")
           }
@@ -101,15 +106,15 @@ export LD_LIBRARY_PATH="$GENERATOR_ORACLE_CLIENT_DIR:${LD_LIBRARY_PATH:-}"
       archiveArtifacts(artifacts: "output/runs/build-${env.BUILD_NUMBER}/**", excludes: "output/runs/build-${env.BUILD_NUMBER}/observations/**", allowEmptyArchive: true, fingerprint: true)
       script {
         if (fileExists("output/runs/build-${env.BUILD_NUMBER}/index.html")) {
-          currentBuild.description = "PROD · ${env.GENERATOR_SCHEMA_SCOPE} · Source/target READ ONLY · SQL uygulanmadı"
+          currentBuild.description = "PROD - ${env.GENERATOR_SCHEMA_SCOPE} - Schema Compare - SQL uygulanmadı"
         }
         if (params.RUN_MODE == 'COMPARE') {
           def report = "output/runs/build-${env.BUILD_NUMBER}/report-email.jenkins.html"
-          emailext(to: '@@NOTIFY_TO@@',
-            subject: "SKY | Oracle DB Migration Generator | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}",
+          emailext(to: '@@NOTIFY_TO@@', recipientProviders: [],
+            subject: "SKY | Schema Compare | ${currentBuild.currentResult} | Build #${env.BUILD_NUMBER}",
             mimeType: 'text/html', attachLog: false,
             attachmentsPattern: '',
-            body: fileExists(report) ? readFile(report) : "<html><body><h2>PROD · ${env.GENERATOR_SCHEMA_SCOPE} karşılaştırması: ${currentBuild.currentResult}</h2><p>Genel rapor üretilemedi. Source ve target salt okunur; SQL uygulanmadı.</p><p><a href='${env.BUILD_URL}'>Jenkins çalışma kaydı</a></p></body></html>")
+            body: fileExists(report) ? readFile(report) : "<html><body><h2>Schema Compare</h2><p>PROD - ${env.GENERATOR_SCHEMA_SCOPE}</p><p>Çalışma ${currentBuild.currentResult} durumuyla sonuçlandı. Genel rapor üretilemedi. Kaynak ve hedef salt okunur. SQL uygulanmadı.</p><p><a href='${env.BUILD_URL}'>Jenkins çalışma kaydı</a></p></body></html>")
         }
       }
     }

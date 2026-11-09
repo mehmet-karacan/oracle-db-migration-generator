@@ -1,9 +1,10 @@
-"""Oracle DB Migration Generator sonucunu Jenkins epostasına dönüştürür.
+"""Schema Compare sonucunu Jenkins epostasına dönüştürür.
 
 Author: Mehmet KARACAN
 Date: 2026-11-02
 """
 import json
+import os
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 from oracle_db_migration_generator.reporting.view import build_run_view
@@ -24,8 +25,19 @@ def write_notification(output,run,build_url,job_url,*,context_note=None,publicat
     timing=json.loads((output/'comparison-timing.json').read_bytes()) if (output/'comparison-timing.json').is_file() else None
     if timing and timing.get('source_commit')!=run['source_commit']:raise ValueError('COMPARISON_TIMING_SOURCE_MISMATCH')
     from oracle_db_migration_generator.reporting.inventory import load_scan_summaries
+    from oracle_db_migration_generator.reporting.context import load_report_context
+    # İşe ait ortam adları yalnız bu koşunun görünen kaynak ve hedef alanlarına eklenir.
+    source_environment=os.environ.get('GENERATOR_REPORT_SOURCE_ENVIRONMENT')
+    target_environment=os.environ.get('GENERATOR_REPORT_TARGET_ENVIRONMENT')
+    if (source_environment is None)!=(target_environment is None):
+        raise ValueError('REPORT_ENVIRONMENT_CONFIGURATION_INCOMPLETE')
+    display_context=None if source_environment is None else {
+        'run_id':run['run_id'],'source_commit':run['source_commit'],
+        'source_environment':source_environment,
+        'target_environments':{target['id']:target_environment for target in run['targets']}}
     view=build_run_view(run,plans,publication=publication,url_check=url_check,allowed_link_hosts=('github.com',),comparison_timing=timing,
-                        scan_summaries=load_scan_summaries(output,run,plans),proposal_ids=proposal_ids)
+                        scan_summaries=load_scan_summaries(output,run,plans),proposal_ids=proposal_ids,display_context=display_context,
+                        report_context=load_report_context(output,run,plans))
     artifact_root=build_url+'artifact/output/runs/build-'+str(number)+'/'
     for target in view['targets']:
         if target['aggregate_path']:

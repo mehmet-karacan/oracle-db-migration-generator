@@ -1,4 +1,4 @@
-"""Şema Karşılaştırma eposta ve web özetlerini sentetik planlarla sınar.
+"""Schema Compare eposta ve web özetlerini sentetik planlarla sınar.
 
 Author: Mehmet KARACAN
 Date: 2026-11-06
@@ -32,7 +32,7 @@ def test_email_limits_unique_objects_and_preserves_unknown_counts():
     assert view['metrics'][0]['value']=='101' and view['metrics'][1]['value']=='235.300'
     html=render_email(view).decode()
     assert 'cid:innova-logo' in html and '<script' not in html and 'CREATE TABLE' not in html
-    assert 'Karşılaştırma yapılamadı' in html and '1 hedeften sonuç alınamadı' in html and '2.353' in html
+    assert 'Karşılaştırma Yapılamadı' in html and '1 hedeften sonuç alınamadı' in html and '2.353' in html
     assert 'artifact-browser.preview' not in html and 'href=' not in html
     assert len(html.encode())<200*1024
 
@@ -54,7 +54,7 @@ def test_email_ddl_types_match_generated_total_and_remove_repeated_summary():
         {'label': 'Kolon', 'count': 1}, {'label': 'Tablo', 'count': 1}]
     assert sum(row['count'] for row in view['ddl_types']['rows']) == 2
     html = render_email(view).decode()
-    assert html.count('Şema karşılaştırması') == 2  # Başlık ve HTML title
+    assert html.count('Schema Compare') == 2  # Başlık ve HTML title
     assert 'Genel Özet' not in html
     assert html.index('Üretilen DDL türleri') < html.index('Tarama Kapsamı')
 

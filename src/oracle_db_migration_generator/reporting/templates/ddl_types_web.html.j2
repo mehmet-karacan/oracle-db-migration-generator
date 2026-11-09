@@ -1,0 +1,4 @@
+{# Şema Karşılaştırma web raporunda gerçek üretilen DDL dağılımını gösterir.
+Author: Mehmet KARACAN
+Date: 2026-11-07 #}
+<section class="distribution" aria-label="Üretilen DDL türleri"><h2 class="section">{{ report_icon('code',22) }} Üretilen DDL</h2><div class="distribution-panel"><div class="distribution-total"><span>Toplam DDL İşlemi</span><strong>{{ ddl_types.total|count_tr }}</strong></div><dl class="distribution-grid">{% for row in ddl_types.rows %}<div><dt>{{ report_type_icon(row.label,18) }} {{ row.label }}</dt><dd>{{ row.count|count_tr }}</dd></div>{% else %}<div>{{ 'Bu çalışmada DDL işlemi üretilmedi.' if ddl_types.total == 0 else 'DDL tür dağılımı doğrulanamadı.' }}</div>{% endfor %}</dl></div><p class="meta">Sayılar DDL işlemlerini gösterir. Aynı nesne için birden fazla işlem bulunabilir.</p></section>

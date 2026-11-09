@@ -1,4 +1,4 @@
-"""Şema Karşılaştırma için Jenkins kaynak hazırlığını ve hedef raporlarını yürütür.
+"""Schema Compare için Jenkins kaynak hazırlığını ve hedef raporlarını yürütür.
 
 Author: Mehmet KARACAN
 Date: 2026-11-06
@@ -242,6 +242,8 @@ def main(argv=None):
             print(json.dumps({'phase':'source_metadata_correspondence',**receipt}),flush=True)
         (output/('source-metadata-receipt'+suffix+'.json')).write_bytes(canonical_bytes(receipt)+b'\n')
     (prepared/'source-snapshot.enriched.json').write_bytes(canonical_bytes(source.to_dict())+b'\n')
+    from oracle_db_migration_generator.reporting.context import build_report_context
+    (output/'report-context.json').write_bytes(canonical_bytes(build_report_context(source,profile,targets))+b'\n')
     from oracle_db_migration_generator.compare.scope import scope_exclusions
     from oracle_db_migration_generator.model.source_scope import source_for_schemas
     from oracle_db_migration_generator.model.serialization import thaw
@@ -275,7 +277,12 @@ def main(argv=None):
     write_notification(output,run,os.environ['BUILD_URL'],settings['job_url'])
     print(json.dumps({'status':run['status'],'target_status':{result['id']:result['status'] for result in results},'run_id':run['run_id'],
                       'read_only':True,'execution_status':'NOT_EXECUTED'}),flush=True)
-    return run['exit_code']
+    # Plan kapsamı kısmi kalabilir. Jenkins sonucu doğrulanmış DDL üretimidir.
+    generation=json.loads((output/'ddl-generation.json').read_bytes())
+    if generation['run_id']!=run['run_id']:
+        raise ValueError('DDL_GENERATION_RUN_MISMATCH')
+    print(json.dumps({'phase':'ddl_generation',**generation}),flush=True)
+    return generation['exit_code']
 
 
 if __name__=='__main__':

@@ -65,7 +65,7 @@ def test_oracle_source_produces_actual_ddl_without_forging_commit(tmp_path):
     from oracle_db_migration_generator.runtime.aggregate import aggregate_run
     run=aggregate_run(tmp_path,source_origin=dict(source.source_origin))
     assert run['source_commit'] is None and run['source_origin']['kind']=='ORACLE'
-    assert 'Kaynak ve çalışma kayıtları' in (tmp_path/'index.html').read_text(encoding='utf-8')
+    assert 'Kaynak ve Çalışma Kayıtları' in (tmp_path/'index.html').read_text(encoding='utf-8')
 
 
 class CommentCursor(FakeCursor):

@@ -1,4 +1,4 @@
-"""Şema Karşılaştırma hedef tanımlarını tek salt okunur oturumla toplar.
+"""Schema Compare hedef metadata ve DDL tanımlarını salt okunur toplar.
 
 Author: Mehmet KARACAN
 Date: 2026-11-06
@@ -24,11 +24,20 @@ from .connection import connect_read_only
 from .enrichment import enrich_object, index_metadata_groups
 from .ddl_model import project_target_object
 from .preflight import safe_error_code
+from .inventory_consistency import inventory_check
+from .ddl_reads import ddl_records, reader_count, active_read_seconds, DDLReadError
 from .queries import CAPTURE_INVENTORY, CAPTURE_QUERIES, COLLATION_PARAMETERS, DDL_TYPES, DEPENDENT_DDL, IDENTITY, READ_ONLY_TRANSACTION, SAMPLE_DDL
 
 
 class CaptureError(ValueError):
-    pass
+    """Toplama nedenini ve varsa sınırlı envanter farkını taşır.
+
+    Author: Mehmet KARACAN
+    Date: 2026-11-09
+    """
+    def __init__(self, code, *, inventory=None):
+        super().__init__(code)
+        self.inventory = inventory
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,7 +126,8 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
     timings = {key:0.0 for key in ('dictionary_group_reads', 'reference_metadata', 'ddl_reads',
                                   'grammar_projection', 'dictionary_enrichment', 'sidecar_merge', 'total')}
     try:
-        connection = connect(target, credentials(mapping.credential_id))
+        credential = credentials(mapping.credential_id)
+        connection = connect(target, credential)
         cursor = connection.cursor()
         cursor.execute(READ_ONLY_TRANSACTION)
         reader_proof=None
@@ -205,28 +215,22 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
         mviews = {row[1] for row in before if row[0]=='MATERIALIZED VIEW'}
         log_tables = {row['log_table'] for row in groups['materialized_view_logs'] or []}
         managed = [row for row in managed if not (row[0]=='TABLE' and row[1] in mviews | log_tables)]
-        def ddl_items():
-            for index, (oracle_kind,name,status,stamp) in enumerate(managed):
+        workers = reader_count(builtin_connector=connect is connect_read_only)
+        read_intervals, slow_reads = [], []
+        def ddl_items(records):
+            for index, raw, reasons, read_started, read_finished in records:
+                oracle_kind,name,status,stamp = managed[index]
                 if time.monotonic() > deadline:
                     raise CaptureError('TARGET_CAPTURE_TIMEOUT')
-                if progress:
-                    progress(index,len(managed))
                 identity = ObjectIdentity(profile.id,Identifier(owner,owner,True),type_map[oracle_kind],Identifier(name,name,True))
                 path = 'target-ddl/'+identity.key+'.sql'
                 ev_id = 'ev-'+digest([target.id,owner,oracle_kind,name,stamp])
-                reasons, raw, projection = [], None, None
-                phase_started = time.monotonic()
-                try:
-                    cursor.execute(SAMPLE_DDL,{'ddl_type':DDL_TYPES[oracle_kind],'name':name,'owner':owner})
-                    row = cursor.fetchone()
-                    if not row or row[0] is None:
-                        raise CaptureError('GET_DDL_RETURNED_EMPTY')
-                    text = row[0].read() if hasattr(row[0],'read') else str(row[0])
-                    if not text.strip(): raise CaptureError('GET_DDL_RETURNED_EMPTY')
-                    raw = text.encode('utf-8')
-                except Exception as error:
-                    reasons.append(safe_error_code(error))
-                timings['ddl_reads'] += time.monotonic()-phase_started
+                projection = None
+                elapsed = read_finished-read_started
+                timings['ddl_reads'] += elapsed
+                read_intervals.append((read_started, read_finished))
+                slow_reads.append({'object_type':type_map[oracle_kind], 'name':name, 'seconds':elapsed,
+                                   'bytes':len(raw) if raw else 0, 'errors':reasons})
                 raw_hash = hashlib.sha256(raw).hexdigest() if raw else None
                 ddl_evidence=Evidence(ev_id,'TARGET_METADATA','TARGET',path if raw else None,raw_hash,
                                          1 if raw else None,len(raw.decode().splitlines()) if raw else None,
@@ -237,29 +241,49 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
                 item = SnapshotObject(identity,properties,path if raw else None,raw_hash,
                                       Coverage('COMPLETE','PARTIAL' if reasons else 'COMPLETE',
                                                'PARTIAL' if failures else 'COMPLETE',tuple(sorted(set(reasons)))),(ev_id,),raw,projection)
-                yield item,ddl_evidence,bool(raw and not reasons)
+                yield index,item,ddl_evidence,bool(raw and not reasons)
+        source_packages = {item.object_key: item for item in source.objects
+                           if item.identity.object_type in {'PACKAGE_SPEC', 'PACKAGE_BODY'}} if source else {}
+        package_statistics = {'raw_sha_match': 0, 'content_sha_match': 0}
         def project_item(record):
-            item,ddl_evidence,needs_projection=record
+            index,item,ddl_evidence,needs_projection=record
             started=time.monotonic()
-            item,context_evidence=project_target_object(item) if needs_projection else (item,())
+            candidate = source_packages.get(item.object_key)
+            statistics = {}
+            item,context_evidence=(project_target_object(item, source=candidate, statistics=statistics) if candidate is not None
+                                  else project_target_object(item)) if needs_projection else (item,())
             elapsed=time.monotonic()-started if needs_projection else 0.0
-            return item,ddl_evidence,context_evidence,elapsed
-        with parallel_parser_map(project_item,ddl_items()) as projected:
-            for item,ddl_evidence,context_evidence,elapsed in projected:
-                evidence.append(ddl_evidence)
-                evidence.extend(context_evidence)
-                timings['grammar_projection'] += elapsed
-                phase_started = time.monotonic()
-                objects.append(enrich_object(item,groups,group_evidence,row_index=row_index))
-                timings['dictionary_enrichment'] += time.monotonic()-phase_started
+            return index,item,ddl_evidence,context_evidence,elapsed,statistics
+        completed = {}
+        try:
+            with ddl_records(managed, cursor, target=target, mapping=mapping, credential=credential,
+                             connect=connect, owner=owner, deadline=deadline, workers=workers) as records:
+                with parallel_parser_map(project_item,ddl_items(records),ordered=False) as projected:
+                    for record in projected:
+                        completed[record[0]] = record[1:]
+                        if progress: progress(len(completed),len(managed))
+        except DDLReadError as error:
+            raise CaptureError(str(error)) from None
+        timings['ddl_read_active_wall'] = active_read_seconds(read_intervals)
+        for index in range(len(managed)):
+            item,ddl_evidence,context_evidence,elapsed,statistics = completed.pop(index)
+            for key, value in statistics.items():
+                package_statistics[key] += value
+            evidence.append(ddl_evidence)
+            evidence.extend(context_evidence)
+            timings['grammar_projection'] += elapsed
+            phase_started = time.monotonic()
+            objects.append(enrich_object(item,groups,group_evidence,row_index=row_index))
+            timings['dictionary_enrichment'] += time.monotonic()-phase_started
         # A new transaction is essential: the final inventory must not reuse
         # the initial read-only transaction's older consistent read point.
         connection.rollback()
         cursor.execute(READ_ONLY_TRANSACTION)
         cursor.execute(CAPTURE_INVENTORY,{'owner':owner})
         after = cursor.fetchall()
-        if before != after:
-            raise CaptureError('CHANGED_DURING_CAPTURE')
+        consistency = inventory_check(before, after)
+        if not consistency['same_rows']:
+            raise CaptureError('CHANGED_DURING_CAPTURE', inventory=consistency)
         partial = any(obj.coverage.ddl!='COMPLETE' for obj in objects)
         snapshot = SchemaSnapshot('snapshot/1.0',False,'TARGET',profile.id,(mapping.source_schema,),None,target.id,
                                   tuple(sorted(objects,key=lambda obj:obj.object_key)),
@@ -282,6 +306,11 @@ def _capture_schema(target, mapping, credentials, profile, connect, deadline, pr
         timings['sidecar_merge'] += time.monotonic()-phase_started
         return snapshot, {'schema':mapping.source_schema,'status':'CAPTURED','dictionary_errors':failures,'capability_errors':capability_errors,
                           'object_count':len(snapshot.objects),'inventory_count':len(before),'phase_timings_seconds':timings,
+                          'inventory_check':consistency,
+                          'package_sha_reuse':package_statistics,
+                          'ddl_reader_workers':min(workers,len(managed)),
+                          'slowest_ddl_reads':sorted(slow_reads,key=lambda item:(-item['seconds'],item['object_type'],item['name']))[:10],
+                          'ddl_read_timing_basis':'SUM_OF_WORKER_DURATIONS',
                           'grammar_projection_timing_basis':'SUM_OF_WORKER_DURATIONS'}, artifacts
     finally:
         # Close all handles, including after permission errors or retry.
@@ -303,18 +332,28 @@ def collect_target(config, credentials, profile, *, connect=connect_read_only, p
     deadline = time.monotonic()+(config.capture_timeout_seconds if timeout_seconds is None else timeout_seconds)
     snapshots, receipts, artifacts, failed = [], [], [], False
     for mapping in config.schema_mappings:
+        changes = []
         for attempt in range(2):
             try:
                 snapshot, receipt, blobs = _capture_schema(config,mapping,credentials,profile,connect,deadline,progress,source)
+                receipt['capture_attempts'] = attempt+1
+                if changes: receipt['previous_inventory_changes'] = changes
                 snapshots.append(snapshot); receipts.append(receipt)
                 artifacts.extend(blobs)
                 break
             except Exception as error:
                 changed = isinstance(error,CaptureError) and str(error)=='CHANGED_DURING_CAPTURE'
+                if changed and error.inventory is not None:
+                    changes.append({'attempt':attempt+1,'inventory_check':error.inventory})
                 if changed and attempt==0:
                     continue
-                code = str(error) if isinstance(error,CaptureError) else safe_error_code(error)
-                receipts.append({'schema':mapping.source_schema,'status':'INCONSISTENT' if changed else 'ERROR','error_code':code})
+                code = str(error) if isinstance(error,(CaptureError,DDLReadError)) else safe_error_code(error)
+                failure = {'schema':mapping.source_schema,'status':'INCONSISTENT' if changed else 'ERROR','error_code':code,
+                           'capture_attempts':attempt+1}
+                if changes:
+                    failure['inventory_check'] = changes[-1]['inventory_check']
+                    failure['inventory_changes'] = changes
+                receipts.append(failure)
                 failed = True
                 break
     snapshot = None
